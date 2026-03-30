@@ -110,15 +110,17 @@ GitHub:
 - **CODEOWNERS**: `* @renatobardi` — owner obrigatorio de todos
   os arquivos
 
-### V. Aprovacao Obrigatoria
+### V. Merge Controlado por @renatobardi
 
-- **@renatobardi e aprovador mandatorio de TODO Pull Request**
-  — sem excecoes
-- Nenhum PR pode ser mergeado sem aprovacao explicita de
-  @renatobardi
-- Isso se aplica a PRs gerados por humanos, IAs, bots ou
-  automacoes (incluindo Dependabot)
-- CODEOWNERS enforce esta regra em nivel de repositorio
+- **@renatobardi e o unico responsavel por mergear PRs em
+  `main`** — sem excecoes
+- Review pode ser feito por qualquer contribuidor, IA ou
+  automacao — o gate de qualidade sao os CI checks
+  (Mandamento VII), nao o approval humano
+- Nenhum PR pode ser mergeado sem TODOS os status checks
+  passarem (lint, type-check, test, build, vuln scan,
+  docs-check)
+- @renatobardi decide quando e se o merge acontece
 
 ### VI. Sem Ambiente de Dev
 

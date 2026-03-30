@@ -16,10 +16,10 @@
 
   const reveal: Action = (node) => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      node.classList.add('revealed');
-      return;
-    }
+    if (prefersReducedMotion) return;
+
+    // Start hidden only after JS confirms it can animate
+    node.classList.add('section-animate');
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -44,7 +44,7 @@
 
 <section
   {id}
-  class="section-reveal min-h-screen flex items-center py-20 lg:py-32 {className}"
+  class="min-h-screen flex items-center py-20 lg:py-32 {className}"
   use:reveal
   {...restProps}
 >
@@ -52,22 +52,14 @@
 </section>
 
 <style>
-  .section-reveal {
+  .section-animate {
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.6s ease-out, transform 0.6s ease-out;
   }
 
-  .section-reveal:global(.revealed) {
+  .section-animate:global(.revealed) {
     opacity: 1;
     transform: translateY(0);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .section-reveal {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
   }
 </style>

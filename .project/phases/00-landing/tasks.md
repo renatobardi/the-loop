@@ -195,13 +195,13 @@
 
 **Purpose**: Documentation, deployment, final validation
 
-- [x] T066 Create README.md at repo root (project description, setup instructions, architecture overview, link to CONSTITUTION.md)
-- [x] T067 [P] Copy spec.md, plan.md, and tasks.md to `.project/phases/00-landing/` (Constitution Mandamento XI)
-- [x] T068 [P] Add social meta tags (Open Graph, Twitter Card) with OG image as SVG/static asset in `apps/web/src/routes/[lang]/+layout.svelte`
-- [x] T069 Validate docs-check CI gate: run `scripts/generate-docs.sh` and verify `git diff --exit-code` passes
-- [x] T070 Validate all CI gates pass end-to-end: lint, type-check, test, build, vuln scan, docs-check
-- [x] T071 Configure Cloud Run deployment: Artifact Registry repo, WIF pool/provider, deployer service account, IAM roles (run.admin, artifactregistry.writer, datastore.user)
-- [x] T072 Configure Cloud Run domain: Global LB + Serverless NEG + Google-managed SSL cert for loop.oute.pro, HTTP→HTTPS redirect
+- [ ] T066 Create README.md at repo root (project description, setup instructions, architecture overview, link to CONSTITUTION.md)
+- [ ] T067 [P] Copy spec.md, plan.md, and tasks.md to `.project/phases/00-landing/` (Constitution Mandamento XI)
+- [ ] T068 [P] Add social meta tags (Open Graph, Twitter Card) with OG image as SVG/static asset in `apps/web/src/routes/[lang]/+layout.svelte`
+- [ ] T069 Validate docs-check CI gate: run `scripts/generate-docs.sh` and verify `git diff --exit-code` passes
+- [ ] T070 Validate all CI gates pass end-to-end: lint, type-check, test, build, vuln scan, docs-check
+- [ ] T071 Configure Cloud Run deployment: Artifact Registry repo, WIF pool/provider, deployer service account, IAM roles (run.admin, artifactregistry.writer, datastore.user)
+- [ ] T072 Configure Cloud Run domain: Global LB + Serverless NEG + Google-managed SSL cert for loop.oute.pro, HTTP→HTTPS redirect
 - [ ] T073 Deploy to production via merge to main — verify loop.oute.pro serves the landing page
 - [ ] T074 Post-deploy validation: Lighthouse audit on production, security headers check, waitlist form end-to-end test on production, verify all 3 locales work
 

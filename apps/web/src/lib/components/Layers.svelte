@@ -33,7 +33,7 @@
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-      {#each layers as layer}
+      {#each layers as layer (layer.name)}
         <Card>
           <Badge variant={layer.badgeVariant}>{layer.badge}</Badge>
           <h3 class="text-xl font-semibold mt-4">{layer.name}</h3>

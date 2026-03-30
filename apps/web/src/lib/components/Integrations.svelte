@@ -53,7 +53,7 @@
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-      {#each integrations as integration, i}
+      {#each integrations as integration, i (integration.name)}
         <Card class="text-center">
           <div class="flex justify-center mb-4">
             {#if i === 0}

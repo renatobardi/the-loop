@@ -14,6 +14,7 @@
       <a href="https://github.com/renatobardi/the-loop" target="_blank" rel="noopener noreferrer" class="hover:text-text transition-colors">
         GitHub
       </a>
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- static external link -->
       <a href="/constitution" class="hover:text-text transition-colors">
         Constitution
       </a>

@@ -29,7 +29,7 @@
   <meta property="og:image" content="https://loop.oute.pro/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  {#each locales as locale}
+  {#each locales as locale (locale)}
     <link rel="alternate" hreflang={locale} href={`https://loop.oute.pro/${locale}/`} />
   {/each}
   <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />

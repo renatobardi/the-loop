@@ -12,10 +12,11 @@
 </script>
 
 <nav aria-label="Language selector" class="flex items-center gap-1 text-sm">
-  {#each locales as locale, i}
+  {#each locales as locale, i (locale)}
     {#if i > 0}
       <span class="text-text-subtle select-none">|</span>
     {/if}
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- locale switch requires full reload -->
     <a
       href="/{locale}/"
       data-sveltekit-reload

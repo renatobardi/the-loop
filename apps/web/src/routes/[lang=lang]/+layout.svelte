@@ -5,6 +5,7 @@
 
   let { children }: { children: Snippet } = $props();
 
+  let lang = $derived($page.params.lang ?? 'en');
   const locales = ['en', 'pt', 'es'];
   const titles: Record<string, string> = {
     en: 'The Loop — Eliminate production incidents before they happen',
@@ -19,13 +20,13 @@
 </script>
 
 <svelte:head>
-  <title>{titles[$page.params.lang] ?? titles.en}</title>
-  <meta name="description" content={descriptions[$page.params.lang] ?? descriptions.en} />
+  <title>{titles[lang] ?? titles.en}</title>
+  <meta name="description" content={descriptions[lang] ?? descriptions.en} />
 
-  <meta property="og:title" content={titles[$page.params.lang] ?? titles.en} />
-  <meta property="og:description" content={descriptions[$page.params.lang] ?? descriptions.en} />
+  <meta property="og:title" content={titles[lang] ?? titles.en} />
+  <meta property="og:description" content={descriptions[lang] ?? descriptions.en} />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content={`https://loop.oute.pro/${$page.params.lang}/`} />
+  <meta property="og:url" content={`https://loop.oute.pro/${lang}/`} />
   <meta property="og:image" content="https://loop.oute.pro/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
@@ -34,7 +35,7 @@
   {/each}
   <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
 
-  <html lang={$page.params.lang} />
+  <html lang={lang}></html>
 </svelte:head>
 
 <div class="fixed top-4 right-4 z-50">

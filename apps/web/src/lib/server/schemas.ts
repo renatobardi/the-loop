@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const WaitlistSchema = z.object({
   email: z
-    .string({ required_error: 'Email is required' })
+    .string({ error: 'Email is required' })
     .trim()
     .toLowerCase()
     .email({ message: 'Please enter a valid email address' })

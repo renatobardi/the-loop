@@ -1,10 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { redirect } from '@sveltejs/kit';
 import { i18n } from '$lib/i18n';
 
-const SUPPORTED_LOCALES = ['en', 'pt', 'es'];
-const DEFAULT_LOCALE = 'en';
 const HSTS_MAX_AGE = 63_072_000; // 2 years
 
 const csp = [
@@ -19,27 +16,6 @@ const csp = [
 	"form-action 'self'",
 	"upgrade-insecure-requests"
 ].join('; ');
-
-const redirects: Handle = async ({ event, resolve }) => {
-	const { pathname } = event.url;
-
-	// Root redirect: / → /en/
-	if (pathname === '/') {
-		throw redirect(301, `/${DEFAULT_LOCALE}/`);
-	}
-
-	// Unsupported locale redirect: /fr/anything → /en/anything
-	const segments = pathname.split('/').filter(Boolean);
-	if (segments.length > 0) {
-		const maybeLocale = segments[0];
-		if (maybeLocale.length === 2 && !SUPPORTED_LOCALES.includes(maybeLocale)) {
-			const rest = segments.slice(1).join('/');
-			throw redirect(301, `/${DEFAULT_LOCALE}/${rest}`);
-		}
-	}
-
-	return resolve(event);
-};
 
 const securityHeaders: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
@@ -61,4 +37,4 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
-export const handle = sequence(redirects, i18n.handle(), securityHeaders);
+export const handle = sequence(i18n.handle(), securityHeaders);

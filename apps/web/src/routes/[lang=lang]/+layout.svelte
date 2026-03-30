@@ -35,7 +35,6 @@
   {/each}
   <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
 
-  <html lang={lang}></html>
 </svelte:head>
 
 <div class="fixed top-4 right-4 z-50">

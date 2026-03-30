@@ -1,6 +1,8 @@
 <script lang="ts">
   import '../app.css';
   import type { Snippet } from 'svelte';
+  import { ParaglideJS } from '@inlang/paraglide-sveltekit';
+  import { i18n } from '$lib/i18n';
 
   let { children }: { children: Snippet } = $props();
 </script>
@@ -18,4 +20,6 @@
   />
 </svelte:head>
 
-{@render children()}
+<ParaglideJS {i18n}>
+  {@render children()}
+</ParaglideJS>

@@ -22,6 +22,9 @@ const config = {
 			precompress: false,
 			envPrefix: ''
 		}),
+		paths: {
+			relative: false
+		},
 	}
 };
 

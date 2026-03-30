@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { i18n } from '$lib/i18n';
   import { languageTag } from '$lib/paraglide/runtime.js';
 
   const locales = ['en', 'pt', 'es'] as const;
@@ -11,14 +9,13 @@
   };
 </script>
 
-<!-- eslint-disable svelte/no-navigation-without-resolve -- uses i18n.resolveRoute() which is Paraglide's equivalent -->
 <nav aria-label="Language selector" class="flex items-center gap-1 text-sm">
-  {#each locales as locale, i (locale)}
-    {#if i > 0}
+  {#each locales as locale, idx (locale)}
+    {#if idx > 0}
       <span class="text-text-subtle select-none">|</span>
     {/if}
     <a
-      href={i18n.resolveRoute($page.url.pathname, locale)}
+      href="https://loop.oute.pro/{locale}/"
       hreflang={locale}
       class={languageTag() === locale ? 'text-text font-medium' : 'text-text-muted hover:text-text transition-colors'}
     >

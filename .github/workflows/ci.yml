@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - name: Generate Paraglide messages
+        run: npx paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide
+      - name: Lint
+        run: npm run lint
+      - name: Type Check
+        run: npm run check
+      - name: Test
+        run: npm run test -- --run
+      - name: Build
+        run: npm run build
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t the-loop:ci apps/web/
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'the-loop:ci'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+  docs:
+    name: Docs Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run docs generation
+        run: bash scripts/generate-docs.sh
+      - name: Verify docs are up-to-date
+        run: git diff --exit-code

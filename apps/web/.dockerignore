@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+.svelte-kit
+build
+*.md
+specs
+.specify
+.claude
+.project

@@ -9,13 +9,14 @@
   };
 </script>
 
+<!-- eslint-disable svelte/no-navigation-without-resolve -- ParaglideJS translateHref() handles link resolution via hreflang -->
 <nav aria-label="Language selector" class="flex items-center gap-1 text-sm">
   {#each locales as locale, idx (locale)}
     {#if idx > 0}
       <span class="text-text-subtle select-none">|</span>
     {/if}
     <a
-      href="https://loop.oute.pro/{locale}/"
+      href="/"
       hreflang={locale}
       class={languageTag() === locale ? 'text-text font-medium' : 'text-text-muted hover:text-text transition-colors'}
     >

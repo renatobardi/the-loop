@@ -35,6 +35,9 @@ export default [
 		languageOptions: {
 			parserOptions: {
 				parser: tsparser
+			},
+			globals: {
+				...globals.browser
 			}
 		}
 	},

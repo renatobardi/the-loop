@@ -11,16 +11,17 @@
     </div>
 
     <nav class="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-sm text-text-muted">
+      <!-- eslint-disable svelte/no-navigation-without-resolve -- external/mailto links -->
       <a href="https://github.com/renatobardi/the-loop" target="_blank" rel="noopener noreferrer" class="hover:text-text transition-colors">
         GitHub
       </a>
-      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- static external link -->
       <a href="/constitution" class="hover:text-text transition-colors">
         Constitution
       </a>
       <a href="mailto:loop@oute.pro" class="hover:text-text transition-colors">
         Contact
       </a>
+      <!-- eslint-enable svelte/no-navigation-without-resolve -->
       <LanguageSelector />
     </nav>
 

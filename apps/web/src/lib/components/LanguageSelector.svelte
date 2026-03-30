@@ -11,6 +11,7 @@
   };
 </script>
 
+<!-- eslint-disable svelte/no-navigation-without-resolve -- uses i18n.resolveRoute() which is Paraglide's equivalent -->
 <nav aria-label="Language selector" class="flex items-center gap-1 text-sm">
   {#each locales as locale, i (locale)}
     {#if i > 0}

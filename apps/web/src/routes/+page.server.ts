@@ -26,7 +26,8 @@ export const actions: Actions = {
       return fail(400, { error: errorMsg });
     }
 
-    const locale = event.params.lang ?? 'en';
+    const { languageTag } = await import('$lib/paraglide/runtime.js');
+    const locale = languageTag();
 
     // Write to Firestore
     try {

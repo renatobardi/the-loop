@@ -202,8 +202,8 @@
 - [x] T070 Validate all CI gates pass end-to-end: lint, type-check, test, build, vuln scan, docs-check
 - [x] T071 Configure Cloud Run deployment: Artifact Registry repo, WIF pool/provider, deployer service account, IAM roles (run.admin, artifactregistry.writer, datastore.user)
 - [x] T072 Configure Cloud Run domain: Global LB + Serverless NEG + Google-managed SSL cert for loop.oute.pro, HTTP→HTTPS redirect
-- [ ] T073 Deploy to production via merge to main — verify loop.oute.pro serves the landing page
-- [ ] T074 Post-deploy validation: Lighthouse audit on production, security headers check, waitlist form end-to-end test on production, verify all 3 locales work
+- [x] T073 Deploy to production via merge to main — verify loop.oute.pro serves the landing page
+- [x] T074 Post-deploy validation: Lighthouse audit on production, security headers check, waitlist form end-to-end test on production, verify all 3 locales work
 
 **Checkpoint**: Production deploy complete. loop.oute.pro live. All constitutional mandates enforced. Ready for waitlist collection.
 

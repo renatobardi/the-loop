@@ -1,38 +1,57 @@
 <script lang="ts">
   import { Section, Container, Card, Button } from '$lib/ui';
+  import {
+    pricing_headline,
+    pricing_free_name,
+    pricing_free_price,
+    pricing_free_scans,
+    pricing_payg_name,
+    pricing_payg_price,
+    pricing_payg_scans,
+    pricing_enterprise_name,
+    pricing_enterprise_price,
+    pricing_enterprise_scans,
+    pricing_layers,
+    pricing_support_community,
+    pricing_support_email,
+    pricing_support_dedicated,
+    pricing_sso,
+    pricing_audit,
+    pricing_contact_cta,
+  } from '$lib/paraglide/messages.js';
 
-  const plans = [
+  let plans = $derived([
     {
-      name: 'Free',
-      price: '$0',
-      scans: '100 scans/month',
-      features: ['L1 + L2 + L3', 'Community support'],
+      name: pricing_free_name(),
+      price: pricing_free_price(),
+      scans: pricing_free_scans(),
+      features: [pricing_layers(), pricing_support_community()],
       highlighted: false,
       cta: null,
     },
     {
-      name: 'Pay-as-you-go',
-      price: 'Pay per scan batch',
-      scans: 'Buy in batches',
-      features: ['L1 + L2 + L3', 'Email support'],
+      name: pricing_payg_name(),
+      price: pricing_payg_price(),
+      scans: pricing_payg_scans(),
+      features: [pricing_layers(), pricing_support_email()],
       highlighted: false,
       cta: null,
     },
     {
-      name: 'Enterprise',
-      price: 'Contact us',
-      scans: 'Unlimited',
-      features: ['L1 + L2 + L3', 'Dedicated support', 'SSO / SAML', 'Audit logs'],
+      name: pricing_enterprise_name(),
+      price: pricing_enterprise_price(),
+      scans: pricing_enterprise_scans(),
+      features: [pricing_layers(), pricing_support_dedicated(), pricing_sso(), pricing_audit()],
       highlighted: true,
-      cta: { text: 'Contact us', href: 'mailto:loop@oute.pro' },
+      cta: { text: pricing_contact_cta(), href: 'mailto:loop@oute.pro' },
     },
-  ];
+  ]);
 </script>
 
 <Section id="pricing">
   <Container>
     <h2 class="text-4xl md:text-5xl font-bold text-center mb-12 lg:mb-16">
-      Start free. Pay as you grow.
+      {pricing_headline()}
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">

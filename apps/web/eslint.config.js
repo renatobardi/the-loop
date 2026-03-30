@@ -49,7 +49,8 @@ export default [
 			'build/**',
 			'node_modules/**',
 			'dist/**',
-			'paraglide/**'
+			'paraglide/**',
+			'src/lib/paraglide/**'
 		]
 	}
 ];

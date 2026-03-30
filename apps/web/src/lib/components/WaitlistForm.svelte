@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Input, Button } from '$lib/ui';
+  import { form_success, form_duplicate, form_rate_limited, form_server_error, form_submitting, form_submit, hero_email_placeholder } from '$lib/paraglide/messages.js';
 
   let {
     action = '?/waitlist',
@@ -29,18 +30,18 @@
           status = 'duplicate';
         } else {
           status = 'error';
-          errorMessage = error ?? 'Something went wrong. Please try again.';
+          errorMessage = error ?? form_server_error();
         }
       } else {
         status = 'error';
-        errorMessage = 'Something went wrong. Please try again.';
+        errorMessage = form_server_error();
       }
     };
   }}
 >
   {#if status === 'success'}
     <p class="text-accent text-sm font-medium">
-      You're on the list! We'll notify you when The Loop launches.
+      {form_success()}
     </p>
   {:else}
     <div class="flex flex-col sm:flex-row gap-3">
@@ -48,24 +49,24 @@
         <Input
           type="email"
           name="email"
-          placeholder="your@email.com"
+          placeholder={hero_email_placeholder()}
           required
           disabled={status === 'submitting'}
         />
       </div>
       <Button type="submit" variant="primary" disabled={status === 'submitting'}>
         {#if status === 'submitting'}
-          Joining...
+          {form_submitting()}
         {:else}
-          Join the waitlist
+          {form_submit()}
         {/if}
       </Button>
     </div>
 
     {#if status === 'duplicate'}
-      <p class="mt-2 text-sm text-text-muted">You're already on the list!</p>
+      <p class="mt-2 text-sm text-text-muted">{form_duplicate()}</p>
     {:else if status === 'rate_limited'}
-      <p class="mt-2 text-sm text-error">Too many attempts. Please try again in a minute.</p>
+      <p class="mt-2 text-sm text-error">{form_rate_limited()}</p>
     {:else if status === 'error'}
       <p class="mt-2 text-sm text-error">{errorMessage}</p>
     {/if}

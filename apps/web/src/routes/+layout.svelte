@@ -8,7 +8,6 @@
 
   let { children }: { children: Snippet } = $props();
 
-  const locales = ['en', 'pt', 'es'];
   const titles: Record<string, string> = {
     en: 'The Loop — Eliminate production incidents before they happen',
     pt: 'The Loop — Elimine incidentes de produção antes que aconteçam',
@@ -42,11 +41,6 @@
   <meta property="og:url" content={`https://loop.oute.pro/${languageTag()}/`} />
   <meta property="og:image" content="https://loop.oute.pro/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
-
-  {#each locales as locale (locale)}
-    <link rel="alternate" hreflang={locale} href={`https://loop.oute.pro/${locale}/`} />
-  {/each}
-  <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
 </svelte:head>
 
 <ParaglideJS {i18n}>

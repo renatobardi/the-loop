@@ -1,6 +1,6 @@
 <script lang="ts">
   import LanguageSelector from '$lib/components/LanguageSelector.svelte';
-  import { nav_features, nav_pricing, nav_waitlist, nav_menu_open, nav_menu_close } from '$lib/paraglide/messages.js';
+  import { hero_product_name, nav_features, nav_pricing, nav_waitlist, nav_menu_open, nav_menu_close } from '$lib/paraglide/messages.js';
 
   let open = $state(false);
 
@@ -22,7 +22,7 @@
 <!-- eslint-disable svelte/no-navigation-without-resolve -- anchor links for same-page scroll -->
 <nav class="fixed top-0 w-full z-50 bg-bg/80 backdrop-blur-md border-b border-border/50">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-    <a href="#hero" class="text-lg font-bold text-text">The Loop</a>
+    <a href="#hero" class="text-lg font-bold text-text">{hero_product_name()}</a>
 
     <!-- Desktop links -->
     <div class="hidden md:flex items-center gap-6">

@@ -16,11 +16,12 @@ npm run build        # Production build (adapter-node → build/)
 npm run check        # svelte-kit sync + svelte-check (TypeScript strict)
 npm run lint         # ESLint + Prettier check
 npm run format       # Prettier write
-npm run test         # vitest (unit tests in tests/unit/)
-npm run test -- --run  # Single run (used in CI)
+npm run test         # vitest watch mode (unit tests in tests/unit/)
+npm run test -- --run                         # Single run (CI mode)
+npm run test -- --run tests/unit/server.test.ts  # Run a single test file
 ```
 
-Paraglide codegen (runs automatically via Vite plugin, but can be triggered manually):
+Paraglide codegen runs automatically via Vite plugin. Manual trigger:
 ```bash
 npx paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide
 ```
@@ -29,21 +30,41 @@ npx paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide
 
 Monorepo with `apps/web/` as the main SvelteKit app.
 
-- **`src/routes/`** — File-based routing with trailing slashes enforced. All routes served under locale prefix (`/en/`, `/pt/`, `/es/`).
-- **`src/lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section). Exported via `index.ts`. Uses design tokens from `app.css`.
-- **`src/lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, etc.).
-- **`src/lib/server/`** — Server-only code: Firebase init, Firestore operations, Zod schemas, rate limiter.
+- **`src/routes/`** — File-based routing. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes served under locale prefix (`/en/`, `/pt/`, `/es/`).
+- **`src/lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
+- **`src/lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.).
+- **`src/lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
 - **`src/lib/paraglide/`** — Auto-generated i18n runtime. **Do not edit or commit.**
 - **`messages/`** — i18n source JSON files (`en.json`, `pt.json`, `es.json`). Keys use `snake_case`.
-- **`tests/unit/`** — Vitest tests with jsdom environment.
+- **`tests/unit/`** — Vitest with jsdom environment and `$lib`/`$app` path aliases.
 
 ### Key files
 
 - `src/hooks.ts` — Paraglide i18n reroute handler
 - `src/hooks.server.ts` — Security headers (HSTS, CSP, X-Frame-Options, Permissions-Policy)
-- `src/routes/+page.server.ts` — Server actions (waitlist form: Zod validation → rate limit → Firestore write)
+- `src/routes/+page.server.ts` — Server actions (waitlist form: rate limit → Zod validation → Firestore write)
 - `src/app.css` — Tailwind 4 `@theme` block with all design tokens (colors, fonts, spacing, shadows)
 - `project.inlang/settings.json` — Paraglide config (source: en, targets: pt, es)
+- `src/lib/i18n.ts` — Paraglide setup: `prefixDefaultLanguage: 'always'`, three locales, all LTR
+
+## Svelte 5 Conventions
+
+This project uses Svelte 5 runes exclusively (enforced in `svelte.config.js`):
+
+- **Props**: `let { variant = 'primary', children, ...rest } = $props()` — no `export let`
+- **State**: `let value = $state('')` — no `$:` reactive declarations
+- **Derived**: `let computedVal = $derived(expression)` — replaces `$: computedVal = ...`
+- **Children**: Use `{@render children?.()}` snippet pattern, not `<slot />`
+
+## Design Tokens (Tailwind 4)
+
+`app.css` defines a `@theme` block with custom CSS variables consumed as Tailwind utility classes:
+
+- Colors: `bg-bg`, `bg-bg-surface`, `bg-bg-elevated`, `text-text`, `text-text-muted`, `text-accent`, `bg-accent`
+- Glow effect: `shadow-glow` token for accent-colored shadows
+- Font: Geist via CDN, with size scale defined as CSS variables (`--font-size-xs` through `--font-size-7xl`)
+
+All visual styling must use these tokens — no ad-hoc color/spacing values.
 
 ## i18n (Paraglide-SvelteKit)
 
@@ -55,7 +76,7 @@ Monorepo with `apps/web/` as the main SvelteKit app.
 
 ## Form Handling Pattern
 
-Server Actions via `+page.server.ts` → Zod validation → rate limiting (per IP) → Firestore write. Frontend uses `use:enhance` for progressive enhancement.
+Server Actions flow: `+page.server.ts` → rate limit check → Zod validation (with email normalization) → Firestore write. Server functions return semantic status codes (`'created'`, `'duplicate'`) rather than throwing. Frontend uses `use:enhance` for progressive enhancement with a state machine (`idle → submitting → success | error | duplicate | rate_limited`).
 
 ## Environment
 
@@ -76,7 +97,8 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 - Hexagonal architecture applies after Phase 1 (not current Phase 0)
 
 ## Active Technologies
-- TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + Tailwind CSS 4, Paraglide-SvelteKit 0.16.1, Svelte 5 snippets/actions (002-landing-page-polish)
+- TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4 (003-i18n-audit-fix)
+- N/A (locale JSON files only) (003-i18n-audit-fix)
 
 ## Recent Changes
-- 002-landing-page-polish: Design polish — nav, accessibility, spacing, pricing CTAs, contrast fixes
+- 003-i18n-audit-fix: Added TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4

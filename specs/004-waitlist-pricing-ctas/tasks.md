@@ -107,7 +107,7 @@
 - [x] T012 Run `npm run lint` (ESLint + Prettier) in `apps/web/`
 - [x] T013 Run `npm run test -- --run` (all unit tests) in `apps/web/`
 - [x] T014 Run `npm run build` (production build) in `apps/web/`
-- [ ] T015 Run quickstart.md manual validation steps (requires `FIREBASE_SERVICE_ACCOUNT` env var for Firestore verification)
+- [x] T015 Run quickstart.md manual validation steps (requires `FIREBASE_SERVICE_ACCOUNT` env var for Firestore verification)
 
 ---
 

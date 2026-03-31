@@ -2,26 +2,14 @@
   ============================================================
   SYNC IMPACT REPORT
   ============================================================
-  Version change: N/A (template) -> 1.0.0 (initial ratification)
+  Version change: 1.0.0 -> 1.1.0 (MINOR — new principle)
 
-  Added principles (12 total):
-    - I. Trunk-Based Development
-    - II. Design System Imutavel
-    - III. Taxonomia de Branches
-    - IV. Main Protegida
-    - V. Aprovacao Obrigatoria
-    - VI. Sem Ambiente de Dev
-    - VII. CI Rigoroso (Gates Obrigatorios)
-    - VIII. Seguranca Mandatoria
-    - IX. Clean Code
-    - X. Arquitetura Hexagonal (a partir da Fase 1)
-    - XI. Pasta .project/ (Historico do Projeto)
-    - XII. Documentacao e Codigo
+  Added principles (1 new, 13 total):
+    - XIII. Dependencias no Plano de Execucao
 
-  Added sections:
-    - Aplicacao e Verificacao
-    - Assinatura
-
+  Modified principles: None
+  Removed principles: None
+  Added sections: None
   Removed sections: None
 
   Templates requiring updates:
@@ -29,11 +17,13 @@
       (Constitution Check section is dynamic, references this file)
     - .specify/templates/spec-template.md ✅ no update needed
       (generic template, no constitution-specific references)
-    - .specify/templates/tasks-template.md ✅ no update needed
-      (generic template, no constitution-specific references)
+    - .specify/templates/tasks-template.md ⚠ should reference
+      Mandamento XIII when generating dependency/infra tasks
     - .specify/templates/commands/*.md ✅ no command files exist
 
-  Follow-up TODOs: None
+  Follow-up TODOs:
+    - tasks-template.md could add dependency task phase guidance
+      referencing Mandamento XIII (not blocking)
   ============================================================
 -->
 
@@ -42,7 +32,7 @@
 **Status**: IMUTAVEL — Requer dupla verificacao de @renatobardi
 para qualquer alteracao.
 **Criado**: 2026-03-30
-**Ultima verificacao**: 2026-03-30
+**Ultima verificacao**: 2026-03-31
 
 > **AVISO**: Este documento contem mandamentos constitucionais do
 > projeto The Loop. Nenhuma IA, automacao ou contribuidor pode
@@ -318,6 +308,56 @@ codigo:
 - Docs semi-geradas (READMEs, lista de endpoints, estrutura de
   pastas) usam scripts de geracao
 
+### XIII. Dependencias no Plano de Execucao
+
+**Toda dependencia** de uma feature — backend, infraestrutura,
+APIs externas, bancos de dados, alteracoes em servicos
+existentes, DNS, secrets, CI/CD — MUST fazer parte explicita
+do plano de execucao (spec, plan e tasks).
+
+#### Infraestrutura e Servicos
+
+- **Provisionamento**: Cloud Run, Cloud SQL, Artifact Registry,
+  Secret Manager, IAM, DNS — MUST estar como tasks ANTES das
+  tasks de codigo
+- **CI/CD**: novos jobs de qualidade e deploy MUST ser criados
+  no mesmo PR ou antes do codigo que depende deles
+- **Secrets**: variaveis de ambiente e service accounts MUST
+  estar configurados antes do deploy
+
+#### APIs e Integracoes Externas
+
+- **APIs de terceiros**: se a feature consome uma API externa,
+  o plano MUST incluir: configuracao de credenciais, tratamento
+  de erros/indisponibilidade, e fallback/degradacao graciosa
+- **APIs internas**: se o frontend depende de um backend novo,
+  as tasks MUST cobrir deploy do backend ANTES de mergear o
+  frontend que o consome
+- **Alteracoes em servicos existentes**: migracao de banco,
+  mudanca de schema, novos endpoints — MUST estar no plano com
+  ordem de execucao explicita
+
+#### Degradacao Graciosa
+
+- Se uma dependencia (backend, API, banco) ainda nao existe no
+  momento do deploy, o sistema MUST renderizar um estado vazio
+  funcional — **NUNCA erro 500 ou pagina em branco**
+- Validacao pre-merge: nenhum codigo que dependa de algo
+  inexistente pode ser mergeado sem (a) a dependencia estar
+  provisionada ou (b) degradacao graciosa implementada e
+  testada em producao
+
+**Codigo sem suas dependencias e codigo quebrado.** O spec,
+plan e tasks MUST cobrir toda a cadeia: dependencias → infra →
+CI/CD → deploy → codigo → validacao em producao.
+
+**Origem**: Mandamento adicionado apos o incidente
+006-incident-crud, onde 74 tasks de codigo foram geradas sem
+nenhuma task de provisionamento (Cloud SQL, Cloud Run para API,
+secrets, CI jobs). Resultado: backend mergeado mas nunca
+deployado, frontend quebrado em producao atraves de 4 PRs de
+hotfix consecutivos.
+
 ## Aplicacao e Verificacao
 
 - Este documento MUST existir na raiz do repositorio como
@@ -350,4 +390,4 @@ codigo:
 (1) solicitacao explicita de @renatobardi, (2) confirmacao
 dupla antes do merge.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-30 | **Last Amended**: 2026-03-30
+**Version**: 1.1.0 | **Ratified**: 2026-03-30 | **Last Amended**: 2026-03-31

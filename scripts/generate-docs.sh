@@ -13,6 +13,7 @@ required_files=(
   "README.md"
   "CONSTITUTION.md"
   ".github/CODEOWNERS"
+  "apps/api/README.md"
 )
 
 for file in "${required_files[@]}"; do

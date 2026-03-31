@@ -1,0 +1,152 @@
+"""Domain models for the Incident module — pure Python, no external dependencies."""
+
+from __future__ import annotations
+
+import re
+from datetime import date, datetime
+from enum import StrEnum
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, field_validator
+
+
+class Category(StrEnum):
+    UNSAFE_REGEX = "unsafe-regex"
+    INJECTION = "injection"
+    DEPLOYMENT_ERROR = "deployment-error"
+    MISSING_SAFETY_CHECK = "missing-safety-check"
+    RACE_CONDITION = "race-condition"
+    UNSAFE_API_USAGE = "unsafe-api-usage"
+    RESOURCE_EXHAUSTION = "resource-exhaustion"
+    DATA_CONSISTENCY = "data-consistency"
+    MISSING_ERROR_HANDLING = "missing-error-handling"
+    CASCADING_FAILURE = "cascading-failure"
+    AUTHENTICATION_BYPASS = "authentication-bypass"
+    CONFIGURATION_DRIFT = "configuration-drift"
+
+
+class Severity(StrEnum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+SEMGREP_RULE_PATTERN = re.compile(r"^[a-z][\w-]+-\d{3}$")
+
+
+class Incident(BaseModel):
+    """Immutable domain entity representing a production incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    title: str
+    date: date | None = None
+    source_url: str | None = None
+    organization: str | None = None
+    category: Category
+    subcategory: str | None = None
+    failure_mode: str | None = None
+    severity: Severity
+    affected_languages: list[str] = []
+    anti_pattern: str
+    code_example: str | None = None
+    remediation: str
+    static_rule_possible: bool = False
+    semgrep_rule_id: str | None = None
+    embedding: list[float] | None = None
+    tags: list[str] = []
+    version: int = 1
+    deleted_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+    created_by: UUID
+
+    @field_validator("title")
+    @classmethod
+    def title_length(cls, v: str) -> str:
+        v = v.strip()
+        if not v or len(v) > 500:
+            msg = "Title must be between 1 and 500 characters"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("anti_pattern")
+    @classmethod
+    def anti_pattern_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            msg = "Anti-pattern must not be empty"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("remediation")
+    @classmethod
+    def remediation_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            msg = "Remediation must not be empty"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("source_url")
+    @classmethod
+    def source_url_length(cls, v: str | None) -> str | None:
+        if v is not None:
+            v = v.strip()
+            if not v:
+                return None
+            if len(v) > 2048:
+                msg = "Source URL must be at most 2048 characters"
+                raise ValueError(msg)
+        return v
+
+    @field_validator("organization")
+    @classmethod
+    def organization_length(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 255:
+            msg = "Organization must be at most 255 characters"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("subcategory")
+    @classmethod
+    def subcategory_length(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 100:
+            msg = "Subcategory must be at most 100 characters"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("semgrep_rule_id")
+    @classmethod
+    def semgrep_rule_id_format(cls, v: str | None) -> str | None:
+        if v is not None:
+            if len(v) > 50:
+                msg = "Semgrep rule ID must be at most 50 characters"
+                raise ValueError(msg)
+            if not SEMGREP_RULE_PATTERN.match(v):
+                msg = "Semgrep rule ID must match format {category}-{NNN}"
+                raise ValueError(msg)
+        return v
+
+    @field_validator("version")
+    @classmethod
+    def version_positive(cls, v: int) -> int:
+        if v < 1:
+            msg = "Version must be >= 1"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("embedding")
+    @classmethod
+    def embedding_null_phase_a(cls, v: list[float] | None) -> None:
+        if v is not None:
+            msg = "Embedding must be NULL in Phase A"
+            raise ValueError(msg)
+        return None
+
+    @field_validator("affected_languages", "tags")
+    @classmethod
+    def list_items_not_empty(cls, v: list[str]) -> list[str]:
+        return [item for item in v if item.strip()]

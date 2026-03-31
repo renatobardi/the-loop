@@ -32,7 +32,7 @@ Monorepo with `apps/web/` as the main SvelteKit app.
 
 - **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `001-landing-page-waitlist/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names (e.g., branch `003-i18n-audit-fix` → `specs/003-i18n-audit-fix/`).
 - **`.project/`** — Persistent project history: phase specs, decisions (ADRs), research. Files here are never deleted — obsolete docs go to `.project/archive/`.
-- **`src/routes/`** — File-based routing. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes served under locale prefix (`/en/`, `/pt/`, `/es/`).
+- **`src/routes/[lang=lang]/`** — File-based routing under a locale param matcher (`src/params/lang.ts` validates `en|pt|es`). Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes served under locale prefix (`/en/`, `/pt/`, `/es/`).
 - **`src/lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
 - **`src/lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.).
 - **`src/lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
@@ -76,9 +76,15 @@ All visual styling must use these tokens — no ad-hoc color/spacing values.
 - Use `href="/"` (plain paths) — Paraglide handles locale prefixing automatically
 - Never hardcode locale-prefixed URLs in components
 
+## Code Style
+
+Enforced by Prettier: tabs, single quotes, no trailing commas, 100 char print width. Run `npm run format` to fix, `npm run lint` to check.
+
 ## Form Handling Pattern
 
 Server Actions flow: `+page.server.ts` → rate limit check → Zod validation (with email normalization) → Firestore write. Server functions return semantic status codes (`'created'`, `'duplicate'`) rather than throwing. Frontend uses `use:enhance` for progressive enhancement with a state machine (`idle → submitting → success | error | duplicate | rate_limited`).
+
+Adding a new waitlist source (e.g., a new CTA button) requires updating `VALID_SOURCES` in `src/lib/server/schemas.ts` **and** the corresponding test in `tests/unit/server.test.ts`.
 
 ## Environment
 
@@ -97,12 +103,12 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 - `main` = production (no dev environment — single environment)
 - All merges controlled by @renatobardi — sole approver
 - Hexagonal architecture applies after Phase 1 (not current Phase 0)
-- Structural changes (new routes, components, architecture) require doc updates in the same PR — CI runs `scripts/generate-docs.sh` and blocks merge if docs are stale
+- Structural changes (new routes, components, architecture) require doc updates in the same PR — CI runs `scripts/generate-docs.sh` and blocks merge if docs are stale. If the docs-check gate fails, run `bash scripts/generate-docs.sh` locally and commit the result.
 - Node 22 in CI
 
 ## Active Technologies
-- TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4 (005-constitution-page)
-- N/A (static content page; waitlist reuses existing Firestore) (005-constitution-page)
+- Python 3.12 (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, asyncpg (backend); SvelteKit 2.50, Svelte 5, Tailwind CSS 4 (frontend) (006-incident-crud)
+- PostgreSQL 16 + pgvector extension (embedding column nullable, no HNSW index in Phase A) (006-incident-crud)
 
 ## Recent Changes
-- 005-constitution-page: Added TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4
+- 006-incident-crud: Added Python 3.12 (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, asyncpg (backend); SvelteKit 2.50, Svelte 5, Tailwind CSS 4 (frontend)

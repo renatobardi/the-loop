@@ -1,0 +1,25 @@
+# Core
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.3
+pydantic-settings==2.9.1
+
+# Database
+sqlalchemy[asyncio]==2.0.41
+asyncpg==0.30.0
+alembic==1.15.2
+pgvector==0.3.6
+
+# Auth
+firebase-admin==6.8.0
+
+# Middleware
+slowapi==0.1.9
+structlog==25.1.0
+
+# Dev / Test
+ruff==0.11.6
+mypy==1.15.0
+pytest==8.3.5
+pytest-asyncio==0.26.0
+httpx==0.28.1

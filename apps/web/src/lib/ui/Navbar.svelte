@@ -1,6 +1,6 @@
 <script lang="ts">
   import LanguageSelector from '$lib/components/LanguageSelector.svelte';
-  import { hero_product_name, nav_features, nav_pricing, nav_waitlist, nav_menu_open, nav_menu_close } from '$lib/paraglide/messages.js';
+  import { hero_product_name, nav_features, nav_pricing, nav_waitlist, nav_incidents, nav_menu_open, nav_menu_close } from '$lib/paraglide/messages.js';
 
   let open = $state(false);
 
@@ -8,6 +8,7 @@
     { label: nav_features(), href: '#features' },
     { label: nav_pricing(), href: '#pricing' },
     { label: nav_waitlist(), href: '#waitlist' },
+    { label: nav_incidents(), href: '/incidents/' },
   ]);
 
   function closeOnResize() {

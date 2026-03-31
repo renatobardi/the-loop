@@ -10,6 +10,10 @@ export async function load({ url }) {
 		q: url.searchParams.get('q') || null
 	};
 
-	const data = await listIncidents(filters);
-	return { ...data, filters };
+	try {
+		const data = await listIncidents(filters);
+		return { ...data, filters };
+	} catch {
+		return { items: [], total: 0, page: 1, per_page: 20, filters };
+	}
 }

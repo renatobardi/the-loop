@@ -4,20 +4,10 @@
   import { ParaglideJS } from '@inlang/paraglide-sveltekit';
   import { i18n } from '$lib/i18n';
   import { languageTag } from '$lib/paraglide/runtime.js';
+  import { meta_title, meta_description } from '$lib/paraglide/messages.js';
   import { SkipLink, Navbar } from '$lib/ui';
 
   let { children }: { children: Snippet } = $props();
-
-  const titles: Record<string, string> = {
-    en: 'The Loop — Eliminate production incidents before they happen',
-    pt: 'The Loop — Elimine incidentes de produção antes que aconteçam',
-    es: 'The Loop — Elimina incidentes de producción antes de que ocurran'
-  };
-  const descriptions: Record<string, string> = {
-    en: 'Close the loop between post-mortems and code. Transform incident knowledge into active guardrails in your CI/CD pipeline.',
-    pt: 'Feche o ciclo entre post-mortems e código. Transforme conhecimento de incidentes em guardrails ativos no seu pipeline de CI/CD.',
-    es: 'Cierra el ciclo entre post-mortems y código. Transforma el conocimiento de incidentes en guardrails activos en tu pipeline de CI/CD.'
-  };
 </script>
 
 <svelte:head>
@@ -32,15 +22,20 @@
     crossorigin="anonymous"
   />
 
-  <title>{titles[languageTag()] ?? titles.en}</title>
-  <meta name="description" content={descriptions[languageTag()] ?? descriptions.en} />
+  <title>{meta_title()}</title>
+  <meta name="description" content={meta_description()} />
 
-  <meta property="og:title" content={titles[languageTag()] ?? titles.en} />
-  <meta property="og:description" content={descriptions[languageTag()] ?? descriptions.en} />
+  <meta property="og:title" content={meta_title()} />
+  <meta property="og:description" content={meta_description()} />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={`https://loop.oute.pro/${languageTag()}/`} />
   <meta property="og:image" content="https://loop.oute.pro/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="alternate" hreflang="en" href="https://loop.oute.pro/en/" />
+  <link rel="alternate" hreflang="pt" href="https://loop.oute.pro/pt/" />
+  <link rel="alternate" hreflang="es" href="https://loop.oute.pro/es/" />
+  <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
 </svelte:head>
 
 <ParaglideJS {i18n}>

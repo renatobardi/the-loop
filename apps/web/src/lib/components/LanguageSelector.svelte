@@ -1,5 +1,6 @@
 <script lang="ts">
   import { languageTag } from '$lib/paraglide/runtime.js';
+  import { footer_language_selector_label } from '$lib/paraglide/messages.js';
 
   let {
     tag = 'nav',
@@ -17,7 +18,7 @@
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -- ParaglideJS translateHref() handles link resolution via hreflang -->
 {#if tag === 'nav'}
-  <nav aria-label="Language selector" class="flex items-center gap-1 text-sm">
+  <nav aria-label={footer_language_selector_label()} class="flex items-center gap-1 text-sm">
     {#each locales as locale, idx (locale)}
       {#if idx > 0}
         <span class="text-text-subtle select-none">|</span>
@@ -32,7 +33,7 @@
     {/each}
   </nav>
 {:else}
-  <div role="group" aria-label="Language selector" class="flex items-center gap-1 text-sm">
+  <div role="group" aria-label={footer_language_selector_label()} class="flex items-center gap-1 text-sm">
     {#each locales as locale, idx (locale)}
       {#if idx > 0}
         <span class="text-text-subtle select-none">|</span>

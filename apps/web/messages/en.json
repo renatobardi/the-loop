@@ -69,5 +69,8 @@
   "pricing_join_waitlist": "Join the waitlist",
   "pricing_popular_badge": "Most popular",
   "hero_scroll_hint": "Scroll down",
-  "hero_product_name": "The Loop"
+  "hero_product_name": "The Loop",
+  "meta_title": "The Loop — Eliminate production incidents before they happen",
+  "meta_description": "Close the loop between post-mortems and code. Transform incident knowledge into active guardrails in your CI/CD pipeline.",
+  "footer_language_selector_label": "Language"
 }

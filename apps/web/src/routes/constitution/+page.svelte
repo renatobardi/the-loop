@@ -23,14 +23,14 @@
   <meta property="og:title" content={constitution_meta_title()} />
   <meta property="og:description" content={constitution_meta_description()} />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content={`${BASE_URL}/${languageTag()}${i18n.resolveRoute('/constitution', languageTag())}/`} />
-  <meta property="og:image" content="{BASE_URL}/og-image.png" />
+  <meta property="og:url" content={`${BASE_URL}${i18n.resolveRoute('/constitution', languageTag())}/`} />
+  <meta property="og:image" content={`${BASE_URL}/og-image.png`} />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <link rel="alternate" hreflang="en" href="{BASE_URL}/en/constitution/" />
-  <link rel="alternate" hreflang="pt" href="{BASE_URL}/pt/constituicao/" />
-  <link rel="alternate" hreflang="es" href="{BASE_URL}/es/constitucion/" />
-  <link rel="alternate" hreflang="x-default" href="{BASE_URL}/en/constitution/" />
+  <link rel="alternate" hreflang="en" href={`${BASE_URL}${i18n.resolveRoute('/constitution', 'en')}/`} />
+  <link rel="alternate" hreflang="pt" href={`${BASE_URL}${i18n.resolveRoute('/constitution', 'pt')}/`} />
+  <link rel="alternate" hreflang="es" href={`${BASE_URL}${i18n.resolveRoute('/constitution', 'es')}/`} />
+  <link rel="alternate" hreflang="x-default" href={`${BASE_URL}${i18n.resolveRoute('/constitution', 'en')}/`} />
 </svelte:head>
 
 <main id="main-content">

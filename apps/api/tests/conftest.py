@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-
 from src.adapters.firebase.auth import get_current_user
 from src.main import app
 

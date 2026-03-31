@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Section, Container } from '$lib/ui';
   import WaitlistForm from './WaitlistForm.svelte';
-  import { hero_headline, hero_subheadline, hero_branding, hero_product_name, hero_scroll_hint } from '$lib/paraglide/messages.js';
   import { onMount } from 'svelte';
 
   let showChevron = $state(true);
@@ -24,27 +23,27 @@
   <Section id="hero" hero>
     <Container class="text-center">
       <p class="text-lg md:text-xl font-semibold text-accent tracking-wide uppercase">
-        {hero_product_name()}
+        The Loop
       </p>
 
       <h1 class="mt-4 text-5xl md:text-6xl lg:text-7xl font-bold text-text leading-tight">
-        {hero_headline()}
+        Eliminate production incidents before they happen.
       </h1>
 
       <p class="mt-6 text-lg md:text-xl text-text-muted max-w-3xl mx-auto">
-        {hero_subheadline()}
+        Close the loop between post-mortems and code. The Loop transforms incident knowledge into active guardrails in your CI/CD pipeline.
       </p>
 
       <div class="mt-10 max-w-lg mx-auto">
         <WaitlistForm source="hero" />
       </div>
 
-      <p class="mt-6 text-sm text-text-muted">{hero_branding()}</p>
+      <p class="mt-6 text-sm text-text-muted">by Oute</p>
 
       {#if showChevron}
         <button
           onclick={() => document.getElementById('problem')?.scrollIntoView({ behavior: 'smooth' })}
-          aria-label={hero_scroll_hint()}
+          aria-label="Scroll down"
           class="mt-8 animate-bounce text-text-subtle hover:text-text transition-colors"
         >
           <svg class="w-6 h-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

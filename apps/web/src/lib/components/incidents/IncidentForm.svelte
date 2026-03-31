@@ -2,7 +2,6 @@
 	import { Button, Input } from '$lib/ui';
 	import { CATEGORIES, SEVERITIES } from '$lib/types/incident';
 	import type { IncidentCreate } from '$lib/types/incident';
-	import * as m from '$lib/paraglide/messages.js';
 
 	let {
 		initial = undefined,
@@ -67,7 +66,7 @@
 			status = 'success';
 		} catch (err) {
 			status = 'error';
-			errorMessage = err instanceof Error ? err.message : m.incident_error();
+			errorMessage = err instanceof Error ? err.message : 'Failed to save incident.';
 		}
 	}
 </script>
@@ -75,12 +74,12 @@
 <form onsubmit={handleSubmit} class="space-y-6">
 	<div class="grid gap-4 md:grid-cols-2">
 		<div class="md:col-span-2">
-			<label for="title" class="block text-sm font-medium text-text">{m.incident_field_title()} *</label>
+			<label for="title" class="block text-sm font-medium text-text">Title *</label>
 			<Input id="title" bind:value={title} required maxlength={500} />
 		</div>
 
 		<div>
-			<label for="category" class="block text-sm font-medium text-text">{m.incident_field_category()} *</label>
+			<label for="category" class="block text-sm font-medium text-text">Category *</label>
 			<select id="category" bind:value={category} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text">
 				{#each CATEGORIES as cat (cat)}
 					<option value={cat}>{cat}</option>
@@ -89,7 +88,7 @@
 		</div>
 
 		<div>
-			<label for="severity" class="block text-sm font-medium text-text">{m.incident_field_severity()} *</label>
+			<label for="severity" class="block text-sm font-medium text-text">Severity *</label>
 			<select id="severity" bind:value={severity} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text">
 				{#each SEVERITIES as sev (sev)}
 					<option value={sev}>{sev}</option>
@@ -98,63 +97,63 @@
 		</div>
 
 		<div class="md:col-span-2">
-			<label for="anti_pattern" class="block text-sm font-medium text-text">{m.incident_field_anti_pattern()} *</label>
+			<label for="anti_pattern" class="block text-sm font-medium text-text">Anti-Pattern *</label>
 			<textarea id="anti_pattern" bind:value={anti_pattern} required rows={3} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text"></textarea>
 		</div>
 
 		<div class="md:col-span-2">
-			<label for="remediation" class="block text-sm font-medium text-text">{m.incident_field_remediation()} *</label>
+			<label for="remediation" class="block text-sm font-medium text-text">Remediation *</label>
 			<textarea id="remediation" bind:value={remediation} required rows={3} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text"></textarea>
 		</div>
 
 		<div>
-			<label for="incidentDate" class="block text-sm font-medium text-text-muted">{m.incident_field_date()}</label>
+			<label for="incidentDate" class="block text-sm font-medium text-text-muted">Date</label>
 			<input id="incidentDate" type="date" bind:value={incidentDate} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text" />
 		</div>
 
 		<div>
-			<label for="organization" class="block text-sm font-medium text-text-muted">{m.incident_field_organization()}</label>
+			<label for="organization" class="block text-sm font-medium text-text-muted">Organization</label>
 			<Input id="organization" bind:value={organization} maxlength={255} />
 		</div>
 
 		<div class="md:col-span-2">
-			<label for="source_url" class="block text-sm font-medium text-text-muted">{m.incident_field_source_url()}</label>
+			<label for="source_url" class="block text-sm font-medium text-text-muted">Source URL</label>
 			<input id="source_url" type="url" bind:value={source_url} maxlength={2048} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text" />
 		</div>
 
 		<div>
-			<label for="subcategory" class="block text-sm font-medium text-text-muted">{m.incident_field_subcategory()}</label>
+			<label for="subcategory" class="block text-sm font-medium text-text-muted">Subcategory</label>
 			<Input id="subcategory" bind:value={subcategory} maxlength={100} />
 		</div>
 
 		<div>
-			<label for="semgrep_rule_id" class="block text-sm font-medium text-text-muted">{m.incident_field_semgrep_rule_id()}</label>
+			<label for="semgrep_rule_id" class="block text-sm font-medium text-text-muted">Semgrep Rule ID</label>
 			<Input id="semgrep_rule_id" bind:value={semgrep_rule_id} maxlength={50} placeholder="category-NNN" />
 		</div>
 
 		<div class="md:col-span-2">
-			<label for="failure_mode" class="block text-sm font-medium text-text-muted">{m.incident_field_failure_mode()}</label>
+			<label for="failure_mode" class="block text-sm font-medium text-text-muted">Failure Mode</label>
 			<textarea id="failure_mode" bind:value={failure_mode} rows={2} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text"></textarea>
 		</div>
 
 		<div class="md:col-span-2">
-			<label for="code_example" class="block text-sm font-medium text-text-muted">{m.incident_field_code_example()}</label>
+			<label for="code_example" class="block text-sm font-medium text-text-muted">Code Example</label>
 			<textarea id="code_example" bind:value={code_example} rows={4} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 font-mono text-sm text-text"></textarea>
 		</div>
 
 		<div>
-			<label for="affected_languages" class="block text-sm font-medium text-text-muted">{m.incident_field_affected_languages()}</label>
+			<label for="affected_languages" class="block text-sm font-medium text-text-muted">Affected Languages</label>
 			<Input id="affected_languages" bind:value={affected_languages} placeholder="python, javascript" />
 		</div>
 
 		<div>
-			<label for="tags" class="block text-sm font-medium text-text-muted">{m.incident_field_tags()}</label>
+			<label for="tags" class="block text-sm font-medium text-text-muted">Tags</label>
 			<Input id="tags" bind:value={tags} placeholder="regex, performance" />
 		</div>
 
 		<div class="flex items-center gap-2">
 			<input id="static_rule_possible" type="checkbox" bind:checked={static_rule_possible} class="rounded border-border" />
-			<label for="static_rule_possible" class="text-sm text-text-muted">{m.incident_field_static_rule_possible()}</label>
+			<label for="static_rule_possible" class="text-sm text-text-muted">Static rule possible</label>
 		</div>
 	</div>
 
@@ -162,10 +161,10 @@
 		<p class="text-sm text-error">{errorMessage}</p>
 	{/if}
 	{#if status === 'success'}
-		<p class="text-sm text-success">{m.incident_success()}</p>
+		<p class="text-sm text-success">Incident saved successfully.</p>
 	{/if}
 
 	<Button type="submit" disabled={status === 'submitting'}>
-		{status === 'submitting' ? m.incident_submitting() : m.incident_submit()}
+		{status === 'submitting' ? 'Saving...' : 'Save Incident'}
 	</Button>
 </form>

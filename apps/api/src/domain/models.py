@@ -1,9 +1,8 @@
 """Domain models for the Incident module — pure Python, no external dependencies."""
 
-from __future__ import annotations
-
 import re
-from datetime import date, datetime
+from datetime import date as _Date
+from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
@@ -42,7 +41,7 @@ class Incident(BaseModel):
 
     id: UUID
     title: str
-    date: date | None = None
+    date: _Date | None = None
     source_url: str | None = None
     organization: str | None = None
     category: Category

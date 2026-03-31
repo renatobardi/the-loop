@@ -39,6 +39,10 @@ export default [
 			globals: {
 				...globals.browser
 			}
+		},
+		rules: {
+			// Paraglide removed — all navigation uses plain paths, no i18n resolving needed.
+			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},
 	prettierConfig,

@@ -7,28 +7,35 @@ import type {
 	ListFilters,
 	PaginatedResponse
 } from '$lib/types/incident';
+import { getFirebaseAuth } from '$lib/firebase';
+import { env } from '$env/dynamic/public';
 
-const BASE = '/api/v1/incidents';
+// Production API base; override with PUBLIC_API_BASE_URL in Cloud Run env_vars if needed.
+const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://theloop-api-1090621437043.us-central1.run.app';
+const BASE = `${API_BASE}/api/v1/incidents`;
 
 async function getAuthToken(): Promise<string> {
-	// Firebase Auth client SDK provides the token.
-	// This will be wired to the actual Firebase client in the auth setup.
-	// For now, returns empty — auth middleware will reject if missing.
-	return '';
+	const auth = getFirebaseAuth();
+	const user = auth.currentUser;
+	if (!user) {
+		window.location.href = '/?auth=required';
+		throw new Error('Unauthenticated');
+	}
+	return user.getIdToken();
 }
 
 async function request<T>(path: string, options: globalThis.RequestInit = {}): Promise<T> {
 	const token = await getAuthToken();
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json',
-		...(token ? { Authorization: `Bearer ${token}` } : {}),
+		Authorization: `Bearer ${token}`,
 		...(options.headers as Record<string, string>)
 	};
 
 	const response = await fetch(path, { ...options, headers });
 
 	if (response.status === 401) {
-		window.location.href = '/login';
+		window.location.href = '/?auth=required';
 		throw new Error('Unauthenticated');
 	}
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -37,7 +38,7 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+    async def dispatch(self, request: Request, call_next: Any) -> Response:
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
 
@@ -50,7 +51,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
             path=request.url.path,
         )
 
-        response = await call_next(request)
+        response: Response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
 
         logger.info(

@@ -6,7 +6,7 @@ import json
 from typing import Any
 from uuid import UUID
 
-import firebase_admin
+import firebase_admin  # type: ignore[import-untyped]
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, credentials
@@ -18,7 +18,7 @@ _bearer_scheme = HTTPBearer()
 
 
 def init_firebase() -> None:
-    global _app  # noqa: PLW0603
+    global _app  # singleton — initialized once at lifespan startup
     if _app is not None:
         return
     if settings.firebase_service_account:

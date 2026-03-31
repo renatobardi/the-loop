@@ -1,29 +1,20 @@
 <script lang="ts">
   import { Section, Container, Card } from '$lib/ui';
-  import {
-    integrations_headline,
-    integration_github_name,
-    integration_github_desc,
-    integration_ide_name,
-    integration_ide_desc,
-    integration_rest_name,
-    integration_rest_desc,
-  } from '$lib/paraglide/messages.js';
 
-  let integrations = $derived([
+  const integrations = [
     {
-      name: integration_github_name(),
-      description: integration_github_desc(),
+      name: 'GitHub',
+      description: 'GitHub App with Check Runs, SARIF reports, and PR review comments.',
     },
     {
-      name: integration_ide_name(),
-      description: integration_ide_desc(),
+      name: 'IDEs (MCP)',
+      description: 'Cursor, VS Code, Windsurf — scan code and get advisories directly in your editor.',
     },
     {
-      name: integration_rest_name(),
-      description: integration_rest_desc(),
+      name: 'GitLab / Bitbucket / Jenkins',
+      description: 'REST API with webhook support. SARIF and JSON output.',
     },
-  ]);
+  ];
 </script>
 
 {#snippet githubIcon()}
@@ -58,7 +49,7 @@
 <Section id="integrations">
   <Container>
     <h2 class="text-4xl md:text-5xl font-bold text-center mb-12 lg:mb-16">
-      {integrations_headline()}
+      Works where you work.
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">

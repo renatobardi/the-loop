@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Badge } from '$lib/ui';
 	import type { Incident } from '$lib/types/incident';
-	import * as m from '$lib/paraglide/messages.js';
 
 	let { incident }: { incident: Incident } = $props();
 
@@ -13,12 +12,10 @@
 	};
 </script>
 
-<!-- eslint-disable svelte/no-navigation-without-resolve -- ParaglideJS translates href automatically -->
 <a
 	href="/incidents/{incident.id}/"
 	class="block rounded-lg border border-border bg-bg-surface p-4 transition-colors hover:border-border-hover hover:bg-bg-elevated"
 >
-<!-- eslint-enable svelte/no-navigation-without-resolve -->
 	<div class="flex items-start justify-between gap-3">
 		<h3 class="text-base font-medium text-text">{incident.title}</h3>
 		<Badge class={severityColors[incident.severity] ?? ''}>{incident.severity}</Badge>
@@ -29,7 +26,7 @@
 		{#if incident.organization}
 			<span>{incident.organization}</span>
 		{/if}
-		<span>{m.incidents_created_at()} {new Date(incident.created_at).toLocaleDateString()}</span>
+		<span>Created {new Date(incident.created_at).toLocaleDateString()}</span>
 	</div>
 
 	{#if incident.tags.length > 0}

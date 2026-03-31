@@ -3,7 +3,6 @@ import type { Actions } from './$types';
 import { WaitlistSchema } from '$lib/server/schemas';
 import { waitlistLimiter } from '$lib/server/rateLimiter';
 import { addToWaitlist } from '$lib/server/waitlist';
-import { languageTag } from '$lib/paraglide/runtime.js';
 
 export const actions: Actions = {
   waitlist: async (event) => {
@@ -27,11 +26,9 @@ export const actions: Actions = {
       return fail(400, { error: errorMsg });
     }
 
-    const locale = languageTag();
-
     // Write to Firestore
     try {
-      const status = await addToWaitlist(result.data.email, locale, result.data.source);
+      const status = await addToWaitlist(result.data.email, 'en', result.data.source);
       if (status === 'duplicate') {
         return fail(409, { error: 'already_registered' });
       }

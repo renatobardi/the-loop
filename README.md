@@ -8,42 +8,68 @@ The Loop closes the gap between post-mortems and code by transforming incident k
 
 ```
 apps/
-└── web/          # SvelteKit landing page (adapter-node)
+├── web/          # SvelteKit frontend (adapter-node)
+│   ├── src/
+│   │   ├── routes/        # Plain path routing (/, /incidents/, /constitution/)
+│   │   ├── lib/ui/        # Design system (tokens + components)
+│   │   ├── lib/components/ # Page sections
+│   │   ├── lib/server/    # Firebase admin, waitlist, rate limiter
+│   │   └── lib/services/  # API clients (incidents)
+│   └── Dockerfile         # Multi-stage, non-root (Cloud Run)
+└── api/          # FastAPI backend (hexagonal architecture)
     ├── src/
-    │   ├── routes/        # Route-based i18n (/en/, /pt/, /es/)
-    │   ├── lib/ui/        # Design system (tokens + components)
-    │   ├── lib/components/ # Page sections
-    │   └── lib/server/    # Firebase, waitlist, rate limiter
-    ├── messages/          # Paraglide i18n translations
+    │   ├── domain/        # Pure Python models and services
+    │   ├── ports/         # Protocol interfaces
+    │   ├── adapters/      # PostgreSQL, Firebase Auth
+    │   └── api/           # FastAPI routes, middleware
     └── Dockerfile         # Multi-stage, non-root (Cloud Run)
 ```
 
 ## Tech Stack
 
-- **Framework**: SvelteKit with adapter-node
+**Frontend**
+- **Framework**: SvelteKit 2 + Svelte 5 runes, adapter-node
 - **Styling**: Tailwind CSS 4
-- **i18n**: Paraglide-SvelteKit (EN, PT-BR, ES)
+- **Auth**: Firebase (client SDK, Auth only)
 - **Waitlist**: Firebase Firestore (project: theloopoute)
 - **Deployment**: GCP Cloud Run via GitHub Actions
-- **CI/CD**: ESLint, TypeScript strict, vitest, Trivy, docs-check
+
+**Backend**
+- **Framework**: FastAPI + SQLAlchemy 2.0 async + Pydantic v2
+- **Database**: PostgreSQL 16 + pgvector + pg_trgm (Cloud SQL)
+- **Auth**: Firebase Admin SDK (token verification)
+- **Deployment**: GCP Cloud Run via GitHub Actions
 
 ## Development
 
 ```bash
+# Frontend
 cd apps/web
 npm install
-npm run dev
-```
+npm run dev           # http://localhost:5173/
 
-Open http://localhost:5173/en/
+# Backend
+cd apps/api
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+export DATABASE_URL="postgresql+asyncpg://theloop:theloop@localhost:5432/theloop"
+alembic upgrade head
+uvicorn src.main:app --reload --port 8000   # http://localhost:8000/docs
+```
 
 ## Quality Checks
 
 ```bash
+# Frontend
 npm run lint       # ESLint + Prettier
 npm run check      # TypeScript + svelte-check
 npm run test       # vitest
 npm run build      # Production build
+
+# Backend
+ruff check src/ tests/        # Lint
+mypy src/ --strict             # Type check
+pytest --cov=src               # Tests with coverage
 ```
 
 ## Deployment
@@ -51,13 +77,14 @@ npm run build      # Production build
 Automatic on merge to `main` via GitHub Actions:
 1. CI gates (lint, type-check, test, build, vulnerability scan, docs-check)
 2. Docker build → Artifact Registry
-3. Cloud Run deploy
+3. Cloud Run deploy (web: `the-loop`, api: `theloop-api`)
 
 ## Constitution
 
-This project is governed by 12 mandamentos defined in [CONSTITUTION.md](./CONSTITUTION.md). All contributions must comply.
+This project is governed by 13 mandamentos defined in [CONSTITUTION.md](./CONSTITUTION.md). All contributions must comply.
 
 ## Links
 
 - **Landing page**: https://loop.oute.pro
+- **API**: https://theloop-api-1090621437043.us-central1.run.app
 - **Contact**: loop@oute.pro

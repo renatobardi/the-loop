@@ -16,7 +16,6 @@
 	let keyword = $state(data.filters.q ?? '');
 	let currentPage = $state(data.page);
 	let perPage = $state(data.per_page);
-
 	function applyFilters() {
 		const params = new URLSearchParams(); // eslint-disable-line svelte/prefer-svelte-reactivity -- not reactive, rebuilt each call
 		if (currentPage > 1) params.set('page', String(currentPage));
@@ -26,17 +25,8 @@
 		if (keyword) params.set('q', keyword);
 		const query = params.toString();
 		const resolved = i18n.resolveRoute('/incidents', languageTag());
-		goto(`${resolved}/?${query}`, { replaceState: true, invalidateAll: true }); // eslint-disable-line svelte/no-navigation-without-resolve -- resolved via i18n.resolveRoute above
+		goto(`${resolved}/${query ? `?${query}` : ''}`, { replaceState: true, invalidateAll: true }); // eslint-disable-line svelte/no-navigation-without-resolve -- resolved via i18n.resolveRoute above
 	}
-
-	$effect(() => {
-		category;
-		severity;
-		keyword;
-		currentPage;
-		perPage;
-		applyFilters();
-	});
 </script>
 
 <div class="space-y-6 py-8">
@@ -48,7 +38,12 @@
 		</a>
 	</div>
 
-	<IncidentFilters bind:category bind:severity bind:keyword />
+	<IncidentFilters
+		bind:category
+		bind:severity
+		bind:keyword
+		onchange={applyFilters}
+	/>
 
 	{#if data.items.length === 0}
 		<p class="py-12 text-center text-text-muted">{m.incidents_empty()}</p>
@@ -60,5 +55,5 @@
 		</div>
 	{/if}
 
-	<Pagination bind:page={currentPage} bind:perPage total={data.total} />
+	<Pagination bind:page={currentPage} bind:perPage total={data.total} onchange={applyFilters} />
 </div>

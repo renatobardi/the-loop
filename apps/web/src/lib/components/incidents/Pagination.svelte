@@ -5,21 +5,34 @@
 	let {
 		page = $bindable(1),
 		perPage = $bindable(20),
-		total
+		total,
+		onchange = () => {}
 	}: {
 		page: number;
 		perPage: number;
 		total: number;
+		onchange?: () => void;
 	} = $props();
 
 	let totalPages = $derived(Math.max(1, Math.ceil(total / perPage)));
 
 	function prev() {
-		if (page > 1) page--;
+		if (page > 1) {
+			page--;
+			onchange();
+		}
 	}
 
 	function next() {
-		if (page < totalPages) page++;
+		if (page < totalPages) {
+			page++;
+			onchange();
+		}
+	}
+
+	function onPerPageChange() {
+		page = 1;
+		onchange();
 	}
 </script>
 
@@ -28,7 +41,7 @@
 
 	<div class="flex items-center gap-2">
 		<label for="per-page" class="text-xs">{m.incidents_per_page()}</label>
-		<select id="per-page" bind:value={perPage} class="rounded border border-border bg-bg-surface px-2 py-1 text-xs text-text">
+		<select id="per-page" bind:value={perPage} onchange={onPerPageChange} class="rounded border border-border bg-bg-surface px-2 py-1 text-xs text-text">
 			<option value={10}>10</option>
 			<option value={20}>20</option>
 			<option value={50}>50</option>

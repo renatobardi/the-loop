@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 from uuid import UUID
 
@@ -46,4 +47,7 @@ async def get_current_user(
     try:
         return UUID(uid)
     except ValueError:
-        return UUID(int=hash(uid) % (2**128))
+        # Firebase UIDs are opaque strings (not valid UUIDs).
+        # Use uuid5 with a stable namespace to generate a deterministic UUID.
+        # This ensures the same Firebase user always gets the same UUID.
+        return uuid.uuid5(uuid.NAMESPACE_URL, f"firebase:{uid}")

@@ -13,7 +13,7 @@
 
 <Section id="how-it-works">
   <Container>
-    <h2 class="text-4xl md:text-5xl font-bold text-text">
+    <h2 class="text-4xl md:text-5xl font-bold text-text text-center">
       {how_headline()}
     </h2>
 
@@ -109,7 +109,7 @@
       </svg>
     </div>
 
-    <p class="mt-10 text-lg text-text-muted max-w-3xl">
+    <p class="mt-10 text-lg text-text-muted max-w-3xl mx-auto text-center">
       {how_description()}
     </p>
   </Container>

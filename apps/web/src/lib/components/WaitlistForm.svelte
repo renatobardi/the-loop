@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Input, Button } from '$lib/ui';
-  import { form_success, form_duplicate, form_rate_limited, form_server_error, form_submitting, form_submit, hero_email_placeholder } from '$lib/paraglide/messages.js';
+  import { form_success, form_duplicate, form_rate_limited, form_server_error, form_submitting, form_submit, hero_email_placeholder, form_email_label } from '$lib/paraglide/messages.js';
 
   let {
     action = '?/waitlist',
@@ -49,6 +49,7 @@
         <Input
           type="email"
           name="email"
+          label={form_email_label()}
           placeholder={hero_email_placeholder()}
           required
           disabled={status === 'submitting'}

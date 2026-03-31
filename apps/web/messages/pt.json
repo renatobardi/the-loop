@@ -58,5 +58,16 @@
   "form_rate_limited": "Muitas tentativas. Tente novamente em um minuto.",
   "form_server_error": "Algo deu errado. Tente novamente.",
   "form_submitting": "Entrando...",
-  "form_submit": "Entrar na waitlist"
+  "form_submit": "Entrar na waitlist",
+  "nav_features": "Funcionalidades",
+  "nav_pricing": "Preços",
+  "nav_waitlist": "Waitlist",
+  "nav_menu_open": "Abrir menu",
+  "nav_menu_close": "Fechar menu",
+  "skip_to_content": "Pular para o conteúdo principal",
+  "form_email_label": "Endereço de email",
+  "pricing_join_waitlist": "Entrar na waitlist",
+  "pricing_popular_badge": "Mais popular",
+  "hero_scroll_hint": "Rolar para baixo",
+  "hero_product_name": "The Loop"
 }

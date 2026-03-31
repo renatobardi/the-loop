@@ -4,7 +4,7 @@
   import { ParaglideJS } from '@inlang/paraglide-sveltekit';
   import { i18n } from '$lib/i18n';
   import { languageTag } from '$lib/paraglide/runtime.js';
-  import LanguageSelector from '$lib/components/LanguageSelector.svelte';
+  import { SkipLink, Navbar } from '$lib/ui';
 
   let { children }: { children: Snippet } = $props();
 
@@ -44,8 +44,9 @@
 </svelte:head>
 
 <ParaglideJS {i18n}>
-  <div class="fixed top-4 right-4 z-50">
-    <LanguageSelector />
+  <SkipLink />
+  <Navbar />
+  <div class="pt-14">
+    {@render children()}
   </div>
-  {@render children()}
 </ParaglideJS>

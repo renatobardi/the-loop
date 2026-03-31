@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Section, Container, Card, Button } from '$lib/ui';
+  import { Section, Container, Card, Button, Badge } from '$lib/ui';
   import {
     pricing_headline,
     pricing_free_name,
@@ -18,6 +18,8 @@
     pricing_sso,
     pricing_audit,
     pricing_contact_cta,
+    pricing_join_waitlist,
+    pricing_popular_badge,
   } from '$lib/paraglide/messages.js';
 
   let plans = $derived([
@@ -27,22 +29,25 @@
       scans: pricing_free_scans(),
       features: [pricing_layers(), pricing_support_community()],
       highlighted: false,
-      cta: null,
+      popular: false,
+      cta: { text: pricing_join_waitlist(), href: '#waitlist' },
     },
     {
       name: pricing_payg_name(),
       price: pricing_payg_price(),
       scans: pricing_payg_scans(),
       features: [pricing_layers(), pricing_support_email()],
-      highlighted: false,
-      cta: null,
+      highlighted: true,
+      popular: true,
+      cta: { text: pricing_join_waitlist(), href: '#waitlist' },
     },
     {
       name: pricing_enterprise_name(),
       price: pricing_enterprise_price(),
       scans: pricing_enterprise_scans(),
       features: [pricing_layers(), pricing_support_dedicated(), pricing_sso(), pricing_audit()],
-      highlighted: true,
+      highlighted: false,
+      popular: false,
       cta: { text: pricing_contact_cta(), href: 'mailto:loop@oute.pro' },
     },
   ]);
@@ -56,7 +61,10 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
       {#each plans as plan (plan.name)}
-        <Card class={plan.highlighted ? 'border-accent/30 shadow-[0_0_24px_rgba(99,102,241,0.08)]' : ''}>
+        <Card class={plan.highlighted ? 'border-accent shadow-glow' : ''}>
+          {#if plan.popular}
+            <Badge variant="accent" class="mb-4">{pricing_popular_badge()}</Badge>
+          {/if}
           <h3 class="text-xl font-semibold">{plan.name}</h3>
           <p class="text-3xl font-bold mt-2">{plan.price}</p>
           <p class="text-text-muted text-sm mt-1">{plan.scans}</p>
@@ -72,14 +80,12 @@
             {/each}
           </ul>
 
-          {#if plan.cta}
-            <div class="mt-8">
-              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- mailto link -->
-              <a href={plan.cta.href}>
-                <Button variant="secondary" class="w-full">{plan.cta.text}</Button>
-              </a>
-            </div>
-          {/if}
+          <div class="mt-8">
+            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- anchor/mailto link -->
+            <a href={plan.cta.href}>
+              <Button variant={plan.highlighted ? 'primary' : 'secondary'} class="w-full">{plan.cta.text}</Button>
+            </a>
+          </div>
         </Card>
       {/each}
     </div>

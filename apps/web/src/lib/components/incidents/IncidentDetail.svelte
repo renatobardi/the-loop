@@ -34,6 +34,7 @@
 				<div><dt class="text-text-muted">{m.incident_field_organization()}</dt><dd class="text-text">{incident.organization}</dd></div>
 			{/if}
 			{#if incident.source_url}
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external link -->
 				<div class="md:col-span-2"><dt class="text-text-muted">{m.incident_field_source_url()}</dt><dd><a href={incident.source_url} target="_blank" rel="noopener" class="text-accent hover:underline">{incident.source_url}</a></dd></div>
 			{/if}
 			{#if incident.failure_mode}
@@ -49,10 +50,10 @@
 				<div><dt class="text-text-muted">{m.incident_field_subcategory()}</dt><dd class="text-text">{incident.subcategory}</dd></div>
 			{/if}
 			{#if incident.affected_languages.length > 0}
-				<div><dt class="text-text-muted">{m.incident_field_affected_languages()}</dt><dd class="flex gap-1">{#each incident.affected_languages as lang}<Badge>{lang}</Badge>{/each}</dd></div>
+				<div><dt class="text-text-muted">{m.incident_field_affected_languages()}</dt><dd class="flex gap-1">{#each incident.affected_languages as lang (lang)}<Badge>{lang}</Badge>{/each}</dd></div>
 			{/if}
 			{#if incident.tags.length > 0}
-				<div><dt class="text-text-muted">{m.incident_field_tags()}</dt><dd class="flex flex-wrap gap-1">{#each incident.tags as tag}<span class="rounded bg-bg-elevated px-1.5 py-0.5 text-xs text-text-muted">{tag}</span>{/each}</dd></div>
+				<div><dt class="text-text-muted">{m.incident_field_tags()}</dt><dd class="flex flex-wrap gap-1">{#each incident.tags as tag (tag)}<span class="rounded bg-bg-elevated px-1.5 py-0.5 text-xs text-text-muted">{tag}</span>{/each}</dd></div>
 			{/if}
 		</dl>
 	</section>

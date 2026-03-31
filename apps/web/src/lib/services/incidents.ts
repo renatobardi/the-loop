@@ -17,7 +17,7 @@ async function getAuthToken(): Promise<string> {
 	return '';
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, options: globalThis.RequestInit = {}): Promise<T> {
 	const token = await getAuthToken();
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json',

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { i18n } from '$lib/i18n';
+	import { languageTag } from '$lib/paraglide/runtime.js';
 	import IncidentForm from '$lib/components/incidents/IncidentForm.svelte';
 	import { createIncident } from '$lib/services/incidents';
 	import type { IncidentCreate } from '$lib/types/incident';
@@ -7,7 +9,7 @@
 
 	async function handleSubmit(data: IncidentCreate) {
 		const incident = await createIncident(data);
-		await goto(`../incidents/${incident.id}/`);
+		await goto(i18n.resolveRoute('/incidents', languageTag()) + `/${incident.id}/`); // eslint-disable-line svelte/no-navigation-without-resolve -- resolved via i18n.resolveRoute
 	}
 </script>
 

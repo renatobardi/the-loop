@@ -13,10 +13,12 @@
 	};
 </script>
 
+<!-- eslint-disable svelte/no-navigation-without-resolve -- ParaglideJS translates href automatically -->
 <a
-	href="incidents/{incident.id}/"
+	href="/incidents/{incident.id}/"
 	class="block rounded-lg border border-border bg-bg-surface p-4 transition-colors hover:border-border-hover hover:bg-bg-elevated"
 >
+<!-- eslint-enable svelte/no-navigation-without-resolve -->
 	<div class="flex items-start justify-between gap-3">
 		<h3 class="text-base font-medium text-text">{incident.title}</h3>
 		<Badge class={severityColors[incident.severity] ?? ''}>{incident.severity}</Badge>
@@ -32,7 +34,7 @@
 
 	{#if incident.tags.length > 0}
 		<div class="mt-2 flex flex-wrap gap-1">
-			{#each incident.tags as tag}
+			{#each incident.tags as tag (tag)}
 				<span class="rounded bg-bg-elevated px-1.5 py-0.5 text-xs text-text-muted">{tag}</span>
 			{/each}
 		</div>

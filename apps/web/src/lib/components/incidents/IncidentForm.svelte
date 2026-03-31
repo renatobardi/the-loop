@@ -11,11 +11,12 @@
 	}: {
 		initial?: IncidentCreate;
 		version?: number;
+		// eslint-disable-next-line no-unused-vars
 		onsubmit: (data: IncidentCreate & { version?: number }) => Promise<void>;
 	} = $props();
 
 	let title = $state(initial?.title ?? '');
-	let date = $state(initial?.date ?? '');
+	let incidentDate = $state(initial?.date ?? '');
 	let source_url = $state(initial?.source_url ?? '');
 	let organization = $state(initial?.organization ?? '');
 	let category = $state(initial?.category ?? 'injection');
@@ -38,13 +39,13 @@
 		status = 'submitting';
 		errorMessage = '';
 
-		const data: IncidentCreate & { version?: number } = {
+		const formData: IncidentCreate & { version?: number } = {
 			title,
 			category: category as IncidentCreate['category'],
 			severity: severity as IncidentCreate['severity'],
 			anti_pattern,
 			remediation,
-			date: date || null,
+			date: incidentDate || null,
 			source_url: source_url || null,
 			organization: organization || null,
 			subcategory: subcategory || null,
@@ -58,11 +59,11 @@
 			tags: tags ? tags.split(',').map((s) => s.trim()).filter(Boolean) : []
 		};
 		if (version !== undefined) {
-			data.version = version;
+			formData.version = version;
 		}
 
 		try {
-			await onsubmit(data);
+			await onsubmit(formData);
 			status = 'success';
 		} catch (err) {
 			status = 'error';
@@ -81,7 +82,7 @@
 		<div>
 			<label for="category" class="block text-sm font-medium text-text">{m.incident_field_category()} *</label>
 			<select id="category" bind:value={category} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text">
-				{#each CATEGORIES as cat}
+				{#each CATEGORIES as cat (cat)}
 					<option value={cat}>{cat}</option>
 				{/each}
 			</select>
@@ -90,7 +91,7 @@
 		<div>
 			<label for="severity" class="block text-sm font-medium text-text">{m.incident_field_severity()} *</label>
 			<select id="severity" bind:value={severity} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text">
-				{#each SEVERITIES as sev}
+				{#each SEVERITIES as sev (sev)}
 					<option value={sev}>{sev}</option>
 				{/each}
 			</select>
@@ -107,8 +108,8 @@
 		</div>
 
 		<div>
-			<label for="date" class="block text-sm font-medium text-text-muted">{m.incident_field_date()}</label>
-			<input id="date" type="date" bind:value={date} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text" />
+			<label for="incidentDate" class="block text-sm font-medium text-text-muted">{m.incident_field_date()}</label>
+			<input id="incidentDate" type="date" bind:value={incidentDate} class="w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-text" />
 		</div>
 
 		<div>

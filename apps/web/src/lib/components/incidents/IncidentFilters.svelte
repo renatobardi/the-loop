@@ -35,7 +35,7 @@
 		<label for="filter-category" class="block text-xs font-medium text-text-muted">{m.incidents_filter_category()}</label>
 		<select id="filter-category" bind:value={category} class="rounded-md border border-border bg-bg-surface px-3 py-1.5 text-sm text-text">
 			<option value={null}>All</option>
-			{#each CATEGORIES as cat}
+			{#each CATEGORIES as cat (cat)}
 				<option value={cat}>{cat}</option>
 			{/each}
 		</select>
@@ -45,7 +45,7 @@
 		<label for="filter-severity" class="block text-xs font-medium text-text-muted">{m.incidents_filter_severity()}</label>
 		<select id="filter-severity" bind:value={severity} class="rounded-md border border-border bg-bg-surface px-3 py-1.5 text-sm text-text">
 			<option value={null}>All</option>
-			{#each SEVERITIES as sev}
+			{#each SEVERITIES as sev (sev)}
 				<option value={sev}>{sev}</option>
 			{/each}
 		</select>

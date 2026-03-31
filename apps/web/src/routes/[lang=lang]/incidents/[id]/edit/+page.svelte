@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { i18n } from '$lib/i18n';
+	import { languageTag } from '$lib/paraglide/runtime.js';
 	import IncidentForm from '$lib/components/incidents/IncidentForm.svelte';
 	import { updateIncident } from '$lib/services/incidents';
 	import type { IncidentCreate } from '$lib/types/incident';
@@ -25,16 +27,19 @@
 		tags: data.incident.tags
 	};
 
+	const incidentVersion = data.incident.version;
+	const incidentId = data.incident.id;
+
 	async function handleSubmit(formData: IncidentCreate & { version?: number }) {
-		await updateIncident(data.incident.id, {
+		await updateIncident(incidentId, {
 			...formData,
-			version: formData.version ?? data.incident.version
+			version: formData.version ?? incidentVersion
 		});
-		await goto(`../${data.incident.id}/`);
+		await goto(i18n.resolveRoute('/incidents', languageTag()) + `/${incidentId}/`); // eslint-disable-line svelte/no-navigation-without-resolve -- resolved via i18n.resolveRoute
 	}
 </script>
 
 <div class="mx-auto max-w-3xl py-8">
 	<h1 class="mb-6 text-2xl font-bold text-text">{m.incident_edit_title()}</h1>
-	<IncidentForm {initial} version={data.incident.version} onsubmit={handleSubmit} />
+	<IncidentForm {initial} version={incidentVersion} onsubmit={handleSubmit} />
 </div>

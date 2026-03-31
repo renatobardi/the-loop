@@ -3,7 +3,7 @@
 **Status**: IMUTÁVEL — Requer dupla verificação de @renatobardi
 para qualquer alteração.
 **Criado**: 2026-03-30
-**Última verificação**: 2026-03-30
+**Última verificação**: 2026-03-31
 
 > **AVISO**: Este documento contém mandamentos constitucionais do
 > projeto The Loop. Nenhuma IA, automação ou contribuidor pode
@@ -279,6 +279,56 @@ código:
 - Docs semi-geradas (READMEs, lista de endpoints, estrutura de
   pastas) usam scripts de geração
 
+### XIII. Dependências no Plano de Execução
+
+**Toda dependência** de uma feature — backend, infraestrutura,
+APIs externas, bancos de dados, alterações em serviços
+existentes, DNS, secrets, CI/CD — MUST fazer parte explícita
+do plano de execução (spec, plan e tasks).
+
+#### Infraestrutura e Serviços
+
+- **Provisionamento**: Cloud Run, Cloud SQL, Artifact Registry,
+  Secret Manager, IAM, DNS — MUST estar como tasks ANTES das
+  tasks de código
+- **CI/CD**: novos jobs de qualidade e deploy MUST ser criados
+  no mesmo PR ou antes do código que depende deles
+- **Secrets**: variáveis de ambiente e service accounts MUST
+  estar configurados antes do deploy
+
+#### APIs e Integrações Externas
+
+- **APIs de terceiros**: se a feature consome uma API externa,
+  o plano MUST incluir: configuração de credenciais, tratamento
+  de erros/indisponibilidade, e fallback/degradação graciosa
+- **APIs internas**: se o frontend depende de um backend novo,
+  as tasks MUST cobrir deploy do backend ANTES de mergear o
+  frontend que o consome
+- **Alterações em serviços existentes**: migração de banco,
+  mudança de schema, novos endpoints — MUST estar no plano com
+  ordem de execução explícita
+
+#### Degradação Graciosa
+
+- Se uma dependência (backend, API, banco) ainda não existe no
+  momento do deploy, o sistema MUST renderizar um estado vazio
+  funcional — **NUNCA erro 500 ou página em branco**
+- Validação pré-merge: nenhum código que dependa de algo
+  inexistente pode ser mergeado sem (a) a dependência estar
+  provisionada ou (b) degradação graciosa implementada e
+  testada em produção
+
+**Código sem suas dependências é código quebrado.** O spec,
+plan e tasks MUST cobrir toda a cadeia: dependências → infra →
+CI/CD → deploy → código → validação em produção.
+
+**Origem**: Mandamento adicionado após o incidente
+006-incident-crud, onde 74 tasks de código foram geradas sem
+nenhuma task de provisionamento (Cloud SQL, Cloud Run para API,
+secrets, CI jobs). Resultado: backend mergeado mas nunca
+deployado, frontend quebrado em produção através de 4 PRs de
+hotfix consecutivos.
+
 ## Aplicação e Verificação
 
 - Este documento MUST existir na raiz do repositório como
@@ -311,4 +361,4 @@ código:
 (1) solicitação explícita de @renatobardi, (2) confirmação
 dupla antes do merge.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-30 | **Last Amended**: 2026-03-30
+**Version**: 1.1.0 | **Ratified**: 2026-03-30 | **Last Amended**: 2026-03-31

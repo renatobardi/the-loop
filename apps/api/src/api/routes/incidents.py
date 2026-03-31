@@ -1,11 +1,10 @@
 """CRUD route handlers for incidents."""
 
-from __future__ import annotations
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, field_validator
+from starlette.requests import Request
 
 from src.api.deps import get_authenticated_user, get_incident_service
 from src.api.middleware import limiter
@@ -91,7 +90,7 @@ class IncidentResponse(BaseModel):
     created_by: UUID
 
     @classmethod
-    def from_domain(cls, incident: Incident) -> IncidentResponse:
+    def from_domain(cls, incident: Incident) -> "IncidentResponse":
         return cls(
             id=incident.id,
             title=incident.title,
@@ -128,7 +127,7 @@ class PaginatedResponse(BaseModel):
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=IncidentResponse)
 @limiter.limit("60/minute")
 async def create_incident(
-    request: object,
+    request: Request,
     body: IncidentCreateRequest,
     service: IncidentService = Depends(get_incident_service),
     user_id: UUID = Depends(get_authenticated_user),
@@ -163,7 +162,7 @@ async def create_incident(
 @router.get("", response_model=PaginatedResponse)
 @limiter.limit("60/minute")
 async def list_incidents(
-    request: object,
+    request: Request,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     category: Category | None = None,
@@ -186,7 +185,7 @@ async def list_incidents(
 @router.get("/{incident_id}", response_model=IncidentResponse)
 @limiter.limit("60/minute")
 async def get_incident(
-    request: object,
+    request: Request,
     incident_id: UUID,
     service: IncidentService = Depends(get_incident_service),
     _user_id: UUID = Depends(get_authenticated_user),
@@ -203,7 +202,7 @@ async def get_incident(
 @router.put("/{incident_id}", response_model=IncidentResponse)
 @limiter.limit("60/minute")
 async def update_incident(
-    request: object,
+    request: Request,
     incident_id: UUID,
     body: IncidentUpdateRequest,
     service: IncidentService = Depends(get_incident_service),
@@ -240,7 +239,7 @@ async def update_incident(
 @router.delete("/{incident_id}")
 @limiter.limit("60/minute")
 async def delete_incident(
-    request: object,
+    request: Request,
     incident_id: UUID,
     service: IncidentService = Depends(get_incident_service),
     _user_id: UUID = Depends(get_authenticated_user),

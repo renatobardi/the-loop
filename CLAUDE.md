@@ -34,11 +34,12 @@ uvicorn src.main:app --reload         # Dev server
 ruff check src/ tests/                # Lint (strict rules)
 ruff format src/ tests/               # Format
 mypy src/                             # Type check (strict mode)
-pytest tests/                         # Run all tests
-pytest tests/unit/                    # Unit tests only
-alembic upgrade head                  # Apply database migrations
-alembic revision --autogenerate -m "" # Generate new migration
-python scripts/seed.py --count 10000  # Seed 10k test records for performance testing
+pytest tests/                              # Run all tests
+pytest tests/ --cov=src --cov-fail-under=80 # Run with coverage (CI threshold)
+pytest tests/unit/                         # Unit tests only
+alembic upgrade head                       # Apply database migrations
+alembic revision --autogenerate -m ""      # Generate new migration
+python scripts/seed.py --count 10000       # Seed 10k test records (run from apps/api/)
 ```
 
 ### Docs gate
@@ -64,8 +65,8 @@ bash scripts/generate-docs.sh
 - **`domain/`** — Pure Python: Pydantic models, exceptions, domain services. Zero external dependencies.
 - **`ports/`** — Protocol interfaces (e.g., `IncidentRepoPort`). Only create ports for real boundaries.
 - **`adapters/`** — PostgreSQL (SQLAlchemy), Firebase Auth implementations.
-- **`api/`** — FastAPI routes, middleware, dependencies.
-- **`config.py`** — Configuration. **`main.py`** — App entrypoint.
+- **`api/`** — FastAPI routes, middleware, dependencies. Rate limiting via slowapi (60 req/min per authenticated user, keyed on Firebase UID with IP fallback).
+- **`config.py`** — Configuration. **`main.py`** — App entrypoint with structlog setup (JSON in prod, console in DEBUG).
 
 ### Other directories
 
@@ -82,7 +83,9 @@ bash scripts/generate-docs.sh
 - `src/routes/+page.server.ts` — Server actions (waitlist form: rate limit → Zod validation → Firestore write)
 - `src/lib/firebase.ts` — Firebase client SDK init (Auth only, uses `PUBLIC_FIREBASE_*` env vars)
 - `src/lib/services/incidents.ts` — Incident API client; uses Firebase Auth token, points to `PUBLIC_API_BASE_URL`
+- `src/lib/types/incident.ts` — TypeScript types mirroring backend Pydantic models (`Incident`, `IncidentCreate`, `IncidentUpdate`, `PaginatedResponse`, `ListFilters`, `ApiError`)
 - `src/app.css` — Tailwind 4 `@theme` block with all design tokens (colors, fonts, spacing, shadows)
+- `apps/api/src/api/routes/health.py` — `GET /api/v1/health` → `{"status": "ok"}` (load balancer probe)
 
 ## Svelte 5 Conventions
 

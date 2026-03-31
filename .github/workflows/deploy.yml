@@ -11,14 +11,15 @@ permissions:
 env:
   PROJECT_ID: theloopoute
   REGION: us-central1
-  SERVICE_NAME: the-loop
   REGISTRY: us-central1-docker.pkg.dev
-  IMAGE: us-central1-docker.pkg.dev/theloopoute/the-loop/app
 
 jobs:
-  deploy:
-    name: Build & Deploy
+  deploy-web:
+    name: Build & Deploy (Web)
     runs-on: ubuntu-latest
+    env:
+      SERVICE_NAME: the-loop
+      IMAGE: us-central1-docker.pkg.dev/theloopoute/the-loop/app
     steps:
       - uses: actions/checkout@v4
 
@@ -68,3 +69,60 @@ jobs:
             NODE_ENV=production
             ADDRESS_HEADER=x-forwarded-for
             XFF_DEPTH=2
+            PUBLIC_API_BASE_URL=https://theloop-api-1090621437043.us-central1.run.app
+            PUBLIC_FIREBASE_PROJECT_ID=theloopoute
+
+  deploy-api:
+    name: Build & Deploy (API)
+    runs-on: ubuntu-latest
+    env:
+      SERVICE_NAME: theloop-api
+      IMAGE: us-central1-docker.pkg.dev/theloopoute/theloop-api/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/1090621437043/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@theloopoute.iam.gserviceaccount.com
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+          flags: >-
+            --min-instances=0
+            --max-instances=10
+            --port=8000
+            --memory=512Mi
+            --cpu=1
+            --service-account=theloop-api-sa@theloopoute.iam.gserviceaccount.com
+            --add-cloudsql-instances=theloopoute:southamerica-east1:theloop-db
+            --allow-unauthenticated
+          secrets: |
+            DATABASE_URL=THELOOP_API_DATABASE_URL:latest
+          env_vars: |
+            CORS_ORIGINS=https://the-loop-1090621437043.us-central1.run.app

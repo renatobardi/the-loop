@@ -4,14 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-The Loop — Phase 0 landing page with waitlist. SvelteKit 2 + Svelte 5 (runes), Tailwind CSS 4, Paraglide-SvelteKit i18n (EN/PT/ES), Firebase Firestore, deployed to GCP Cloud Run.
+The Loop — incident prevention platform. Monorepo with two apps:
+
+- **`apps/web/`** — SvelteKit 2 + Svelte 5 (runes), Tailwind CSS 4, Firebase Firestore. English-only. Phase 0 landing page + waitlist, Phase 1 incident CRUD UI.
+- **`apps/api/`** — Python 3.12 FastAPI backend, SQLAlchemy 2.0 (async), Pydantic v2, PostgreSQL 16 + pgvector. Hexagonal architecture (domain/ports/adapters). Phase 1 incident CRUD API.
+
+Deployed to GCP Cloud Run. Single environment: `main` = production.
 
 ## Commands
 
-All commands run from `apps/web/`:
+### Frontend (`apps/web/`)
 
 ```bash
-npm run dev          # Dev server at localhost:5173 (routes require locale prefix: /en/, /pt/, /es/)
+npm run dev          # Dev server at localhost:5173
 npm run build        # Production build (adapter-node → build/)
 npm run check        # svelte-kit sync + svelte-check (TypeScript strict)
 npm run lint         # ESLint + Prettier check
@@ -21,33 +26,63 @@ npm run test -- --run                         # Single run (CI mode)
 npm run test -- --run tests/unit/server.test.ts  # Run a single test file
 ```
 
-Paraglide codegen runs automatically via Vite plugin. Manual trigger:
+### Backend (`apps/api/`)
+
 ```bash
-npx paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide
+pip install -r requirements.txt       # Install dependencies
+uvicorn src.main:app --reload         # Dev server
+ruff check src/ tests/                # Lint (strict rules)
+ruff format src/ tests/               # Format
+mypy src/                             # Type check (strict mode)
+pytest tests/                         # Run all tests
+pytest tests/unit/                    # Unit tests only
+alembic upgrade head                  # Apply database migrations
+alembic revision --autogenerate -m "" # Generate new migration
+python scripts/seed.py --count 10000  # Seed 10k test records for performance testing
+```
+
+### Docs gate
+
+If the `docs-check` CI gate fails, run locally and commit the result:
+```bash
+bash scripts/generate-docs.sh
 ```
 
 ## Architecture
 
-Monorepo with `apps/web/` as the main SvelteKit app.
+### Frontend (`apps/web/src/`)
 
-- **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `001-landing-page-waitlist/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names (e.g., branch `003-i18n-audit-fix` → `specs/003-i18n-audit-fix/`).
+- **`routes/`** — File-based routing with plain paths. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes use plain paths (`/`, `/incidents/`, `/constitution/`).
+- **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`.
+- **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
+- **`lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.). All text hardcoded in English.
+- **`lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
+- **`lib/services/incidents.ts`** — API client for incident CRUD. Attaches Firebase Auth token to requests.
+
+### Backend (`apps/api/src/`)
+
+- **`domain/`** — Pure Python: Pydantic models, exceptions, domain services. Zero external dependencies.
+- **`ports/`** — Protocol interfaces (e.g., `IncidentRepoPort`). Only create ports for real boundaries.
+- **`adapters/`** — PostgreSQL (SQLAlchemy), Firebase Auth implementations.
+- **`api/`** — FastAPI routes, middleware, dependencies.
+- **`config.py`** — Configuration. **`main.py`** — App entrypoint.
+
+### Other directories
+
+- **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `007-incident-crud-v2/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names.
 - **`.project/`** — Persistent project history: phase specs, decisions (ADRs), research. Files here are never deleted — obsolete docs go to `.project/archive/`.
-- **`src/routes/[lang=lang]/`** — File-based routing under a locale param matcher (`src/params/lang.ts` validates `en|pt|es`). Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes served under locale prefix (`/en/`, `/pt/`, `/es/`).
-- **`src/lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
-- **`src/lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.).
-- **`src/lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
-- **`src/lib/paraglide/`** — Auto-generated i18n runtime. **Do not edit or commit.**
-- **`messages/`** — i18n source JSON files (`en.json`, `pt.json`, `es.json`). Keys use `snake_case`.
-- **`tests/unit/`** — Vitest with jsdom environment and `$lib`/`$app` path aliases.
+- **`tests/unit/`** — Frontend: Vitest with jsdom environment and `$lib`/`$app` path aliases.
+- **`apps/api/tests/`** — Backend: pytest with unit, integration, and API test suites.
+- **`apps/api/alembic/`** — Database migrations.
 
 ### Key files
 
-- `src/hooks.ts` — Paraglide i18n reroute handler
+- `src/hooks.ts` — SvelteKit reroute handler (empty — no i18n)
 - `src/hooks.server.ts` — Security headers (HSTS, CSP, X-Frame-Options, Permissions-Policy)
 - `src/routes/+page.server.ts` — Server actions (waitlist form: rate limit → Zod validation → Firestore write)
+- `src/lib/firebase.ts` — Firebase client SDK init (Auth only, uses `PUBLIC_FIREBASE_*` env vars)
+- `src/lib/services/incidents.ts` — Incident API client; uses Firebase Auth token, points to `PUBLIC_API_BASE_URL`
 - `src/app.css` — Tailwind 4 `@theme` block with all design tokens (colors, fonts, spacing, shadows)
-- `project.inlang/settings.json` — Paraglide config (source: en, targets: pt, es)
-- `src/lib/i18n.ts` — Paraglide setup: `prefixDefaultLanguage: 'always'`, three locales, all LTR
 
 ## Svelte 5 Conventions
 
@@ -68,17 +103,10 @@ This project uses Svelte 5 runes exclusively (enforced in `svelte.config.js`):
 
 All visual styling must use these tokens — no ad-hoc color/spacing values.
 
-## i18n (Paraglide-SvelteKit)
-
-- Import messages: `import { hero_headline } from '$lib/paraglide/messages.js'`
-- Get current language: `import { languageTag } from '$lib/paraglide/runtime.js'`
-- Root layout wraps app with `<ParaglideJS {i18n}>` for link translation
-- Use `href="/"` (plain paths) — Paraglide handles locale prefixing automatically
-- Never hardcode locale-prefixed URLs in components
-
 ## Code Style
 
-Enforced by Prettier: tabs, single quotes, no trailing commas, 100 char print width. Run `npm run format` to fix, `npm run lint` to check.
+- **Frontend**: Prettier — tabs, single quotes, no trailing commas, 100 char print width. Run `npm run format` to fix.
+- **Backend**: Ruff (strict rules) + mypy (strict mode). Run `ruff format` to fix.
 
 ## Form Handling Pattern
 
@@ -88,27 +116,27 @@ Adding a new waitlist source (e.g., a new CTA button) requires updating `VALID_S
 
 ## Environment
 
-- **Runtime:** `FIREBASE_SERVICE_ACCOUNT` (JSON string via GCP Secret Manager), `PORT=3000`
+- **Web runtime:** `FIREBASE_SERVICE_ACCOUNT` (JSON string via GCP Secret Manager), `PORT=3000`
+- **Web public env vars (Cloud Run env_vars):** `PUBLIC_API_BASE_URL`, `PUBLIC_FIREBASE_API_KEY`, `PUBLIC_FIREBASE_AUTH_DOMAIN`, `PUBLIC_FIREBASE_PROJECT_ID`, `PUBLIC_FIREBASE_STORAGE_BUCKET`, `PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `PUBLIC_FIREBASE_APP_ID`
+- **API runtime:** `DATABASE_URL` (via Secret Manager secret `THELOOP_API_DATABASE_URL`), `FIREBASE_SERVICE_ACCOUNT`, `CORS_ORIGINS`
 - **No `.env` in repo** — all secrets via GCP Secret Manager / GitHub Actions secrets
-- **Firestore project:** `theloopoute`
+- **Firestore/Firebase project:** `theloopoute`
+- **Cloud SQL instance:** `theloopoute:southamerica-east1:theloop-db` (PostgreSQL 16 + pgvector + pg_trgm)
+- **API Cloud Run URL:** `https://theloop-api-1090621437043.us-central1.run.app`
 
 ## Deployment
 
-GitHub Actions CI gates (lint → type-check → test → build → Trivy scan → docs-check) must all pass before merge. Deploy to Cloud Run via Workload Identity Federation on push to `main`.
+GitHub Actions CI gates (lint → type-check → test → build → Trivy scan → docs-check) must all pass before merge. Deploy to Cloud Run via Workload Identity Federation on push to `main`. Node 22 in CI.
+
+- **Web CI**: lint + check + test + build + Trivy (`the-loop` Cloud Run)
+- **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy (`theloop-api` Cloud Run)
 
 ## Governance (CONSTITUTION.md)
 
-- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches for specs use a numeric prefix matching their spec directory (e.g., branch `003-i18n-audit-fix` → `specs/003-i18n-audit-fix/`)
+- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches for specs use a numeric prefix matching their spec directory (e.g., branch `007-incident-crud-v2` → `specs/007-incident-crud-v2/`)
 - Design system tokens are centralized in `lib/ui/` — no ad-hoc styling
 - `main` = production (no dev environment — single environment)
 - All merges controlled by @renatobardi — sole approver
-- Hexagonal architecture applies after Phase 1 (not current Phase 0)
-- Structural changes (new routes, components, architecture) require doc updates in the same PR — CI runs `scripts/generate-docs.sh` and blocks merge if docs are stale. If the docs-check gate fails, run `bash scripts/generate-docs.sh` locally and commit the result.
-- Node 22 in CI
-
-## Active Technologies
-- Python 3.12 (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, asyncpg (backend); SvelteKit 2.50, Svelte 5, Tailwind CSS 4 (frontend) (006-incident-crud)
-- PostgreSQL 16 + pgvector extension (embedding column nullable, no HNSW index in Phase A) (006-incident-crud)
-
-## Recent Changes
-- 006-incident-crud: Added Python 3.12 (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, asyncpg (backend); SvelteKit 2.50, Svelte 5, Tailwind CSS 4 (frontend)
+- Hexagonal architecture applies from Phase 1 onward (backend only)
+- Structural changes (new routes, components, architecture) require doc updates in the same PR
+- **Mandamento XIII**: ALL dependencies (infra, APIs, backend, DB, secrets, CI/CD) MUST be explicit in the execution plan. Code without its dependencies is broken code.

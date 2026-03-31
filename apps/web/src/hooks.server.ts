@@ -1,6 +1,4 @@
 import type { Handle } from '@sveltejs/kit';
-import { sequence } from '@sveltejs/kit/hooks';
-import { i18n } from '$lib/i18n';
 
 const HSTS_MAX_AGE = 63_072_000; // 2 years
 
@@ -10,14 +8,14 @@ const csp = [
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' data:",
 	"font-src 'self' https://cdn.jsdelivr.net",
-	"connect-src 'self' https://firestore.googleapis.com https://firebase.googleapis.com",
+	"connect-src 'self' https://firestore.googleapis.com https://firebase.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
 	"frame-ancestors 'none'",
 	"base-uri 'self'",
 	"form-action 'self'",
 	"upgrade-insecure-requests"
 ].join('; ');
 
-const securityHeaders: Handle = async ({ event, resolve }) => {
+export const handle: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
 	response.headers.set(
@@ -36,5 +34,3 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 
 	return response;
 };
-
-export const handle = sequence(i18n.handle(), securityHeaders);

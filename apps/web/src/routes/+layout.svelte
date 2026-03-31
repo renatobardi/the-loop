@@ -1,13 +1,13 @@
 <script lang="ts">
   import '../app.css';
   import type { Snippet } from 'svelte';
-  import { ParaglideJS } from '@inlang/paraglide-sveltekit';
-  import { i18n } from '$lib/i18n';
-  import { languageTag } from '$lib/paraglide/runtime.js';
-  import { meta_title, meta_description } from '$lib/paraglide/messages.js';
   import { SkipLink, Navbar } from '$lib/ui';
 
   let { children }: { children: Snippet } = $props();
+
+  const META_TITLE = 'The Loop — Eliminate production incidents before they happen';
+  const META_DESCRIPTION =
+    'Close the loop between post-mortems and code. The Loop turns lessons learned into prevention rules enforced at merge time.';
 </script>
 
 <svelte:head>
@@ -22,23 +22,19 @@
     crossorigin="anonymous"
   />
 
-  <title>{meta_title()}</title>
-  <meta name="description" content={meta_description()} />
+  <title>{META_TITLE}</title>
+  <meta name="description" content={META_DESCRIPTION} />
 
-  <meta property="og:title" content={meta_title()} />
-  <meta property="og:description" content={meta_description()} />
+  <meta property="og:title" content={META_TITLE} />
+  <meta property="og:description" content={META_DESCRIPTION} />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content={`https://loop.oute.pro/${languageTag()}/`} />
+  <meta property="og:url" content="https://loop.oute.pro/" />
   <meta property="og:image" content="https://loop.oute.pro/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
-
-  <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
 </svelte:head>
 
-<ParaglideJS {i18n}>
-  <SkipLink />
-  <Navbar />
-  <div class="pt-14">
-    {@render children()}
-  </div>
-</ParaglideJS>
+<SkipLink />
+<Navbar />
+<div class="pt-14">
+  {@render children()}
+</div>

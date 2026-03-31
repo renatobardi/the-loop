@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import logging
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI
@@ -14,7 +15,6 @@ from src.api.middleware import setup_middleware
 from src.api.routes.incidents import router as incidents_router
 from src.config import settings
 
-
 structlog.configure(
     processors=[
         structlog.contextvars.merge_contextvars,
@@ -24,7 +24,7 @@ structlog.configure(
         else structlog.processors.JSONRenderer(),
     ],
     wrapper_class=structlog.make_filtering_bound_logger(
-        structlog.get_level_from_name(settings.log_level)
+        logging.getLevelName(settings.log_level)
     ),
 )
 

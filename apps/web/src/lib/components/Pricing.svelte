@@ -1,69 +1,48 @@
 <script lang="ts">
   import { Section, Container, Card, Button, Badge } from '$lib/ui';
-  import {
-    pricing_headline,
-    pricing_free_name,
-    pricing_free_price,
-    pricing_free_scans,
-    pricing_payg_name,
-    pricing_payg_price,
-    pricing_payg_scans,
-    pricing_enterprise_name,
-    pricing_enterprise_price,
-    pricing_enterprise_scans,
-    pricing_layers,
-    pricing_support_community,
-    pricing_support_email,
-    pricing_support_dedicated,
-    pricing_sso,
-    pricing_audit,
-    pricing_contact_cta,
-    pricing_join_waitlist,
-    pricing_popular_badge,
-  } from '$lib/paraglide/messages.js';
 
-  let plans = $derived([
+  const plans = [
     {
-      name: pricing_free_name(),
-      price: pricing_free_price(),
-      scans: pricing_free_scans(),
-      features: [pricing_layers(), pricing_support_community()],
+      name: 'Free',
+      price: '$0',
+      scans: '100 scans/month',
+      features: ['L1 + L2 + L3', 'Community'],
       highlighted: false,
       popular: false,
-      cta: { text: pricing_join_waitlist(), href: '#waitlist' },
+      cta: { text: 'Join the waitlist', href: '#waitlist' },
     },
     {
-      name: pricing_payg_name(),
-      price: pricing_payg_price(),
-      scans: pricing_payg_scans(),
-      features: [pricing_layers(), pricing_support_email()],
+      name: 'Pay-as-you-go',
+      price: 'Pay per scan batch',
+      scans: 'Buy in batches',
+      features: ['L1 + L2 + L3', 'Email'],
       highlighted: true,
       popular: true,
-      cta: { text: pricing_join_waitlist(), href: '#waitlist' },
+      cta: { text: 'Join the waitlist', href: '#waitlist' },
     },
     {
-      name: pricing_enterprise_name(),
-      price: pricing_enterprise_price(),
-      scans: pricing_enterprise_scans(),
-      features: [pricing_layers(), pricing_support_dedicated(), pricing_sso(), pricing_audit()],
+      name: 'Enterprise',
+      price: 'Contact us',
+      scans: 'Unlimited',
+      features: ['L1 + L2 + L3', 'Dedicated', 'SSO/SAML', 'Audit logs'],
       highlighted: false,
       popular: false,
-      cta: { text: pricing_contact_cta(), href: 'mailto:loop@oute.pro' },
+      cta: { text: 'Contact us', href: 'mailto:loop@oute.pro' },
     },
-  ]);
+  ];
 </script>
 
 <Section id="pricing">
   <Container>
     <h2 class="text-4xl md:text-5xl font-bold text-center mb-12 lg:mb-16">
-      {pricing_headline()}
+      Start free. Pay as you grow.
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
       {#each plans as plan (plan.name)}
         <Card class={plan.highlighted ? 'border-accent shadow-glow' : ''}>
           {#if plan.popular}
-            <Badge variant="accent" class="mb-4">{pricing_popular_badge()}</Badge>
+            <Badge variant="accent" class="mb-4">Most popular</Badge>
           {/if}
           <h3 class="text-xl font-semibold">{plan.name}</h3>
           <p class="text-3xl font-bold mt-2">{plan.price}</p>
@@ -81,7 +60,6 @@
           </ul>
 
           <div class="mt-8">
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- anchor/mailto link -->
             <a href={plan.cta.href}>
               <Button variant={plan.highlighted ? 'primary' : 'secondary'} class="w-full">{plan.cta.text}</Button>
             </a>

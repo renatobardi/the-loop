@@ -1,44 +1,35 @@
 <script lang="ts">
   import { Section, Container, Card, Badge } from '$lib/ui';
-  import {
-    layers_headline,
-    layer1_label,
-    layer1_name,
-    layer1_description,
-    layer2_label,
-    layer2_name,
-    layer2_description,
-    layer3_label,
-    layer3_name,
-    layer3_description,
-  } from '$lib/paraglide/messages.js';
 
-  let layers = $derived([
+  const layers = [
     {
-      badge: layer1_label(),
+      badge: 'Layer 1 · Blocking',
       badgeVariant: 'accent' as const,
-      name: layer1_name(),
-      description: layer1_description(),
+      name: 'Static Rules',
+      description:
+        'Deterministic Semgrep rules derived from real production incidents. Runs in pre-commit and CI. Every finding links to the original incident. No AI hallucinations — pure pattern matching.',
     },
     {
-      badge: layer2_label(),
+      badge: 'Layer 2 · Consultive',
       badgeVariant: 'default' as const,
-      name: layer2_name(),
-      description: layer2_description(),
+      name: 'RAG Advisory',
+      description:
+        'AI-powered review that compares your pull request against a knowledge base of past incidents. Posts non-blocking comments with matched incidents, confidence scores, and remediation guidance.',
     },
     {
-      badge: layer3_label(),
+      badge: 'Layer 3 · Progressive',
       badgeVariant: 'default' as const,
-      name: layer3_name(),
-      description: layer3_description(),
+      name: 'Auto Synthesis',
+      description:
+        'When the same pattern is flagged across multiple PRs, The Loop automatically generates a new static rule and opens a PR for human approval. The system learns and hardens over time.',
     },
-  ]);
+  ];
 </script>
 
 <Section id="features">
   <Container>
     <h2 class="text-4xl md:text-5xl font-bold text-center mb-12 lg:mb-16">
-      {layers_headline()}
+      Three layers. Zero blind spots.
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">

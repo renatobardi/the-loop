@@ -1,7 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Input, Button } from '$lib/ui';
-  import { form_success, form_duplicate, form_rate_limited, form_server_error, form_submitting, form_submit, hero_email_placeholder, form_email_label } from '$lib/paraglide/messages.js';
 
   let {
     action = '?/waitlist',
@@ -32,18 +31,18 @@
           status = 'duplicate';
         } else {
           status = 'error';
-          errorMessage = error ?? form_server_error();
+          errorMessage = error ?? 'Something went wrong. Please try again.';
         }
       } else {
         status = 'error';
-        errorMessage = form_server_error();
+        errorMessage = 'Something went wrong. Please try again.';
       }
     };
   }}
 >
   {#if status === 'success'}
     <p class="text-accent text-sm font-medium">
-      {form_success()}
+      You're on the list! We'll notify you when The Loop launches.
     </p>
   {:else}
     <input type="hidden" name="source" value={source} />
@@ -52,25 +51,25 @@
         <Input
           type="email"
           name="email"
-          label={form_email_label()}
-          placeholder={hero_email_placeholder()}
+          label="Email address"
+          placeholder="your@email.com"
           required
           disabled={status === 'submitting'}
         />
       </div>
       <Button type="submit" variant="primary" disabled={status === 'submitting'}>
         {#if status === 'submitting'}
-          {form_submitting()}
+          Joining...
         {:else}
-          {form_submit()}
+          Join the waitlist
         {/if}
       </Button>
     </div>
 
     {#if status === 'duplicate'}
-      <p class="mt-2 text-sm text-text-muted">{form_duplicate()}</p>
+      <p class="mt-2 text-sm text-text-muted">You're already on the list!</p>
     {:else if status === 'rate_limited'}
-      <p class="mt-2 text-sm text-error">{form_rate_limited()}</p>
+      <p class="mt-2 text-sm text-error">Too many attempts. Please try again in a minute.</p>
     {:else if status === 'error'}
       <p class="mt-2 text-sm text-error">{errorMessage}</p>
     {/if}

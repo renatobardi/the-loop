@@ -12,8 +12,15 @@ export async function load({ url }) {
 
 	try {
 		const data = await listIncidents(filters);
-		return { ...data, filters };
-	} catch {
-		return { items: [], total: 0, page: 1, per_page: 20, filters };
+		return { ...data, filters, loadError: null };
+	} catch (err) {
+		return {
+			items: [],
+			total: 0,
+			page: filters.page ?? 1,
+			per_page: filters.per_page ?? 20,
+			filters,
+			loadError: err instanceof Error ? err.message : 'Unable to connect to the server'
+		};
 	}
 }

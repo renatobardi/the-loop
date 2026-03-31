@@ -85,7 +85,7 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
-          trivyignores: 'apps/api/.trivyignore'
+          ignore-unfixed: true
 
   security:
     name: Security Scan (Web)

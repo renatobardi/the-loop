@@ -128,7 +128,7 @@ class PaginatedResponse(BaseModel):
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=IncidentResponse)
 @limiter.limit("60/minute")
 async def create_incident(
-    request: object,  # noqa: ARG001 — required by slowapi
+    request: object,
     body: IncidentCreateRequest,
     service: IncidentService = Depends(get_incident_service),
     user_id: UUID = Depends(get_authenticated_user),
@@ -163,7 +163,7 @@ async def create_incident(
 @router.get("", response_model=PaginatedResponse)
 @limiter.limit("60/minute")
 async def list_incidents(
-    request: object,  # noqa: ARG001
+    request: object,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     category: Category | None = None,
@@ -186,7 +186,7 @@ async def list_incidents(
 @router.get("/{incident_id}", response_model=IncidentResponse)
 @limiter.limit("60/minute")
 async def get_incident(
-    request: object,  # noqa: ARG001
+    request: object,
     incident_id: UUID,
     service: IncidentService = Depends(get_incident_service),
     _user_id: UUID = Depends(get_authenticated_user),
@@ -203,7 +203,7 @@ async def get_incident(
 @router.put("/{incident_id}", response_model=IncidentResponse)
 @limiter.limit("60/minute")
 async def update_incident(
-    request: object,  # noqa: ARG001
+    request: object,
     incident_id: UUID,
     body: IncidentUpdateRequest,
     service: IncidentService = Depends(get_incident_service),
@@ -240,7 +240,7 @@ async def update_incident(
 @router.delete("/{incident_id}")
 @limiter.limit("60/minute")
 async def delete_incident(
-    request: object,  # noqa: ARG001
+    request: object,
     incident_id: UUID,
     service: IncidentService = Depends(get_incident_service),
     _user_id: UUID = Depends(get_authenticated_user),

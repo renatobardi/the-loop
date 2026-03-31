@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-
 from src.domain.models import Category, Incident, Severity
 
 

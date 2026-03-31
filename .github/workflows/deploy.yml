@@ -124,5 +124,6 @@ jobs:
             --allow-unauthenticated
           secrets: |
             DATABASE_URL=THELOOP_API_DATABASE_URL:latest
+            FIREBASE_SERVICE_ACCOUNT=FIREBASE_SERVICE_ACCOUNT:latest
           env_vars: |
             CORS_ORIGINS=https://the-loop-1090621437043.us-central1.run.app

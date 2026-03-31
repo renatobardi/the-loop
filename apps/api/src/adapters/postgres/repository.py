@@ -163,12 +163,14 @@ class PostgresIncidentRepository:
         if severity:
             base = base.where(IncidentRow.severity == severity.value)
         if keyword:
-            pattern = f"%{keyword}%"
+            # Escape ILIKE wildcards (% and _) to prevent pattern injection
+            escaped_keyword = keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped_keyword}%"
             base = base.where(
                 or_(
-                    IncidentRow.title.ilike(pattern),
-                    IncidentRow.anti_pattern.ilike(pattern),
-                    IncidentRow.remediation.ilike(pattern),
+                    IncidentRow.title.ilike(pattern, escape="\\"),
+                    IncidentRow.anti_pattern.ilike(pattern, escape="\\"),
+                    IncidentRow.remediation.ilike(pattern, escape="\\"),
                 )
             )
 

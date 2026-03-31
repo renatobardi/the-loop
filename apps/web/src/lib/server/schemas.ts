@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const VALID_SOURCES = ['hero', 'cta-bottom'] as const;
+export const VALID_SOURCES = ['hero', 'cta-bottom', 'constitution'] as const;
 
 export const WaitlistSchema = z.object({
   email: z

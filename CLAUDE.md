@@ -92,16 +92,17 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 
 ## Governance (CONSTITUTION.md)
 
-- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches use a numeric prefix matching their spec (e.g., `003-i18n-audit-fix`)
+- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches for specs use a numeric prefix matching their spec directory (e.g., branch `003-i18n-audit-fix` → `specs/003-i18n-audit-fix/`)
 - Design system tokens are centralized in `lib/ui/` — no ad-hoc styling
-- `main` = production (no dev environment)
-- All merges controlled by @renatobardi
+- `main` = production (no dev environment — single environment)
+- All merges controlled by @renatobardi — sole approver
 - Hexagonal architecture applies after Phase 1 (not current Phase 0)
-
+- Structural changes (new routes, components, architecture) require doc updates in the same PR — CI runs `scripts/generate-docs.sh` and blocks merge if docs are stale
+- Node 22 in CI
 
 ## Active Technologies
-- TypeScript 5.x, Svelte 5 (runes) + SvelteKit 2.50, @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4, Zod, firebase-admin (004-waitlist-pricing-ctas)
-- Firestore (project: `theloopoute`, collection: `waitlist`) (004-waitlist-pricing-ctas)
+- TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4 (005-constitution-page)
+- N/A (static content page; waitlist reuses existing Firestore) (005-constitution-page)
 
 ## Recent Changes
-- 004-waitlist-pricing-ctas: Added TypeScript 5.x, Svelte 5 (runes) + SvelteKit 2.50, @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4, Zod, firebase-admin
+- 005-constitution-page: Added TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4

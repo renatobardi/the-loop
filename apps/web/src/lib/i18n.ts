@@ -8,5 +8,12 @@ export const i18n = createI18n(runtime, {
 		en: 'ltr',
 		pt: 'ltr',
 		es: 'ltr'
+	},
+	pathnames: {
+		'/constitution': {
+			en: '/constitution',
+			pt: '/constituicao',
+			es: '/constitucion'
+		}
 	}
 });

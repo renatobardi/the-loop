@@ -69,6 +69,7 @@ describe('WaitlistSchema', () => {
   it('exports VALID_SOURCES constant', () => {
     expect(VALID_SOURCES).toContain('hero');
     expect(VALID_SOURCES).toContain('cta-bottom');
-    expect(VALID_SOURCES).toHaveLength(2);
+    expect(VALID_SOURCES).toContain('constitution');
+    expect(VALID_SOURCES).toHaveLength(3);
   });
 });

@@ -5,7 +5,11 @@
 
 **Tests**: Not explicitly requested. Backend tests already exist from 006. Frontend tests updated only where i18n removal breaks existing tests.
 
-**Organization**: Tasks are organized by execution phase per Mandamento XIII: infrastructure BEFORE CI/CD BEFORE code changes BEFORE documentation. Within code changes, incident component tasks are tagged with user story labels (US1-US5) for traceability. Backend code requires ZERO changes — all tasks are infra, CI/CD, frontend refactoring, and docs.
+**Organization**: Tasks are organized by execution phase per Mandamento XIII: infrastructure BEFORE CI/CD BEFORE code changes BEFORE documentation. Within code changes, incident component tasks are tagged with user story labels (US1-US5) for traceability.
+
+> **Phase mapping (plan.md → tasks.md)**: plan.md §Execution Phases has 5 phases. tasks.md expands plan Phase 3 ("i18n Removal") into three separate phases for granularity: tasks Phase 3 = i18n infra/config, tasks Phase 4 = landing page components, tasks Phase 5 = incident components. plan Phase 4 → tasks Phase 6; plan Phase 5 → tasks Phase 7.
+
+> **Backend changes note**: The original plan stated "backend requires ZERO changes." During implementation, the following backend changes were necessary: (1) removed `from __future__ import annotations` from `routes/incidents.py` — slowapi's decorator wrapper loses the route module's namespace, causing FastAPI to see ForwardRef strings instead of resolved types; (2) changed `request: object` → `request: Request` in all route handlers — required by FastAPI 0.128.5; (3) upgraded fastapi 0.115.12→0.128.5 and pinned starlette≥0.49.1 to fix CVE-2025-62727; (4) added pytest-cov and new test files (test_services.py, test_incidents.py) to reach the 80% coverage threshold required by T009.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -16,7 +20,7 @@
 
 ## Path Conventions
 
-- **Backend**: `apps/api/` (FastAPI service — no changes needed)
+- **Backend**: `apps/api/` (FastAPI service — see backend changes note above)
 - **Frontend**: `apps/web/` (SvelteKit app — refactoring target)
 - **CI/CD**: `.github/workflows/`
 
@@ -34,7 +38,7 @@
 - [X] T004 [P] Create Artifact Registry repository `theloop-api` in `us-central1-docker.pkg.dev/theloopoute/` for API Docker images
 - [X] T005 [P] Create Secret Manager secrets: `THELOOP_API_DATABASE_URL` (Cloud SQL async connection string via Unix socket) and verify existing `FIREBASE_SERVICE_ACCOUNT` secret is accessible
 - [X] T006 Create IAM service account `theloop-api-sa@theloopoute.iam.gserviceaccount.com` with roles: Cloud SQL Client, Secret Manager Secret Accessor, Cloud Run Invoker
-- [X] T007 Deploy `theloop-api` Cloud Run service (initial deploy from `apps/api/Dockerfile`): bind service account `theloop-api-sa`, mount secrets, add Cloud SQL connection (`theloopoute:southamerica-east1:theloop-db`), port 8000, 512Mi memory, 1 CPU, 0-10 instances
+- [X] T007 Deploy `theloop-api` Cloud Run service (initial deploy from `apps/api/Dockerfile`): bind service account `theloop-api-sa`, mount secrets, add Cloud SQL connection (`theloopoute:southamerica-east1:theloop-db`), port 8000, 512Mi memory, 1 CPU, 0-10 instances. **Set `CORS_ORIGINS` env var** to include the web service domain (e.g., `https://loop.oute.pro,https://the-loop-<hash>-uc.a.run.app`) — without this, the frontend cannot call the API due to CORS blocking (Mandamento VIII: no wildcard `*`). Verify CORS is working during T008.
 - [X] T008 Validate API deployment: `curl https://<theloop-api-url>/api/v1/health` returns 200
 
 **Checkpoint**: API is live in production with database. Infrastructure chain complete.
@@ -157,8 +161,8 @@
 
 - [X] T060 [P] [US2] Add error boundary to `apps/web/src/routes/incidents/+page.svelte` — catch API fetch failures, show "Unable to connect to the server" message instead of blank page
 - [X] T061 [P] [US3] Add error handling to `apps/web/src/routes/incidents/[id]/+page.svelte` — handle 404 (show "Incident not found"), handle connection errors (show error state)
-- [X] T062 [P] [US1] Add error handling to `apps/web/src/routes/incidents/new/+page.svelte` — handle API errors during create (show error message, preserve form data)
-- [X] T063 [P] [US4] Add error handling to `apps/web/src/routes/incidents/[id]/edit/+page.svelte` — handle conflict errors (409): optimistic lock conflict ("Incident was modified by another process — reload and try again") and FR-021 category-change conflict ("Cannot change category while a Semgrep rule is linked — clear semgrep_rule_id first"). Also handle connection errors.
+- [X] T062 [P] [US1] Add error handling to `apps/web/src/routes/incidents/new/+page.svelte` — handle API errors during create (show error message, preserve form data). Also handle 401 responses (auth token expired mid-submit): preserve all form data and display "Session expired — please sign in again" with a link to `/`.
+- [X] T063 [P] [US4] Add error handling to `apps/web/src/routes/incidents/[id]/edit/+page.svelte` — handle conflict errors (409): optimistic lock conflict ("Incident was modified by another process — reload and try again") and FR-021 category-change conflict ("Cannot change category while a Semgrep rule is linked — clear semgrep_rule_id first"). Also handle connection errors and 401 responses (auth token expired mid-submit): preserve all form data and display "Session expired — please sign in again" with a link to `/`.
 - [X] T064 [P] [US5] Add error handling to `apps/web/src/lib/components/incidents/DeleteConfirmModal.svelte` — handle 409 (active rule), connection errors
 
 ### SSR Evaluation
@@ -167,7 +171,7 @@
 
 ### End-to-End Validation
 
-- [ ] T066 Test full CRUD lifecycle against running API: create incident → see it in list → view detail → edit (verify version bump) → soft-delete → verify excluded from list
+- [ ] T066 Test full CRUD lifecycle against running API: create incident → see it in list → view detail → edit (verify version bump) → soft-delete → verify excluded from list. Also verify: (a) skeleton loading states are shown during data fetches on list and detail pages (not blank flash); (b) concurrent update conflict — open same incident in two tabs, submit from tab 2 after tab 1, verify conflict error in tab 2; (c) soft-delete of incident with semgrep_rule_id blocked with 409.
 - [X] T066b Seed 10,000 test incidents into the database for performance validation (required by T067). Run `cd apps/api && python scripts/seed.py --count 10000` — create `apps/api/scripts/seed.py` using SQLAlchemy bulk insert with randomized field values covering all categories and severities. Depends on T007 (Cloud Run + DB live).
 - [ ] T067 Test error scenarios: API unreachable → error message shown (not blank page); rate limit exceeded (429) → verify `incidents.ts` shows retry-after message (FR-022); auth expired → redirect to `/`. Performance validation against 10k seed (T066b): list page loads in <2s (SC-002), keyword search returns in <2s (SC-004), category/severity filter returns in <1s (SC-003).
 

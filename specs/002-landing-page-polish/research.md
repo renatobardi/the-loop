@@ -74,3 +74,33 @@ The hero `h1` stays as the value proposition headline ("Eliminate production inc
 **Alternatives considered**:
 - Moving language selector outside the footer `<nav>` — requires restructuring footer layout.
 - Removing `<nav>` from LanguageSelector entirely — loses landmark semantics when used standalone in the header.
+
+## R7: i18n Audit — Untranslated Keys in PT/ES
+
+**Decision**: 15 keys per locale (pt.json, es.json) have untranslated English values. These are concentrated in: pricing card values (9 keys), footer text (3 keys), and integration descriptions (3 keys). All will be translated in-place using the existing flat `snake_case` key convention.
+
+**Rationale**: Direct audit of all three locale files confirmed identical key sets (72 keys each). The untranslated keys were likely carried over from the initial English-first implementation and never backfilled when PT/ES locales were added.
+
+**Alternatives considered**: Renaming keys to match the spec's hierarchical dot-notation (e.g., `pricing.value.scans_free`) — rejected because all ~10 components import flat keys, and Paraglide generates typed functions from key names. Renaming would require updating every import with zero benefit.
+
+## R8: hreflang `<link>` Tags Missing from `<head>`
+
+**Decision**: Add static `<link rel="alternate" hreflang>` tags in `+layout.svelte`. Paraglide handles hreflang on `<a>` elements but does NOT inject `<link>` meta tags automatically.
+
+**Rationale**: Search engines (Google, Bing) use `<link rel="alternate" hreflang>` in `<head>` to discover alternate language versions of a page. Without these, each locale page appears as a separate, unrelated page to search engines, potentially causing duplicate content issues. Static tags are sufficient for 3 fixed locales.
+
+**Alternatives considered**: Server-side injection via hooks — unnecessary complexity for a fixed set of 3 locales.
+
+## R9: LanguageSelector aria-label Hardcoded in English
+
+**Decision**: Add a new `footer_language_selector_label` key (EN: "Language", PT: "Idioma", ES: "Idioma") and replace the hardcoded `aria-label="Language selector"` in LanguageSelector.svelte with the i18n function.
+
+**Rationale**: The aria-label is the only remaining hardcoded user-facing English string in a component. Screen reader users on `/pt/` or `/es/` hear "Language selector" in English, breaking the localization contract.
+
+**Alternatives considered**: Using a more descriptive label like "Select language" — rejected in favor of the simpler, standard label per the spec.
+
+## R10: Self-Contained Pricing Strings
+
+**Decision**: Keep "scans" in the pricing scans string (e.g., `100 scans/mês` instead of the spec's `100/mês`).
+
+**Rationale**: The spec assumes a table layout with separate row headers ("Scans", "Support", etc.), but the current Pricing component uses a card layout with a features list — no separate labels are rendered. The string must be self-contained to be understood in context. The spec's translations are adapted accordingly.

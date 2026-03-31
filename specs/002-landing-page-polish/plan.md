@@ -1,23 +1,23 @@
-# Implementation Plan: Landing Page Design Polish
+# Implementation Plan: i18n Audit & Complete Translation Fix
 
-**Branch**: `002-landing-page-polish` | **Date**: 2026-03-30 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/002-landing-page-polish/spec.md`
+**Branch**: `fix/i18n-missing-translations` | **Date**: 2026-03-30 | **Spec**: [spec.md](spec.md)
+**Input**: User-provided i18n audit spec covering all untranslated strings in PT-BR and ES locales.
 
 ## Summary
 
-Comprehensive design polish of The Loop landing page addressing 12 items from a design critique: fix language selector routing bug, add product branding to hero, improve accessibility (labels, skip link, contrast, heading hierarchy), reduce section spacing for narrative flow, add pricing card CTAs with visual hierarchy, add sticky navigation with hamburger menu on mobile, and standardize alignment/card styling across sections. All changes are CSS/component-level within the existing SvelteKit + Tailwind + Paraglide stack.
+Complete i18n audit and fix for the landing page. The page uses Paraglide-SvelteKit with flat `snake_case` keys across three locale files (`en.json`, `pt.json`, `es.json`). While headlines and most UI chrome are translated, the **pricing card values**, **footer links/copyright**, **integration descriptions**, and the **LanguageSelector aria-label** remain in English across all locales. Additionally, explicit `<link rel="alternate" hreflang>` tags are missing from `<head>`.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50
-**Primary Dependencies**: Tailwind CSS 4, Paraglide-SvelteKit 0.16.1, Svelte 5 snippets/actions
-**Storage**: N/A (no data model changes)
-**Testing**: vitest (unit), manual Lighthouse audit, manual screen reader testing
-**Target Platform**: Web (all modern browsers, responsive 320px–2560px)
-**Project Type**: Web application (SvelteKit, SSR + client hydration)
-**Performance Goals**: Lighthouse Accessibility 90+, all text WCAG AA compliant
-**Constraints**: No new npm dependencies; all changes within existing design system tokens
-**Scale/Scope**: Single-page landing, ~8 section components + 4 UI components modified, ~3 new components created
+**Primary Dependencies**: @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4
+**Storage**: N/A (i18n is compile-time via Paraglide)
+**Testing**: vitest (unit), manual verification across `/en/`, `/pt/`, `/es/`
+**Target Platform**: Web (Cloud Run)
+**Project Type**: SvelteKit web app (landing page)
+**Performance Goals**: N/A (no runtime perf impact — translations are compiled)
+**Constraints**: All 3 locale files must stay perfectly synchronized (same keys)
+**Scale/Scope**: ~15 keys to translate in pt.json, ~15 keys in es.json, 1 new key across 3 files, 2 component updates
 
 ## Constitution Check
 
@@ -25,22 +25,14 @@ Comprehensive design polish of The Loop landing page addressing 12 items from a 
 
 | Mandamento | Status | Notes |
 |------------|--------|-------|
-| I. Trunk-Based Development | PASS | Working on feature branch `002-landing-page-polish`, will merge via PR |
-| II. Design System Imutavel | PASS | All changes use existing tokens from `app.css`; new color token `--color-text-subtle` value adjustment stays within design system. New components (Navbar, SkipLink) follow design system patterns |
-| III. Taxonomia de Branches | PASS | Branch follows `feat/` equivalent pattern via speckit numbering |
-| IV. Main Protegida | PASS | Will merge via PR with CI gates |
-| V. Aprovacao Obrigatoria | PASS | @renatobardi will review and merge |
-| VI. Sem Ambiente de Dev | PASS | Changes go to production via main |
-| VII. CI Rigoroso | PASS | Must pass lint, type-check, test, build, vuln scan, docs-check |
-| VIII. Seguranca Mandatoria | PASS | No new attack surface; CSP headers unchanged; skip link is purely presentational |
-| IX. Clean Code | PASS | Small focused components, descriptive names, no dead code |
-| X. Arquitetura Hexagonal | N/A | Phase 0 — hexagonal does not apply |
-| XI. Pasta .project/ | PASS | Specs tracked in `specs/002-landing-page-polish/` |
-| XII. Documentacao e Codigo | PASS | Will update README if structural changes warrant it |
+| I. Trunk-Based | PASS | New branch `fix/i18n-missing-translations` from `main`, PR to merge |
+| II. Design System | PASS | No visual/styling changes — only text content in locale files |
+| III. Branch Taxonomy | PASS | `fix/` prefix for bug fix (missing translations) |
+| VII. CI Rigoroso | PASS | lint + type-check + test + build gates apply |
+| IX. Clean Code | PASS | No dead code added; locale files maintain consistent structure |
+| XII. Docs & Code | PASS | No structural changes requiring doc updates |
 
-**Gate result**: ALL PASS — proceed to Phase 0.
-
-**Post-Phase 1 re-check**: All gates remain PASS. No new dependencies, no hexagonal violations, design system extended (not bypassed) with new `--color-text-muted` value and Navbar component.
+No violations. No Complexity Tracking entries needed.
 
 ## Project Structure
 
@@ -49,56 +41,112 @@ Comprehensive design polish of The Loop landing page addressing 12 items from a 
 ```text
 specs/002-landing-page-polish/
 ├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output (minimal — no data changes)
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output (N/A — no external interfaces)
-└── tasks.md             # Phase 2 output (/speckit.tasks)
+├── research.md          # Phase 0 output (gap analysis)
+└── tasks.md             # Phase 2 output (via /speckit.tasks)
 ```
 
-### Source Code (repository root)
+No `data-model.md`, `contracts/`, or `quickstart.md` needed — this is a pure translation fix with no new entities, APIs, or onboarding changes.
+
+### Source Code (files to modify)
 
 ```text
-apps/web/src/
-├── lib/
-│   ├── ui/
-│   │   ├── Section.svelte       # MODIFY: remove min-h-screen, adjust padding
-│   │   ├── Input.svelte         # MODIFY: add optional label prop (sr-only)
-│   │   ├── Card.svelte          # EXISTING: no changes needed (unified styling already)
-│   │   ├── Badge.svelte         # EXISTING: no changes needed
-│   │   ├── Button.svelte        # EXISTING: no changes needed
-│   │   ├── Container.svelte     # EXISTING: no changes needed
-│   │   ├── SkipLink.svelte      # CREATE: skip-to-content accessibility link
-│   │   ├── Navbar.svelte        # CREATE: sticky nav with hamburger menu
-│   │   └── index.ts             # MODIFY: export new components
-│   └── components/
-│       ├── Hero.svelte          # MODIFY: add product name, scroll indicator
-│       ├── Problem.svelte       # MODIFY: center heading alignment
-│       ├── Layers.svelte        # MODIFY: center heading alignment (likely already centered)
-│       ├── HowItWorks.svelte    # MODIFY: center heading alignment
-│       ├── Integrations.svelte  # EXISTING: verify heading centered
-│       ├── Pricing.svelte       # MODIFY: add CTAs, highlight Pay-as-you-go, center heading
-│       ├── WaitlistCta.svelte   # MODIFY: verify heading centered
-│       ├── WaitlistForm.svelte  # MODIFY: pass label to Input
-│       ├── LanguageSelector.svelte  # MODIFY: increase touch targets, change to div for footer
-│       └── Footer.svelte        # MODIFY: fix nav nesting
-├── routes/
-│   ├── +layout.svelte       # MODIFY: add Navbar + SkipLink, remove floating LanguageSelector
-│   └── +page.svelte         # MODIFY: add section id anchors if missing
-├── app.css                  # MODIFY: adjust text-subtle color for WCAG AA compliance
-└── hooks.ts                 # EXISTING: no changes
-
-apps/web/messages/
-├── en.json                  # MODIFY: add nav labels, CTA text, accessibility labels
-├── pt.json                  # MODIFY: same keys
-└── es.json                  # MODIFY: same keys
-
-apps/web/tests/unit/
-└── (new test files as needed)
+apps/web/
+├── messages/
+│   ├── en.json                    # Add 1 new key (footer_language_selector_label)
+│   ├── pt.json                    # Translate ~15 keys + add 1 new key
+│   └── es.json                    # Translate ~15 keys + add 1 new key
+├── src/
+│   ├── routes/+layout.svelte      # Add hreflang <link> tags
+│   └── lib/
+│       └── components/
+│           └── LanguageSelector.svelte  # i18n the aria-label
 ```
 
-**Structure Decision**: All changes are within the existing `apps/web/` SvelteKit app structure. Two new UI components (Navbar, SkipLink) are added to `lib/ui/` following the established pattern. No new directories needed.
+## Gap Analysis (Current State → Desired State)
 
-## Complexity Tracking
+### Already Correct (no changes needed)
 
-> No constitution violations to justify — all gates pass.
+| Area | Status |
+|------|--------|
+| **Nested `<nav>` in footer** | FIXED — LanguageSelector uses `tag="div"` with `role="group"` |
+| **Pricing headline** | Translated in all 3 locales |
+| **Integration headline** | Translated in all 3 locales |
+| **Meta tags (title, description, og:*)** | Hardcoded per-language in `+layout.svelte` — correct |
+| **Hero, Problem, Layers, HowItWorks, Waitlist** | Fully translated |
+| **Nav labels, form messages, skip link** | Fully translated |
+| **Hardcoded "Join the waitlist"** | Uses `form_submit()` / `pricing_join_waitlist()` ✓ |
+| **Hardcoded "your@email.com"** | Uses `hero_email_placeholder()` ✓ |
+| **Hardcoded "Skip to main content"** | Uses `skip_to_content()` ✓ |
+| **"The Loop" in Navbar/Footer** | Brand name — identical in all 3 locales by design |
+| **"GitHub" in Footer** | Brand name — identical in all 3 locales by design |
+
+### Gaps to Fix
+
+#### A. Pricing card values (pt.json + es.json) — 9 keys each
+
+| Key | Current PT/ES | Target PT | Target ES |
+|-----|--------------|-----------|-----------|
+| `pricing_free_scans` | `100 scans/month` | `100 scans/mês` | `100 scans/mes` |
+| `pricing_payg_price` | `Pay per scan batch` | `Pague por lote de scans` | `Paga por lote de scans` |
+| `pricing_payg_scans` | `Buy in batches` | `Compre em lotes` | `Compra por lotes` |
+| `pricing_enterprise_price` | `Contact us` | `Fale conosco` | `Contáctanos` |
+| `pricing_enterprise_scans` | `Unlimited` | `Ilimitado` | `Ilimitado` |
+| `pricing_support_community` | `Community` | `Comunidade` | `Comunidad` |
+| `pricing_support_dedicated` | `Dedicated` | `Dedicado` | `Dedicado` |
+| `pricing_included` | `Included` | `Incluído` | `Incluido` |
+| `pricing_contact_cta` | `Contact us` | `Fale conosco` | `Contáctanos` |
+
+**Note on key naming**: The spec uses hierarchical dot-notation keys (e.g., `pricing.value.scans_free`), but the codebase uses flat `snake_case` keys (e.g., `pricing_free_scans`). The translations map to existing flat keys.
+
+**Note on "scans/month"**: The spec suggests `100/mês` (without "scans"), but the current card layout has no separate row labels — the string must be self-contained. Using `100 scans/mês` preserves context.
+
+#### B. Footer text (pt.json + es.json) — 3 keys each
+
+| Key | Current PT/ES | Target PT | Target ES |
+|-----|--------------|-----------|-----------|
+| `footer_copyright` | `© 2026 Oute. All rights reserved.` | `© 2026 Oute. Todos os direitos reservados.` | `© 2026 Oute. Todos los derechos reservados.` |
+| `footer_constitution` | `Constitution` | `Constituição` | `Constitución` |
+| `footer_contact` | `Contact` | `Contato` | `Contacto` |
+
+#### C. Integration descriptions (pt.json + es.json) — 3 keys each
+
+| Key | Current PT/ES | Target PT | Target ES |
+|-----|--------------|-----------|-----------|
+| `integration_github_desc` | (English) | `GitHub App com Check Runs, relatórios SARIF e comentários de review em PRs.` | `GitHub App con Check Runs, reportes SARIF y comentarios de review en PRs.` |
+| `integration_ide_desc` | (English) | `Cursor, VS Code, Windsurf — escaneie código e receba advisories direto no seu editor.` | `Cursor, VS Code, Windsurf — escanea código y recibe advisories directo en tu editor.` |
+| `integration_rest_desc` | (English) | `REST API com suporte a webhooks. Output em SARIF e JSON.` | `REST API con soporte de webhooks. Output en SARIF y JSON.` |
+
+#### D. New key: Language selector aria-label — all 3 files
+
+| Key | EN | PT | ES |
+|-----|-----|-----|-----|
+| `footer_language_selector_label` | `Language` | `Idioma` | `Idioma` |
+
+#### E. hreflang `<link>` tags — `+layout.svelte`
+
+Currently missing. Add to `<svelte:head>`:
+```html
+<link rel="alternate" hreflang="en" href="https://loop.oute.pro/en/" />
+<link rel="alternate" hreflang="pt" href="https://loop.oute.pro/pt/" />
+<link rel="alternate" hreflang="es" href="https://loop.oute.pro/es/" />
+<link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
+```
+
+#### F. LanguageSelector aria-label i18n — `LanguageSelector.svelte`
+
+Currently hardcoded `aria-label="Language selector"` in both the `<nav>` and `<div>` branches. Replace with imported `footer_language_selector_label()`.
+
+## Implementation Sequence
+
+1. **Locale files** (pt.json, es.json, en.json) — translate all gap keys, add new key
+2. **LanguageSelector.svelte** — import and use `footer_language_selector_label()`
+3. **+layout.svelte** — add hreflang `<link>` tags
+4. **Verify** — `npm run check` + `npm run lint` + `npm run build` from `apps/web/`
+
+## Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Paraglide codegen fails with new key | Vite plugin auto-compiles; verify with `npm run check` |
+| Key typo breaks build | TypeScript strict mode catches missing imports at build time |
+| Locale file desync (missing key in one file) | Paraglide compiler warns on missing keys; all 3 files edited together |

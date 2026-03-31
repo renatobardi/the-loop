@@ -30,6 +30,8 @@ npx paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide
 
 Monorepo with `apps/web/` as the main SvelteKit app.
 
+- **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `001-landing-page-waitlist/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names (e.g., branch `003-i18n-audit-fix` → `specs/003-i18n-audit-fix/`).
+- **`.project/`** — Persistent project history: phase specs, decisions (ADRs), research. Files here are never deleted — obsolete docs go to `.project/archive/`.
 - **`src/routes/`** — File-based routing. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes served under locale prefix (`/en/`, `/pt/`, `/es/`).
 - **`src/lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
 - **`src/lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.).
@@ -90,15 +92,16 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 
 ## Governance (CONSTITUTION.md)
 
-- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`
+- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches use a numeric prefix matching their spec (e.g., `003-i18n-audit-fix`)
 - Design system tokens are centralized in `lib/ui/` — no ad-hoc styling
 - `main` = production (no dev environment)
 - All merges controlled by @renatobardi
 - Hexagonal architecture applies after Phase 1 (not current Phase 0)
 
+
 ## Active Technologies
-- TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4 (003-i18n-audit-fix)
-- N/A (locale JSON files only) (003-i18n-audit-fix)
+- TypeScript 5.x, Svelte 5 (runes) + SvelteKit 2.50, @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4, Zod, firebase-admin (004-waitlist-pricing-ctas)
+- Firestore (project: `theloopoute`, collection: `waitlist`) (004-waitlist-pricing-ctas)
 
 ## Recent Changes
-- 003-i18n-audit-fix: Added TypeScript 5.x, Svelte 5 (runes), SvelteKit 2.50 + @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4
+- 004-waitlist-pricing-ctas: Added TypeScript 5.x, Svelte 5 (runes) + SvelteKit 2.50, @inlang/paraglide-sveltekit 0.16.1, Tailwind CSS 4, Zod, firebase-admin

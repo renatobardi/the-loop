@@ -3,7 +3,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export async function addToWaitlist(
   email: string,
-  locale: string
+  locale: string,
+  source: string
 ): Promise<'created' | 'duplicate'> {
   const docRef = db.collection('waitlist').doc(email);
   const snapshot = await docRef.get();
@@ -16,7 +17,7 @@ export async function addToWaitlist(
     email,
     locale,
     created_at: FieldValue.serverTimestamp(),
-    source: 'landing'
+    source
   });
 
   return 'created';

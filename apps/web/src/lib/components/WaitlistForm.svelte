@@ -5,8 +5,10 @@
 
   let {
     action = '?/waitlist',
+    source = 'unknown',
   }: {
     action?: string;
+    source?: string;
   } = $props();
 
   let status: 'idle' | 'submitting' | 'success' | 'error' | 'duplicate' | 'rate_limited' = $state('idle');
@@ -44,6 +46,7 @@
       {form_success()}
     </p>
   {:else}
+    <input type="hidden" name="source" value={source} />
     <div class="flex flex-col sm:flex-row gap-3">
       <div class="flex-1">
         <Input

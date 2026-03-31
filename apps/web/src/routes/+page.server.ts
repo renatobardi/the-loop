@@ -18,7 +18,7 @@ export const actions: Actions = {
 
     // Parse form data
     const data = await event.request.formData();
-    const raw = { email: data.get('email') };
+    const raw = { email: data.get('email'), source: data.get('source') };
 
     // Validate
     const result = WaitlistSchema.safeParse(raw);
@@ -31,7 +31,7 @@ export const actions: Actions = {
 
     // Write to Firestore
     try {
-      const status = await addToWaitlist(result.data.email, locale);
+      const status = await addToWaitlist(result.data.email, locale, result.data.source);
       if (status === 'duplicate') {
         return fail(409, { error: 'already_registered' });
       }

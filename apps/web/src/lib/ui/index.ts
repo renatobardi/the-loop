@@ -4,3 +4,5 @@ export { default as Card } from './Card.svelte';
 export { default as Badge } from './Badge.svelte';
 export { default as Container } from './Container.svelte';
 export { default as Section } from './Section.svelte';
+export { default as SkipLink } from './SkipLink.svelte';
+export { default as Navbar } from './Navbar.svelte';

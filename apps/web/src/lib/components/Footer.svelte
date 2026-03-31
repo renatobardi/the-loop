@@ -23,7 +23,7 @@
         {footer_contact()}
       </a>
       <!-- eslint-enable svelte/no-navigation-without-resolve -->
-      <LanguageSelector />
+      <LanguageSelector tag="div" />
     </nav>
 
     <p class="text-sm text-text-subtle text-center md:text-right">

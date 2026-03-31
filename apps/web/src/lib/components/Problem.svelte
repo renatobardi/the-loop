@@ -5,11 +5,11 @@
 
 <Section id="problem">
   <Container>
-    <h2 class="text-4xl md:text-5xl font-bold text-text">
+    <h2 class="text-4xl md:text-5xl font-bold text-text text-center">
       {problem_headline()}
     </h2>
 
-    <p class="mt-6 text-lg text-text-muted max-w-3xl">
+    <p class="mt-6 text-lg text-text-muted max-w-3xl mx-auto text-center">
       {problem_body()}
     </p>
   </Container>

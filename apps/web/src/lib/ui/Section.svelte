@@ -5,11 +5,13 @@
   let {
     children,
     id = '',
+    hero = false,
     class: className = '',
     ...restProps
   }: {
     children: Snippet;
     id?: string;
+    hero?: boolean;
     class?: string;
     [key: string]: unknown;
   } = $props();
@@ -18,7 +20,6 @@
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Start hidden only after JS confirms it can animate
     node.classList.add('section-animate');
 
     const observer = new IntersectionObserver(
@@ -44,7 +45,7 @@
 
 <section
   {id}
-  class="min-h-screen flex items-center py-20 lg:py-32 {className}"
+  class="{hero ? 'min-h-screen flex items-center' : ''} py-20 lg:py-32 {className}"
   use:reveal
   {...restProps}
 >

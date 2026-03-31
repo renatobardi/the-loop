@@ -35,7 +35,7 @@
   ]);
 </script>
 
-<Section id="layers">
+<Section id="features">
   <Container>
     <h2 class="text-4xl md:text-5xl font-bold text-center mb-12 lg:mb-16">
       {layers_headline()}

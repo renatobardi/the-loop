@@ -6,6 +6,7 @@
     value = $bindable(''),
     error = '',
     required = false,
+    label = '',
     class: className = '',
     ...restProps
   }: {
@@ -15,9 +16,12 @@
     value?: string;
     error?: string;
     required?: boolean;
+    label?: string;
     class?: string;
     [key: string]: unknown;
   } = $props();
+
+  let inputId = $derived(name ? `input-${name}` : undefined);
 
   const baseClasses =
     'w-full bg-bg-surface border rounded-lg px-4 py-3 text-text placeholder:text-text-subtle outline-none transition-colors';
@@ -27,7 +31,11 @@
 </script>
 
 <div class="flex flex-col gap-1">
+  {#if label}
+    <label for={inputId} class="sr-only">{label}</label>
+  {/if}
   <input
+    id={inputId}
     {type}
     {placeholder}
     {name}

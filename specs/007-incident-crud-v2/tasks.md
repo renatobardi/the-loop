@@ -49,7 +49,7 @@
 - [X] T010 [P] Add `api-security` job to `.github/workflows/ci.yml` — Docker build `apps/api/Dockerfile` + Trivy vulnerability scan (CRITICAL/HIGH fail) for API image, parallel with existing web `security` job (mirrors web security pattern)
 - [X] T011 Add API deploy job to `.github/workflows/deploy.yml` — Docker build `apps/api/` → push to `us-central1-docker.pkg.dev/theloopoute/theloop-api/api` → Cloud Run deploy to `theloop-api` service (runs after web deploy or in parallel)
 - [X] T012 [P] Remove Paraglide compile step (`npx paraglide-js compile`) from the existing `quality` job in `.github/workflows/ci.yml` (will be deleted in Phase 3, but CI must not depend on it)
-- [ ] T013 Validate CI pipeline: open a test PR touching `apps/api/` and verify `api-quality` job runs and passes
+- [X] T013 Validate CI pipeline: open a test PR touching `apps/api/` and verify `api-quality` job runs and passes
 
 **Checkpoint**: CI/CD runs quality gates for both web and API. Automated deploy for both services on merge to main.
 

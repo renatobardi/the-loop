@@ -15,7 +15,7 @@
     </p>
 
     <div class="mt-8 max-w-lg mx-auto">
-      <WaitlistForm />
+      <WaitlistForm source="cta-bottom" />
     </div>
   </Container>
 </Section>

@@ -36,7 +36,7 @@
       </p>
 
       <div class="mt-10 max-w-lg mx-auto">
-        <WaitlistForm />
+        <WaitlistForm source="hero" />
       </div>
 
       <p class="mt-6 text-sm text-text-muted">{hero_branding()}</p>

@@ -32,9 +32,6 @@
   <meta property="og:image" content="https://loop.oute.pro/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <link rel="alternate" hreflang="en" href="https://loop.oute.pro/en/" />
-  <link rel="alternate" hreflang="pt" href="https://loop.oute.pro/pt/" />
-  <link rel="alternate" hreflang="es" href="https://loop.oute.pro/es/" />
   <link rel="alternate" hreflang="x-default" href="https://loop.oute.pro/en/" />
 </svelte:head>
 

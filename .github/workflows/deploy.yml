@@ -128,7 +128,6 @@ jobs:
             --service-account=theloop-api-sa@theloopoute.iam.gserviceaccount.com
             --add-cloudsql-instances=theloopoute:southamerica-east1:theloop-db
             --allow-unauthenticated
-            --no-gen2
           secrets: |
             DATABASE_URL=THELOOP_API_DATABASE_URL:latest
           env_vars: |

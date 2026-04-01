@@ -4,7 +4,7 @@ const HSTS_MAX_AGE = 63_072_000; // 2 years
 
 const csp = [
 	"default-src 'self'",
-	"script-src 'self'",
+	"script-src 'self' 'unsafe-inline'",
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' data:",
 	"font-src 'self' https://cdn.jsdelivr.net",

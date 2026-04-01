@@ -1,6 +1,5 @@
 <script lang="ts">
   import { user } from '$lib/stores/auth';
-  import { logout } from '$lib/firebase';
   import { goto } from '$app/navigation';
 
   let open = $state(false);
@@ -19,6 +18,7 @@
   }
 
   async function handleLogout() {
+    const { logout } = await import('$lib/firebase');
     await logout();
     await goto('/');
   }

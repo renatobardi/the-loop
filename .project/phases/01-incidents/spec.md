@@ -141,7 +141,7 @@ An authenticated user requests deletion of an incident from the detail view. A c
 - **FR-013**: Soft-delete MUST be idempotent — deleting an already-deleted incident is a no-op returning success.
 - **FR-014**: System MUST support listing incidents with pagination (page + per_page, default 20, max 100), ordered by created_at DESC, excluding soft-deleted records.
 - **FR-015**: System MUST support filtering the list by category and severity (independently or combined).
-- **FR-016**: System MUST support keyword search (case-insensitive partial match) across title, anti_pattern, and remediation fields.
+- **FR-016**: System MUST support keyword search (case-insensitive partial match) across title, anti_pattern, and remediation fields (OR match — an incident appears if any one of the three fields contains the keyword).
 - **FR-017**: System MUST return the real total count (not approximate) for paginated list results.
 - **FR-018**: System MUST follow hexagonal architecture: pure domain layer (no external dependencies) with ports (interfaces) and adapters (implementations).
 - **FR-019**: System MUST operate as single-tenant in Phase A (no tenant isolation).

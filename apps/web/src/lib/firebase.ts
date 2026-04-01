@@ -1,7 +1,7 @@
 /** Firebase client SDK — authentication only. Server-side admin SDK lives in lib/server/firebase.ts */
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, type Auth, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { env } from '$env/dynamic/public';
 
 let app: FirebaseApp;
@@ -30,4 +30,20 @@ export function getFirebaseAuth(): Auth {
 		auth = getAuth(getFirebaseApp());
 	}
 	return auth;
+}
+
+export async function loginWithEmail(email: string, password: string): Promise<User> {
+	const auth = getFirebaseAuth();
+	const result = await signInWithEmailAndPassword(auth, email, password);
+	return result.user;
+}
+
+export async function logout(): Promise<void> {
+	const auth = getFirebaseAuth();
+	await firebaseSignOut(auth);
+}
+
+export function onAuthChange(callback: (user: User | null) => void): () => void {
+	const auth = getFirebaseAuth();
+	return onAuthStateChanged(auth, callback);
 }

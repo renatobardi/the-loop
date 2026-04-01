@@ -48,6 +48,35 @@ If the `docs-check` CI gate fails, run locally and commit the result:
 bash scripts/generate-docs.sh
 ```
 
+### Backend Testing Specifics
+
+pytest supports targeted test execution:
+- `pytest tests/unit/domain/test_incident.py::test_create_incident` — run single test
+- `pytest tests/ -k incident` — run all tests matching keyword
+- `pytest --cov=src --cov-report=html` — generate HTML coverage report
+- Tests run against a real PostgreSQL database (see "Local PostgreSQL Setup" below). Migrations are applied before each test suite and rolled back after via `conftest.py` fixtures.
+
+### Local PostgreSQL Setup
+
+Backend development requires PostgreSQL 16 with pgvector extension.
+
+**Docker (recommended)**
+```bash
+docker run --name theloop-db \
+  -e POSTGRES_USER=theloop \
+  -e POSTGRES_PASSWORD=theloop \
+  -e POSTGRES_DB=theloop \
+  -p 5432:5432 \
+  pgvector/pgvector:pg16
+
+# In another terminal, apply migrations:
+cd apps/api
+export DATABASE_URL="postgresql+asyncpg://theloop:theloop@localhost:5432/theloop"
+alembic upgrade head
+```
+
+For CI tests, a temporary test database is created with the same setup.
+
 ## Architecture
 
 ### Frontend (`apps/web/src/`)
@@ -58,6 +87,14 @@ bash scripts/generate-docs.sh
 - **`lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.). All text hardcoded in English.
 - **`lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
 - **`lib/services/incidents.ts`** — API client for incident CRUD. Attaches Firebase Auth token to requests.
+
+#### Import Path Aliases
+
+Frontend uses SvelteKit path aliases:
+- `$lib` — resolves to `src/lib/`
+- `$app` — resolves to `@sveltejs/kit` (internal SvelteKit modules)
+
+Use these in all imports for cleaner, import-agnostic code.
 
 ### Backend (`apps/api/src/`)
 
@@ -83,6 +120,7 @@ bash scripts/generate-docs.sh
 - `src/lib/firebase.ts` — Firebase client SDK init (Auth only, uses `PUBLIC_FIREBASE_*` env vars)
 - `src/lib/services/incidents.ts` — Incident API client; uses Firebase Auth token, points to `PUBLIC_API_BASE_URL`
 - `src/app.css` — Tailwind 4 `@theme` block with all design tokens (colors, fonts, spacing, shadows)
+- `svelte.config.js` — SvelteKit config; adapter-node outputs to `build/` directory (not `dist/`)
 
 ## Svelte 5 Conventions
 
@@ -126,10 +164,16 @@ Adding a new waitlist source (e.g., a new CTA button) requires updating `VALID_S
 
 ## Deployment
 
-GitHub Actions CI gates (lint → type-check → test → build → Trivy scan → docs-check) must all pass before merge. Deploy to Cloud Run via Workload Identity Federation on push to `main`. Node 22 in CI.
+GitHub Actions CI gates (lint → type-check → test → build → Trivy scan → SonarCloud → docs-check) must all pass before merge. Deploy to Cloud Run via Workload Identity Federation on push to `main`. Node 22 in CI.
 
 - **Web CI**: lint + check + test + build + Trivy (`the-loop` Cloud Run)
-- **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy (`theloop-api` Cloud Run)
+- **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy + SonarCloud (`theloop-api` Cloud Run)
+
+### Code Quality
+
+- **SonarCloud** — Code quality and security scanning integrated in CI pipeline
+  - API: Project key `renatobardi_the-loop_api`, organization `renatobardi`
+  - Configuration via `sonar-project.properties` in `apps/api/`
 
 ## Governance (CONSTITUTION.md)
 

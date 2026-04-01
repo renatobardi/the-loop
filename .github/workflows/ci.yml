@@ -34,6 +34,9 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@master
         with:
           projectBaseDir: apps/web
+          args: >
+            -Dsonar.projectKey=renatobardi_the-loop
+            -Dsonar.organization=renatobardi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -123,6 +126,9 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@master
         with:
           projectBaseDir: apps/api
+          args: >
+            -Dsonar.projectKey=renatobardi_the-loop_api
+            -Dsonar.organization=renatobardi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

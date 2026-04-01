@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { user } from '$lib/stores/auth';
+  import { goto } from '$app/navigation';
+
   let open = $state(false);
 
   const links = [
@@ -12,6 +15,12 @@
     if (window.innerWidth >= 768) {
       open = false;
     }
+  }
+
+  async function handleLogout() {
+    const { logout } = await import('$lib/firebase');
+    await logout();
+    await goto('/');
   }
 </script>
 
@@ -28,6 +37,14 @@
           {link.label}
         </a>
       {/each}
+      {#if $user}
+        <button
+          onclick={handleLogout}
+          class="text-sm text-text-muted hover:text-text transition-colors"
+        >
+          Logout
+        </button>
+      {/if}
     </div>
 
     <!-- Mobile hamburger -->
@@ -60,6 +77,17 @@
           {link.label}
         </a>
       {/each}
+      {#if $user}
+        <button
+          onclick={async () => {
+            open = false;
+            await handleLogout();
+          }}
+          class="text-left text-sm text-text-muted hover:text-text transition-colors py-2"
+        >
+          Logout
+        </button>
+      {/if}
     </div>
   {/if}
 </nav>

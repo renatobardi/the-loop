@@ -71,6 +71,11 @@ jobs:
             XFF_DEPTH=2
             PUBLIC_API_BASE_URL=https://theloop-api-1090621437043.us-central1.run.app
             PUBLIC_FIREBASE_PROJECT_ID=theloopoute
+            PUBLIC_FIREBASE_API_KEY=AIzaSyDzQzgTvyPAMvQGrPMc8f36ysYZD1Xgalg
+            PUBLIC_FIREBASE_AUTH_DOMAIN=theloopoute.firebaseapp.com
+            PUBLIC_FIREBASE_STORAGE_BUCKET=theloopoute.firebasestorage.app
+            PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1090621437043
+            PUBLIC_FIREBASE_APP_ID=1:1090621437043:web:a1f7e6582145f1cdb8a606
 
   deploy-api:
     name: Build & Deploy (API)

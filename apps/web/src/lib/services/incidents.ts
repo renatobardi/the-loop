@@ -21,7 +21,7 @@ async function getAuthToken(): Promise<string> {
 		window.location.href = '/?auth=required';
 		throw new Error('Unauthenticated');
 	}
-	return user.getIdToken();
+	return await user.getIdToken();
 }
 
 async function request<T>(path: string, options: globalThis.RequestInit = {}): Promise<T> {

@@ -171,9 +171,9 @@
 
 ### End-to-End Validation
 
-- [ ] T066 Test full CRUD lifecycle against running API: create incident → see it in list → view detail → edit (verify version bump) → soft-delete → verify excluded from list. Also verify: (a) skeleton loading states are shown during data fetches on list and detail pages (not blank flash); (b) concurrent update conflict — open same incident in two tabs, submit from tab 2 after tab 1, verify conflict error in tab 2; (c) soft-delete of incident with semgrep_rule_id blocked with 409.
+- [X] T066 Test full CRUD lifecycle against running API: create incident → see it in list → view detail → edit (verify version bump) → soft-delete → verify excluded from list. Also verify: (a) skeleton loading states are shown during data fetches on list and detail pages (not blank flash); (b) concurrent update conflict — open same incident in two tabs, submit from tab 2 after tab 1, verify conflict error in tab 2; (c) soft-delete of incident with semgrep_rule_id blocked with 409.
 - [X] T066b Seed 10,000 test incidents into the database for performance validation (required by T067). Run `cd apps/api && python scripts/seed.py --count 10000` — create `apps/api/scripts/seed.py` using SQLAlchemy bulk insert with randomized field values covering all categories and severities. Depends on T007 (Cloud Run + DB live).
-- [ ] T067 Test error scenarios: API unreachable → error message shown (not blank page); rate limit exceeded (429) → verify `incidents.ts` shows retry-after message (FR-022); auth expired → redirect to `/`. Performance validation against 10k seed (T066b): list page loads in <2s (SC-002), keyword search returns in <2s (SC-004), category/severity filter returns in <1s (SC-003).
+- [X] T067 Test error scenarios: API unreachable → error message shown (not blank page); rate limit exceeded (429) → verify `incidents.ts` shows retry-after message (FR-022); auth expired → redirect to `/`. Performance validation against 10k seed (T066b): list page loads in <2s (SC-002), keyword search returns in <2s (SC-004), category/severity filter returns in <1s (SC-003).
 
 **Checkpoint**: Full CRUD lifecycle works in browser against production API. Graceful degradation verified.
 
@@ -191,7 +191,7 @@
 - [X] T073 Run `apps/api/` quality gates locally: `cd apps/api && ruff check src/ tests/ && mypy src/ && pytest` — verify all pass
 - [X] T074 Run `apps/web/` quality gates locally: `cd apps/web && npm run lint && npm run check && npm run test -- --run && npm run build` — verify all pass
 - [X] T075 [P] Update existing frontend tests in `apps/web/tests/unit/` — fix any tests that import from paraglide or reference i18n
-- [ ] T076 Validate quickstart.md — follow all steps end-to-end, verify URLs work (no locale prefix)
+- [X] T076 Validate quickstart.md — follow all steps end-to-end, verify URLs work (no locale prefix)
 - [X] T077 Copy `specs/007-incident-crud-v2/` to `.project/phases/01-incidents/` as required by Mandamento XI (project history archive). Run on merge or immediately before opening the final PR.
 
 **Checkpoint**: All CI gates pass locally. Documentation is up to date. Phase docs archived. Ready for PR.

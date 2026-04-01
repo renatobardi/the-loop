@@ -83,10 +83,12 @@ For CI tests, a temporary test database is created with the same setup.
 
 - **`routes/`** — File-based routing with plain paths. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes use plain paths (`/`, `/incidents/`, `/constitution/`).
 - **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`.
+- **`routes/login/` and `routes/signup/`** — Firebase email/password auth pages. SSR disabled (client-side only) to avoid server-side Firebase Auth SDK usage.
 - **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
 - **`lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.). All text hardcoded in English.
 - **`lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
 - **`lib/services/incidents.ts`** — API client for incident CRUD. Attaches Firebase Auth token to requests.
+- **`lib/stores/auth.ts`** — Svelte store wrapping Firebase `onAuthStateChanged`; exports a `user` store used across authenticated routes.
 
 #### Import Path Aliases
 
@@ -101,15 +103,15 @@ Use these in all imports for cleaner, import-agnostic code.
 - **`domain/`** — Pure Python: Pydantic models, exceptions, domain services. Zero external dependencies.
 - **`ports/`** — Protocol interfaces (e.g., `IncidentRepoPort`). Only create ports for real boundaries.
 - **`adapters/`** — PostgreSQL (SQLAlchemy), Firebase Auth implementations.
-- **`api/`** — FastAPI routes, middleware, dependencies.
-- **`config.py`** — Configuration. **`main.py`** — App entrypoint.
+- **`api/`** — FastAPI routes, middleware, dependencies. `middleware.py` implements request ID injection (X-Request-ID header) and slowapi rate limiting. Structured logging via structlog.
+- **`config.py`** — Configuration. **`main.py`** — App entrypoint with `GET /api/v1/health` check.
 
 ### Other directories
 
 - **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `007-incident-crud-v2/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names.
 - **`.project/`** — Persistent project history: phase specs, decisions (ADRs), research. Files here are never deleted — obsolete docs go to `.project/archive/`.
 - **`tests/unit/`** — Frontend: Vitest with jsdom environment and `$lib`/`$app` path aliases.
-- **`apps/api/tests/`** — Backend: pytest with unit, integration, and API test suites.
+- **`apps/api/tests/`** — Backend: pytest with `unit/` (domain models/services) and `api/` (route tests with mocked services) suites. The `integration/` directory exists but is currently empty.
 - **`apps/api/alembic/`** — Database migrations.
 
 ### Key files
@@ -164,16 +166,10 @@ Adding a new waitlist source (e.g., a new CTA button) requires updating `VALID_S
 
 ## Deployment
 
-GitHub Actions CI gates (lint → type-check → test → build → Trivy scan → SonarCloud → docs-check) must all pass before merge. Deploy to Cloud Run via Workload Identity Federation on push to `main`. Node 22 in CI.
+GitHub Actions CI gates (lint → type-check → test → build → Trivy scan → docs-check) must all pass before merge. Deploy to Cloud Run via Workload Identity Federation on push to `main`. Node 22 in CI.
 
 - **Web CI**: lint + check + test + build + Trivy (`the-loop` Cloud Run)
-- **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy + SonarCloud (`theloop-api` Cloud Run)
-
-### Code Quality
-
-- **SonarCloud** — Code quality and security scanning integrated in CI pipeline
-  - API: Project key `renatobardi_the-loop_api`, organization `renatobardi`
-  - Configuration via `sonar-project.properties` in `apps/api/`
+- **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy (`theloop-api` Cloud Run)
 
 ## Governance (CONSTITUTION.md)
 

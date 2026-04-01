@@ -14,10 +14,21 @@ from src.domain.exceptions import (
     IncidentNotFoundError,
     OptimisticLockError,
 )
-from src.domain.models import Category, Incident, Severity
+from src.domain.models import SEMGREP_RULE_PATTERN, Category, Incident, Severity
 from src.domain.services import IncidentService
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
+
+
+def _validate_semgrep_rule_id(v: str | None) -> str | None:
+    if v is not None:
+        if len(v) > 50:
+            msg = "Semgrep rule ID must be at most 50 characters"
+            raise ValueError(msg)
+        if not SEMGREP_RULE_PATTERN.match(v):
+            msg = "Semgrep rule ID must match format {category}-{NNN} (e.g. injection-001)"
+            raise ValueError(msg)
+    return v
 
 
 class IncidentCreateRequest(BaseModel):
@@ -37,6 +48,11 @@ class IncidentCreateRequest(BaseModel):
     semgrep_rule_id: str | None = None
     tags: list[str] = []
 
+    @field_validator("semgrep_rule_id")
+    @classmethod
+    def semgrep_rule_id_format(cls, v: str | None) -> str | None:
+        return _validate_semgrep_rule_id(v)
+
 
 class IncidentUpdateRequest(BaseModel):
     title: str | None = None
@@ -55,6 +71,11 @@ class IncidentUpdateRequest(BaseModel):
     semgrep_rule_id: str | None = None
     tags: list[str] | None = None
     version: int
+
+    @field_validator("semgrep_rule_id")
+    @classmethod
+    def semgrep_rule_id_format(cls, v: str | None) -> str | None:
+        return _validate_semgrep_rule_id(v)
 
     @field_validator("version")
     @classmethod

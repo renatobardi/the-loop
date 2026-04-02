@@ -31,6 +31,72 @@ class Severity(StrEnum):
     LOW = "low"
 
 
+class PostmortemStatus(StrEnum):
+    DRAFT = "draft"
+    IN_REVIEW = "in_review"
+    APPROVED = "approved"
+    PUBLISHED = "published"
+
+
+class TimelineEventType(StrEnum):
+    DETECTED = "detected"
+    ESCALATED = "escalated"
+    MITIGATED = "mitigated"
+    RESOLVED = "resolved"
+    REVIEWED = "reviewed"
+    POSTMORTEM_PUBLISHED = "postmortem_published"
+
+
+class DetectionMethod(StrEnum):
+    MONITORING_ALERT = "monitoring_alert"
+    CUSTOMER_REPORT = "customer_report"
+    INTERNAL_TEST = "internal_test"
+    AUTOMATED_SCAN = "automated_scan"
+    MANUAL_DISCOVERY = "manual_discovery"
+    EXTERNAL_REPORT = "external_report"
+
+
+class ResponderRole(StrEnum):
+    INCIDENT_COMMANDER = "incident_commander"
+    TECHNICAL_LEAD = "technical_lead"
+    COMMUNICATION_LEAD = "communication_lead"
+    REMEDIATION_LEAD = "remediation_lead"
+    RESPONDER = "responder"
+    POSTMORTEM_LEAD = "postmortem_lead"
+
+
+class ActionItemStatus(StrEnum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class ActionItemPriority(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class AttachmentExtractionStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class AttachmentType(StrEnum):
+    POSTMORTEM_DOC = "postmortem_doc"
+    LOG_FILE = "log_file"
+    SCREENSHOT = "screenshot"
+    MONITORING_EXPORT = "monitoring_export"
+    RUNBOOK = "runbook"
+    CONFIG_SNAPSHOT = "config_snapshot"
+    SLACK_EXPORT = "slack_export"
+    JIRA_EXPORT = "jira_export"
+
+
 SEMGREP_RULE_PATTERN = re.compile(r"^[a-z][\w-]+-\d{3}$")
 
 

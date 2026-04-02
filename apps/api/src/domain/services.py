@@ -13,10 +13,13 @@ from src.domain.models import (
     Category,
     DetectionMethod,
     Incident,
+    IncidentTimelineEvent,
     PostmortemStatus,
     Severity,
+    TimelineEventType,
 )
 from src.ports.incident_repo import IncidentRepoPort
+from src.ports.timeline_event_repo import TimelineEventRepoPort
 
 
 class IncidentService:
@@ -187,3 +190,40 @@ class IncidentService:
             severity=severity,
             keyword=keyword,
         )
+
+
+class TimelineEventService:
+    def __init__(self, repo: TimelineEventRepoPort) -> None:
+        self._repo = repo
+
+    async def create(
+        self,
+        *,
+        incident_id: UUID,
+        event_type: TimelineEventType,
+        description: str,
+        occurred_at: datetime,
+        recorded_by: UUID,
+        duration_minutes: int | None = None,
+        external_reference_url: str | None = None,
+    ) -> IncidentTimelineEvent:
+        now = datetime.now(UTC)
+        event = IncidentTimelineEvent(
+            id=uuid4(),
+            incident_id=incident_id,
+            event_type=event_type,
+            description=description,
+            occurred_at=occurred_at,
+            recorded_by=recorded_by,
+            duration_minutes=duration_minutes,
+            external_reference_url=external_reference_url,
+            created_at=now,
+            updated_at=now,
+        )
+        return await self._repo.create(event)
+
+    async def list_by_incident(self, incident_id: UUID) -> list[IncidentTimelineEvent]:
+        return await self._repo.list_by_incident(incident_id, order_asc=True)
+
+    async def delete(self, event_id: UUID) -> None:
+        await self._repo.delete(event_id)

@@ -100,11 +100,27 @@ Use these in all imports for cleaner, import-agnostic code.
 
 ### Backend (`apps/api/src/`)
 
-- **`domain/`** — Pure Python: Pydantic models, exceptions, domain services. Zero external dependencies.
+- **`domain/`** — Pure Python: Pydantic models (`StrEnum` for all enums), typed exceptions, domain services. Zero external dependencies.
 - **`ports/`** — Protocol interfaces (e.g., `IncidentRepoPort`). Only create ports for real boundaries.
-- **`adapters/`** — PostgreSQL (SQLAlchemy), Firebase Auth implementations.
+- **`adapters/postgres/`** — SQLAlchemy ORM row models (`*Row`) + repository implementations. Row models use `Mapped[T]` + `mapped_column()`. Enum values stored as `.value` in DB and reconstructed via `EnumType(row.column)` in the repo.
+- **`adapters/firebase/auth.py`** — Firebase token verification. Non-UUID Firebase UIDs are deterministically mapped to UUID5 via `uuid5(NAMESPACE_URL, f"firebase:{uid}")`.
 - **`api/`** — FastAPI routes, middleware, dependencies. `middleware.py` implements request ID injection (X-Request-ID header) and slowapi rate limiting. Structured logging via structlog.
+- **`api/deps.py`** — Stacked `Depends()` chain: session → repository → service → authenticated user. Each route receives only its specific service.
 - **`config.py`** — Configuration. **`main.py`** — App entrypoint with `GET /api/v1/health` check.
+
+#### Sub-Resource Hexagonal Pattern
+
+All sub-resources (timeline events, responders, action items, attachments) follow the same layering:
+
+1. **Domain model** (`domain/models.py`) — Pydantic model with StrEnum fields
+2. **Typed exception** (`domain/exceptions.py`) — e.g., `TimelineEventNotFoundError(event_id: str)`
+3. **Port** (`ports/`) — Protocol with 3–5 async methods
+4. **ORM row** (`adapters/postgres/models.py`) — `*Row` dataclass with `DateTime(timezone=True)` timestamps and UTC lambda defaults
+5. **Repository** (`adapters/postgres/*_repository.py`) — `_row_to_domain()` helper + async repo class
+6. **Service** (`domain/services.py`) — thin orchestrator; raises domain exceptions, never HTTP errors
+7. **Route** (`api/routes/*.py`) — `*CreateRequest`/`*UpdateRequest`/`*Response` Pydantic models; `Response.from_domain()` classmethod; `_get_incident_or_404()` helper validates parent before each operation; `@limiter.limit("60/minute")` on every endpoint
+
+List endpoints return `{"items": [...], "total": N}` (no cursor/page for sub-resources). The incidents table uses soft deletes (`deleted_at`); sub-resource tables do not. Incident updates use optimistic locking via a `version` field (`OptimisticLockError` if mismatch).
 
 ### Other directories
 

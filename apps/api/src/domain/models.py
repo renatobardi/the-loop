@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class Category(StrEnum):
@@ -128,6 +128,31 @@ class Incident(BaseModel):
     updated_at: datetime
     created_by: UUID
 
+    # Timestamps (migration 002)
+    started_at: datetime | None = None
+    detected_at: datetime | None = None
+    ended_at: datetime | None = None
+    resolved_at: datetime | None = None
+
+    # Operational / postmortem fields (migration 002)
+    impact_summary: str | None = None
+    customers_affected: int | None = None
+    sla_breached: bool = False
+    slo_breached: bool = False
+    postmortem_status: PostmortemStatus = PostmortemStatus.DRAFT
+    postmortem_published_at: datetime | None = None
+    postmortem_due_date: _Date | None = None
+    lessons_learned: str | None = None
+    why_we_were_surprised: str | None = None
+    detection_method: DetectionMethod | None = None
+    slack_channel_id: str | None = None
+    external_tracking_id: str | None = None
+    incident_lead_id: UUID | None = None
+
+    # JSONB embedding fields (migration 003)
+    raw_content: dict[str, object] | None = None
+    tech_context: dict[str, object] | None = None
+
     @field_validator("title")
     @classmethod
     def title_length(cls, v: str) -> str:
@@ -211,7 +236,43 @@ class Incident(BaseModel):
             raise ValueError(msg)
         return None
 
+    @field_validator("customers_affected")
+    @classmethod
+    def customers_affected_nonneg(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            msg = "customers_affected must be >= 0"
+            raise ValueError(msg)
+        return v
+
     @field_validator("affected_languages", "tags")
     @classmethod
     def list_items_not_empty(cls, v: list[str]) -> list[str]:
         return [item for item in v if item.strip()]
+
+    @model_validator(mode="after")
+    def temporal_constraints(self) -> "Incident":
+        if self.started_at and self.detected_at and self.started_at > self.detected_at:
+            msg = "detected_at must not be before started_at"
+            raise ValueError(msg)
+        if self.ended_at and self.resolved_at and self.ended_at > self.resolved_at:
+            msg = "resolved_at must not be before ended_at"
+            raise ValueError(msg)
+        return self
+
+    @property
+    def duration_minutes(self) -> int | None:
+        if self.started_at and self.ended_at:
+            return int((self.ended_at - self.started_at).total_seconds() / 60)
+        return None
+
+    @property
+    def time_to_detect_minutes(self) -> int | None:
+        if self.started_at and self.detected_at:
+            return int((self.detected_at - self.started_at).total_seconds() / 60)
+        return None
+
+    @property
+    def time_to_resolve_minutes(self) -> int | None:
+        if self.started_at and self.resolved_at:
+            return int((self.resolved_at - self.started_at).total_seconds() / 60)
+        return None

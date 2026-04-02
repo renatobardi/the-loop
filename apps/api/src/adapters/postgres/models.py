@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from datetime import date as _Date  # noqa: N812
 
 from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
 from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text, Uuid
@@ -44,3 +45,36 @@ class IncidentRow(Base):
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+
+    # Timestamps (migration 002)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    detected_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Operational / postmortem fields (migration 002)
+    impact_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    customers_affected: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sla_breached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    slo_breached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    postmortem_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="draft"
+    )
+    postmortem_published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    postmortem_due_date: Mapped[_Date | None] = mapped_column(Date, nullable=True)
+    lessons_learned: Mapped[str | None] = mapped_column(Text, nullable=True)
+    why_we_were_surprised: Mapped[str | None] = mapped_column(Text, nullable=True)
+    detection_method: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    slack_channel_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    external_tracking_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    incident_lead_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+
+    # JSONB embedding fields (migration 003)
+    raw_content: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
+    tech_context: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)

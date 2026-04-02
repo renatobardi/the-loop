@@ -1,5 +1,7 @@
 """CRUD route handlers for incidents."""
 
+from datetime import date as _Date  # noqa: N812
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -14,7 +16,14 @@ from src.domain.exceptions import (
     IncidentNotFoundError,
     OptimisticLockError,
 )
-from src.domain.models import SEMGREP_RULE_PATTERN, Category, Incident, Severity
+from src.domain.models import (
+    SEMGREP_RULE_PATTERN,
+    Category,
+    DetectionMethod,
+    Incident,
+    PostmortemStatus,
+    Severity,
+)
 from src.domain.services import IncidentService
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
@@ -47,6 +56,25 @@ class IncidentCreateRequest(BaseModel):
     static_rule_possible: bool = False
     semgrep_rule_id: str | None = None
     tags: list[str] = []
+    started_at: datetime | None = None
+    detected_at: datetime | None = None
+    ended_at: datetime | None = None
+    resolved_at: datetime | None = None
+    impact_summary: str | None = None
+    customers_affected: int | None = None
+    sla_breached: bool = False
+    slo_breached: bool = False
+    postmortem_status: PostmortemStatus = PostmortemStatus.DRAFT
+    postmortem_published_at: datetime | None = None
+    postmortem_due_date: _Date | None = None
+    lessons_learned: str | None = None
+    why_we_were_surprised: str | None = None
+    detection_method: DetectionMethod | None = None
+    slack_channel_id: str | None = None
+    external_tracking_id: str | None = None
+    incident_lead_id: UUID | None = None
+    raw_content: dict[str, object] | None = None
+    tech_context: dict[str, object] | None = None
 
     @field_validator("semgrep_rule_id")
     @classmethod
@@ -71,6 +99,25 @@ class IncidentUpdateRequest(BaseModel):
     semgrep_rule_id: str | None = None
     tags: list[str] | None = None
     version: int
+    started_at: datetime | None = None
+    detected_at: datetime | None = None
+    ended_at: datetime | None = None
+    resolved_at: datetime | None = None
+    impact_summary: str | None = None
+    customers_affected: int | None = None
+    sla_breached: bool | None = None
+    slo_breached: bool | None = None
+    postmortem_status: PostmortemStatus | None = None
+    postmortem_published_at: datetime | None = None
+    postmortem_due_date: _Date | None = None
+    lessons_learned: str | None = None
+    why_we_were_surprised: str | None = None
+    detection_method: DetectionMethod | None = None
+    slack_channel_id: str | None = None
+    external_tracking_id: str | None = None
+    incident_lead_id: UUID | None = None
+    raw_content: dict[str, object] | None = None
+    tech_context: dict[str, object] | None = None
 
     @field_validator("semgrep_rule_id")
     @classmethod
@@ -109,6 +156,28 @@ class IncidentResponse(BaseModel):
     created_at: str
     updated_at: str
     created_by: UUID
+    started_at: str | None
+    detected_at: str | None
+    ended_at: str | None
+    resolved_at: str | None
+    duration_minutes: int | None
+    time_to_detect_minutes: int | None
+    time_to_resolve_minutes: int | None
+    impact_summary: str | None
+    customers_affected: int | None
+    sla_breached: bool
+    slo_breached: bool
+    postmortem_status: str
+    postmortem_published_at: str | None
+    postmortem_due_date: str | None
+    lessons_learned: str | None
+    why_we_were_surprised: str | None
+    detection_method: str | None
+    slack_channel_id: str | None
+    external_tracking_id: str | None
+    incident_lead_id: UUID | None
+    raw_content: dict[str, object] | None
+    tech_context: dict[str, object] | None
 
     @classmethod
     def from_domain(cls, incident: Incident) -> "IncidentResponse":
@@ -135,6 +204,36 @@ class IncidentResponse(BaseModel):
             created_at=incident.created_at.isoformat(),
             updated_at=incident.updated_at.isoformat(),
             created_by=incident.created_by,
+            started_at=incident.started_at.isoformat() if incident.started_at else None,
+            detected_at=incident.detected_at.isoformat() if incident.detected_at else None,
+            ended_at=incident.ended_at.isoformat() if incident.ended_at else None,
+            resolved_at=incident.resolved_at.isoformat() if incident.resolved_at else None,
+            duration_minutes=incident.duration_minutes,
+            time_to_detect_minutes=incident.time_to_detect_minutes,
+            time_to_resolve_minutes=incident.time_to_resolve_minutes,
+            impact_summary=incident.impact_summary,
+            customers_affected=incident.customers_affected,
+            sla_breached=incident.sla_breached,
+            slo_breached=incident.slo_breached,
+            postmortem_status=incident.postmortem_status.value,
+            postmortem_published_at=(
+                incident.postmortem_published_at.isoformat()
+                if incident.postmortem_published_at
+                else None
+            ),
+            postmortem_due_date=(
+                str(incident.postmortem_due_date) if incident.postmortem_due_date else None
+            ),
+            lessons_learned=incident.lessons_learned,
+            why_we_were_surprised=incident.why_we_were_surprised,
+            detection_method=(
+                incident.detection_method.value if incident.detection_method else None
+            ),
+            slack_channel_id=incident.slack_channel_id,
+            external_tracking_id=incident.external_tracking_id,
+            incident_lead_id=incident.incident_lead_id,
+            raw_content=incident.raw_content,
+            tech_context=incident.tech_context,
         )
 
 
@@ -171,6 +270,25 @@ async def create_incident(
             static_rule_possible=body.static_rule_possible,
             semgrep_rule_id=body.semgrep_rule_id,
             tags=body.tags,
+            started_at=body.started_at,
+            detected_at=body.detected_at,
+            ended_at=body.ended_at,
+            resolved_at=body.resolved_at,
+            impact_summary=body.impact_summary,
+            customers_affected=body.customers_affected,
+            sla_breached=body.sla_breached,
+            slo_breached=body.slo_breached,
+            postmortem_status=body.postmortem_status,
+            postmortem_published_at=body.postmortem_published_at,
+            postmortem_due_date=body.postmortem_due_date,
+            lessons_learned=body.lessons_learned,
+            why_we_were_surprised=body.why_we_were_surprised,
+            detection_method=body.detection_method,
+            slack_channel_id=body.slack_channel_id,
+            external_tracking_id=body.external_tracking_id,
+            incident_lead_id=body.incident_lead_id,
+            raw_content=body.raw_content,
+            tech_context=body.tech_context,
         )
     except DuplicateSourceUrlError as e:
         raise HTTPException(

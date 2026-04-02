@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM model for the incidents table."""
+"""SQLAlchemy ORM models for incidents and related tables."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from datetime import date as _Date  # noqa: N812
 
 from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
-from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text, Uuid
+from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -78,3 +78,27 @@ class IncidentRow(Base):
     # JSONB embedding fields (migration 003)
     raw_content: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
     tech_context: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
+
+
+class IncidentTimelineEventRow(Base):
+    __tablename__ = "incident_timeline_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    incident_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    recorded_by: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    external_reference_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=func.now(),
+    )

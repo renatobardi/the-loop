@@ -276,3 +276,37 @@ class Incident(BaseModel):
         if self.started_at and self.resolved_at:
             return int((self.resolved_at - self.started_at).total_seconds() / 60)
         return None
+
+
+class IncidentTimelineEvent(BaseModel):
+    """Immutable domain entity for a single timeline event on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    event_type: TimelineEventType
+    description: str
+    occurred_at: datetime
+    recorded_by: UUID
+    duration_minutes: int | None = None
+    external_reference_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("description")
+    @classmethod
+    def description_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            msg = "Description must not be empty"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("duration_minutes")
+    @classmethod
+    def duration_nonneg(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            msg = "duration_minutes must be >= 0"
+            raise ValueError(msg)
+        return v

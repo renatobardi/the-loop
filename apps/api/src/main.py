@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.adapters.firebase.auth import init_firebase
 from src.api.middleware import setup_middleware
 from src.api.routes.action_items import router as action_items_router
+from src.api.routes.attachments import router as attachments_router
 from src.api.routes.incidents import router as incidents_router
 from src.api.routes.responders import router as responders_router
 from src.api.routes.timeline import router as timeline_router
@@ -57,6 +58,7 @@ app.include_router(incidents_router)
 app.include_router(timeline_router)
 app.include_router(responders_router)
 app.include_router(action_items_router)
+app.include_router(attachments_router)
 
 
 @app.get("/api/v1/health")

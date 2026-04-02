@@ -310,3 +310,54 @@ class IncidentTimelineEvent(BaseModel):
             msg = "duration_minutes must be >= 0"
             raise ValueError(msg)
         return v
+
+
+class IncidentResponder(BaseModel):
+    """Immutable domain entity for a responder on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    user_id: UUID
+    role: ResponderRole
+    joined_at: datetime
+    left_at: datetime | None = None
+    contribution_summary: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @model_validator(mode="after")
+    def left_after_joined(self) -> "IncidentResponder":
+        if self.left_at is not None and self.left_at < self.joined_at:
+            msg = "left_at must not be before joined_at"
+            raise ValueError(msg)
+        return self
+
+
+class IncidentActionItem(BaseModel):
+    """Immutable domain entity for a follow-up action item on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    title: str
+    description: str | None = None
+    owner_id: UUID | None = None
+    status: ActionItemStatus = ActionItemStatus.OPEN
+    priority: ActionItemPriority = ActionItemPriority.MEDIUM
+    due_date: _Date | None = None
+    completed_at: datetime | None = None
+    completed_by: UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            msg = "Title must not be empty"
+            raise ValueError(msg)
+        return v

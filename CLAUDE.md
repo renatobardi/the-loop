@@ -180,3 +180,11 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 - Hexagonal architecture applies from Phase 1 onward (backend only)
 - Structural changes (new routes, components, architecture) require doc updates in the same PR
 - **Mandamento XIII**: ALL dependencies (infra, APIs, backend, DB, secrets, CI/CD) MUST be explicit in the execution plan. Code without its dependencies is broken code.
+
+## Recent Changes
+- 008-incident-data-model: Added Python 3.12 + FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, Alembic, pgvector
+- 008-incident-data-model: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+
+## Active Technologies
+- Python 3.12 + FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, Alembic, pgvector (008-incident-data-model)
+- PostgreSQL 16 + pgvector (Cloud SQL `theloopoute:southamerica-east1:theloop-db`) (008-incident-data-model)

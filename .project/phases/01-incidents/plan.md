@@ -6,7 +6,11 @@
 
 ## Summary
 
-Deliver the incident CRUD module to production by addressing the gaps from 006: (1) provision all GCP infrastructure (Cloud SQL, Cloud Run for API, Artifact Registry, Secret Manager, IAM), (2) update CI/CD pipelines for the Python backend, (3) remove Paraglide i18n from the entire app (English-only), (4) refactor existing frontend code to plain English with simplified routing. Backend code (`apps/api/`) is already complete and unchanged.
+Deliver the incident CRUD module to production by addressing the gaps from 006: (1) provision all GCP infrastructure (Cloud SQL, Cloud Run for API, Artifact Registry, Secret Manager, IAM), (2) update CI/CD pipelines for the Python backend, (3) remove Paraglide i18n from the entire app (English-only), (4) refactor existing frontend code to plain English with simplified routing.
+
+> **Phase mapping (plan → tasks)**: This plan has 5 phases. tasks.md expands plan Phase 3 into three separate task phases for granularity: tasks Phase 3 = i18n infra/config, tasks Phase 4 = landing page components, tasks Phase 5 = incident components. plan Phase 4 maps to tasks Phase 6; plan Phase 5 maps to tasks Phase 7.
+
+> **Backend changes made during implementation**: Although the original plan stated "backend code requires ZERO changes," the following were necessary during CI validation: (1) removed `from __future__ import annotations` from `routes/incidents.py` — slowapi's decorator wrapper was causing FastAPI to see ForwardRef strings instead of resolved types, misclassifying Pydantic body params as query params; (2) changed `request: object` → `request: Request` in all route handlers (required by FastAPI 0.128.5); (3) upgraded fastapi 0.115.12→0.128.5 and pinned starlette≥0.49.1 to fix CVE-2025-62727; (4) added pytest-cov and new tests (test_services.py, test_incidents.py) to reach the 80% coverage threshold. These changes do not affect the domain model or API contract.
 
 ## Technical Context
 
@@ -28,7 +32,7 @@ Deliver the incident CRUD module to production by addressing the gaps from 006: 
 | ---------- | ------ | ----- |
 | I. Trunk-Based Development | PASS | Feature branch `007-incident-crud-v2`, will merge to `main` via PR |
 | II. Design System Imutável | PASS | Frontend uses existing design tokens from `apps/web/src/lib/ui/` and `app.css` |
-| III. Taxonomia de Branches | PASS | Branch `007-incident-crud-v2` uses numeric spec prefix convention. Exception is explicitly documented in CLAUDE.md: "Feature branches for specs use a numeric prefix matching their spec directory." This is a governance decision by @renatobardi. The constitution taxonomy (`feat/`, `fix/`, `hotfix/`, `chore/`) governs all non-spec branches. |
+| III. Taxonomia de Branches | PASS | Branch `007-incident-crud-v2` uses numeric spec prefix convention instead of the `feat/fix/hotfix/chore/` taxonomy. Exception explicitly documented in CLAUDE.md: "Feature branches for specs use a numeric prefix matching their spec directory (e.g., branch `007-incident-crud-v2` → `specs/007-incident-crud-v2/`)." Governance decision by @renatobardi. The constitution taxonomy governs all non-spec branches. A formal exception clause in the constitution (MINOR amendment) is recommended for future versions. |
 | IV. Main Protegida | PASS | PR required, @renatobardi sole approver |
 | V. Merge Controlado | PASS | @renatobardi merges |
 | VI. Sem Ambiente de Dev | PASS | Single environment (production), no staging |
@@ -269,9 +273,10 @@ Or as a single PR if @renatobardi prefers bundling (validated approach from past
 
 ## Notes
 
-- Backend code (`apps/api/`) requires ZERO changes — all work is infra, CI/CD, and frontend
-- The 006 incident revealed that code without infrastructure is broken code. This plan ensures the full chain: infra → CI/CD → deploy → code → validation
-- i18n removal is mechanical but touches ~20 files. Each component gets its English text extracted from `en.json` values
-- The `LanguageSelector.svelte` component is deleted entirely (no purpose in English-only app)
-- Frontend auth token (`getAuthToken()` in `incidents.ts`) is currently a stub returning empty string — this MUST be fixed for any authenticated API call to work
-- CORS: The existing `apps/api/` code must have `CORSMiddleware` configured to allow requests from the web service domain (Mandamento VIII: never wildcard `*`). Backend requires zero code changes — verify CORS is correctly configured during T008 (API health validation). If not configured, add a backend task before T007.
+- The 006 incident revealed that code without infrastructure is broken code. This plan ensures the full chain: infra → CI/CD → deploy → code → validation.
+- i18n removal is mechanical but touches ~20 files. Each component gets its English text extracted from `en.json` values.
+- The `LanguageSelector.svelte` component is deleted entirely (no purpose in English-only app).
+- Frontend auth token (`getAuthToken()` in `incidents.ts`) is currently a stub returning empty string — this MUST be fixed for any authenticated API call to work.
+- **CORS**: `apps/api/` `CORSMiddleware` reads `CORS_ORIGINS` from env. This env var MUST be set in the Cloud Run service (T007) to include the web domain (`https://loop.oute.pro`). Wildcard `*` is prohibited by Mandamento VIII. Verify during T008 that the frontend can reach the API (not just the health endpoint).
+- **Integration tests**: `apps/api/tests/integration/` directory exists in the project structure but contains no tests. Integration tests (real PostgreSQL via Cloud SQL) are deferred to a future phase. Phase A coverage is achieved by mocked unit + API tests (83%). This is an acceptable trade-off for Phase A scope.
+- **Backend changes made during implementation**: See Summary section above for full details. The domain model and API contract are unchanged.

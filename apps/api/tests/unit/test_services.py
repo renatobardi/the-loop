@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from src.domain.exceptions import IncidentHasActiveRuleError, IncidentNotFoundError
-from src.domain.models import Category, Incident, Severity
+from src.domain.models import Category, Incident, PostmortemStatus, Severity
 from src.domain.services import IncidentService
 
 _NOW = datetime(2025, 1, 1, tzinfo=UTC)
@@ -186,3 +186,53 @@ async def test_list_incidents_clamps_pagination(
     call_kwargs = repo.list_incidents.call_args.kwargs
     assert call_kwargs["page"] == 1
     assert call_kwargs["per_page"] == 100
+
+
+# T024 — auto-populate postmortem_published_at on PUBLISHED transition
+
+
+async def test_update_published_status_auto_populates_published_at(
+    service: IncidentService, repo: AsyncMock
+) -> None:
+    incident = _make_incident(postmortem_status=PostmortemStatus.DRAFT)
+    repo.get_by_id.return_value = incident
+    repo.update.return_value = incident
+
+    await service.update(incident.id, 1, postmortem_status=PostmortemStatus.PUBLISHED)
+
+    call_args = repo.update.call_args
+    updated: Incident = call_args[0][0]
+    assert updated.postmortem_status == PostmortemStatus.PUBLISHED
+    assert updated.postmortem_published_at is not None
+
+
+async def test_update_published_at_not_overwritten_when_already_set(
+    service: IncidentService, repo: AsyncMock
+) -> None:
+    original_ts = datetime(2025, 3, 1, tzinfo=UTC)
+    incident = _make_incident(
+        postmortem_status=PostmortemStatus.PUBLISHED,
+        postmortem_published_at=original_ts,
+    )
+    repo.get_by_id.return_value = incident
+    repo.update.return_value = incident
+
+    await service.update(incident.id, 1, postmortem_status=PostmortemStatus.PUBLISHED)
+
+    call_args = repo.update.call_args
+    updated: Incident = call_args[0][0]
+    assert updated.postmortem_published_at == original_ts
+
+
+async def test_update_non_published_status_does_not_set_published_at(
+    service: IncidentService, repo: AsyncMock
+) -> None:
+    incident = _make_incident(postmortem_status=PostmortemStatus.DRAFT)
+    repo.get_by_id.return_value = incident
+    repo.update.return_value = incident
+
+    await service.update(incident.id, 1, postmortem_status=PostmortemStatus.IN_REVIEW)
+
+    call_args = repo.update.call_args
+    updated: Incident = call_args[0][0]
+    assert updated.postmortem_published_at is None

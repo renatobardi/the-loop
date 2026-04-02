@@ -148,6 +148,14 @@ class IncidentService:
             if key in allowed_fields:
                 update_data[key] = value
 
+        # Auto-populate postmortem_published_at on first transition to PUBLISHED
+        if (
+            update_data.get("postmortem_status") == PostmortemStatus.PUBLISHED
+            and existing.postmortem_published_at is None
+            and "postmortem_published_at" not in update_data
+        ):
+            update_data["postmortem_published_at"] = datetime.now(UTC)
+
         updated = existing.model_copy(update=update_data)
         return await self._repo.update(updated, expected_version)
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 from uuid import UUID
 
@@ -222,3 +222,118 @@ async def test_delete_incident_409_active_rule(
 
     assert resp.status_code == 409
     assert "semgrep_rule_id" in resp.json()["detail"]
+
+
+# T020 — timestamps and MTTR/MTTD computed metrics
+
+
+async def test_create_incident_with_timestamps_returns_computed_metrics(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    started = _NOW
+    ended = _NOW + timedelta(minutes=90)
+    detected = _NOW + timedelta(minutes=5)
+    mock_service.create.return_value = _make_incident(
+        started_at=started, detected_at=detected, ended_at=ended
+    )
+
+    resp = await client.post("/api/v1/incidents", json=_CREATE_BODY)
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["duration_minutes"] == 90
+    assert data["time_to_detect_minutes"] == 5
+    assert data["started_at"] == started.isoformat()
+
+
+async def test_get_incident_without_timestamps_returns_null_metrics(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    mock_service.get_by_id.return_value = _make_incident()
+
+    resp = await client.get(f"/api/v1/incidents/{_INCIDENT_ID}")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["duration_minutes"] is None
+    assert data["time_to_detect_minutes"] is None
+    assert data["time_to_resolve_minutes"] is None
+    assert data["started_at"] is None
+
+
+async def test_create_incident_legacy_payload_no_new_fields_succeeds(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    mock_service.create.return_value = _make_incident()
+
+    resp = await client.post("/api/v1/incidents", json=_CREATE_BODY)
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["postmortem_status"] == "draft"
+    assert data["raw_content"] is None
+    assert data["tech_context"] is None
+
+
+# T028 — postmortem lifecycle fields
+
+
+async def test_create_incident_defaults_postmortem_status_draft(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    mock_service.create.return_value = _make_incident()
+
+    resp = await client.post("/api/v1/incidents", json=_CREATE_BODY)
+
+    assert resp.status_code == 201
+    assert resp.json()["postmortem_status"] == "draft"
+
+
+async def test_update_postmortem_status_to_published_sets_timestamp(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    published_at = _NOW + timedelta(days=3)
+    mock_service.update.return_value = _make_incident(
+        postmortem_status="published",
+        postmortem_published_at=published_at,
+        version=2,
+    )
+
+    resp = await client.put(
+        f"/api/v1/incidents/{_INCIDENT_ID}",
+        json={"postmortem_status": "published", "version": 1},
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["postmortem_status"] == "published"
+    assert data["postmortem_published_at"] == published_at.isoformat()
+
+
+# T032 — JSONB raw_content / tech_context fields
+
+
+async def test_create_incident_with_raw_content_preserved(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    raw = {"summary": "DB fell over", "root_cause": "missing index"}
+    mock_service.create.return_value = _make_incident(raw_content=raw)
+
+    resp = await client.post(
+        "/api/v1/incidents", json={**_CREATE_BODY, "raw_content": raw}
+    )
+
+    assert resp.status_code == 201
+    assert resp.json()["raw_content"] == raw
+
+
+async def test_create_incident_without_raw_content_returns_null(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    mock_service.create.return_value = _make_incident()
+
+    resp = await client.post("/api/v1/incidents", json=_CREATE_BODY)
+
+    assert resp.status_code == 201
+    assert resp.json()["raw_content"] is None
+    assert resp.json()["tech_context"] is None

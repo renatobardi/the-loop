@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.postgres.models import IncidentRow
 from src.domain.exceptions import DuplicateSourceUrlError, OptimisticLockError
-from src.domain.models import Category, Incident, Severity
+from src.domain.models import Category, DetectionMethod, Incident, PostmortemStatus, Severity
 
 
 def _row_to_domain(row: IncidentRow) -> Incident:
@@ -38,6 +38,25 @@ def _row_to_domain(row: IncidentRow) -> Incident:
         created_at=row.created_at,
         updated_at=row.updated_at,
         created_by=row.created_by,
+        started_at=row.started_at,
+        detected_at=row.detected_at,
+        ended_at=row.ended_at,
+        resolved_at=row.resolved_at,
+        impact_summary=row.impact_summary,
+        customers_affected=row.customers_affected,
+        sla_breached=row.sla_breached,
+        slo_breached=row.slo_breached,
+        postmortem_status=PostmortemStatus(row.postmortem_status),
+        postmortem_published_at=row.postmortem_published_at,
+        postmortem_due_date=row.postmortem_due_date,
+        lessons_learned=row.lessons_learned,
+        why_we_were_surprised=row.why_we_were_surprised,
+        detection_method=DetectionMethod(row.detection_method) if row.detection_method else None,
+        slack_channel_id=row.slack_channel_id,
+        external_tracking_id=row.external_tracking_id,
+        incident_lead_id=row.incident_lead_id,
+        raw_content=row.raw_content,
+        tech_context=row.tech_context,
     )
 
 
@@ -67,6 +86,27 @@ class PostgresIncidentRepository:
             created_at=incident.created_at,
             updated_at=incident.updated_at,
             created_by=incident.created_by,
+            started_at=incident.started_at,
+            detected_at=incident.detected_at,
+            ended_at=incident.ended_at,
+            resolved_at=incident.resolved_at,
+            impact_summary=incident.impact_summary,
+            customers_affected=incident.customers_affected,
+            sla_breached=incident.sla_breached,
+            slo_breached=incident.slo_breached,
+            postmortem_status=incident.postmortem_status.value,
+            postmortem_published_at=incident.postmortem_published_at,
+            postmortem_due_date=incident.postmortem_due_date,
+            lessons_learned=incident.lessons_learned,
+            why_we_were_surprised=incident.why_we_were_surprised,
+            detection_method=(
+                incident.detection_method.value if incident.detection_method else None
+            ),
+            slack_channel_id=incident.slack_channel_id,
+            external_tracking_id=incident.external_tracking_id,
+            incident_lead_id=incident.incident_lead_id,
+            raw_content=incident.raw_content,
+            tech_context=incident.tech_context,
         )
         self._session.add(row)
         try:
@@ -116,6 +156,27 @@ class PostgresIncidentRepository:
                 tags=incident.tags,
                 version=expected_version + 1,
                 updated_at=now,
+                started_at=incident.started_at,
+                detected_at=incident.detected_at,
+                ended_at=incident.ended_at,
+                resolved_at=incident.resolved_at,
+                impact_summary=incident.impact_summary,
+                customers_affected=incident.customers_affected,
+                sla_breached=incident.sla_breached,
+                slo_breached=incident.slo_breached,
+                postmortem_status=incident.postmortem_status.value,
+                postmortem_published_at=incident.postmortem_published_at,
+                postmortem_due_date=incident.postmortem_due_date,
+                lessons_learned=incident.lessons_learned,
+                why_we_were_surprised=incident.why_we_were_surprised,
+                detection_method=(
+                    incident.detection_method.value if incident.detection_method else None
+                ),
+                slack_channel_id=incident.slack_channel_id,
+                external_tracking_id=incident.external_tracking_id,
+                incident_lead_id=incident.incident_lead_id,
+                raw_content=incident.raw_content,
+                tech_context=incident.tech_context,
             )
             .returning(IncidentRow)
         )

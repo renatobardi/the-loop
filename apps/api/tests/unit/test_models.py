@@ -1,10 +1,10 @@
 """Unit tests for domain models — validation, enums, boundaries."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-from src.domain.models import Category, Incident, Severity
+from src.domain.models import Category, DetectionMethod, Incident, PostmortemStatus, Severity
 
 
 def _make_incident(**overrides: object) -> Incident:
@@ -106,3 +106,80 @@ class TestIncident:
     def test_tags_filters_empty_strings(self) -> None:
         incident = _make_incident(tags=["valid", "", "  ", "also-valid"])
         assert incident.tags == ["valid", "also-valid"]
+
+    def test_customers_affected_negative_rejected(self) -> None:
+        with pytest.raises(ValueError, match=">= 0"):
+            _make_incident(customers_affected=-1)
+
+    def test_customers_affected_zero_allowed(self) -> None:
+        incident = _make_incident(customers_affected=0)
+        assert incident.customers_affected == 0
+
+    def test_postmortem_status_default_draft(self) -> None:
+        incident = _make_incident()
+        assert incident.postmortem_status == PostmortemStatus.DRAFT
+
+    def test_detection_method_enum(self) -> None:
+        incident = _make_incident(detection_method=DetectionMethod.MONITORING_ALERT)
+        assert incident.detection_method == DetectionMethod.MONITORING_ALERT
+
+    def test_temporal_constraint_detect_before_start_rejected(self) -> None:
+        now = datetime.now(UTC)
+        with pytest.raises(ValueError, match="detected_at"):
+            _make_incident(
+                started_at=now,
+                detected_at=now - timedelta(minutes=5),
+            )
+
+    def test_temporal_constraint_end_before_resolve_rejected(self) -> None:
+        now = datetime.now(UTC)
+        with pytest.raises(ValueError, match="resolved_at"):
+            _make_incident(
+                ended_at=now,
+                resolved_at=now - timedelta(minutes=5),
+            )
+
+    def test_temporal_constraint_valid_order_accepted(self) -> None:
+        now = datetime.now(UTC)
+        incident = _make_incident(
+            started_at=now,
+            detected_at=now + timedelta(minutes=2),
+            ended_at=now + timedelta(minutes=10),
+            resolved_at=now + timedelta(minutes=15),
+        )
+        assert incident.started_at == now
+
+    def test_duration_minutes_computed(self) -> None:
+        now = datetime.now(UTC)
+        incident = _make_incident(
+            started_at=now,
+            ended_at=now + timedelta(minutes=42),
+        )
+        assert incident.duration_minutes == 42
+
+    def test_duration_minutes_none_when_missing_timestamps(self) -> None:
+        incident = _make_incident(started_at=datetime.now(UTC))
+        assert incident.duration_minutes is None
+
+    def test_time_to_detect_minutes_computed(self) -> None:
+        now = datetime.now(UTC)
+        incident = _make_incident(
+            started_at=now,
+            detected_at=now + timedelta(minutes=3),
+        )
+        assert incident.time_to_detect_minutes == 3
+
+    def test_time_to_resolve_minutes_computed(self) -> None:
+        now = datetime.now(UTC)
+        incident = _make_incident(
+            started_at=now,
+            resolved_at=now + timedelta(minutes=120),
+        )
+        assert incident.time_to_resolve_minutes == 120
+
+    def test_raw_content_and_tech_context_stored(self) -> None:
+        raw = {"summary": "test", "root_cause": "bug"}
+        ctx = {"languages": ["python"], "frameworks": ["fastapi"]}
+        incident = _make_incident(raw_content=raw, tech_context=ctx)
+        assert incident.raw_content == raw
+        assert incident.tech_context == ctx

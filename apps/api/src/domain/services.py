@@ -14,10 +14,13 @@ from src.domain.exceptions import (
 from src.domain.models import (
     ActionItemPriority,
     ActionItemStatus,
+    AttachmentExtractionStatus,
+    AttachmentType,
     Category,
     DetectionMethod,
     Incident,
     IncidentActionItem,
+    IncidentAttachment,
     IncidentResponder,
     IncidentTimelineEvent,
     PostmortemStatus,
@@ -26,6 +29,7 @@ from src.domain.models import (
     TimelineEventType,
 )
 from src.ports.action_item_repo import ActionItemRepoPort
+from src.ports.attachment_repo import AttachmentRepoPort
 from src.ports.incident_repo import IncidentRepoPort
 from src.ports.responder_repo import ResponderRepoPort
 from src.ports.timeline_event_repo import TimelineEventRepoPort
@@ -341,3 +345,47 @@ class ActionItemService:
 
     async def delete_action_item(self, item_id: UUID) -> None:
         await self._repo.delete(item_id)
+
+
+class AttachmentService:
+    def __init__(self, repo: AttachmentRepoPort) -> None:
+        self._repo = repo
+
+    async def register_attachment(
+        self,
+        *,
+        incident_id: UUID,
+        uploaded_by: UUID | None = None,
+        filename: str,
+        mime_type: str,
+        file_size_bytes: int,
+        gcs_bucket: str,
+        gcs_object_path: str,
+        attachment_type: AttachmentType,
+        source_system: str | None = None,
+        source_url: str | None = None,
+    ) -> IncidentAttachment:
+        now = datetime.now(UTC)
+        attachment = IncidentAttachment(
+            id=uuid4(),
+            incident_id=incident_id,
+            uploaded_by=uploaded_by,
+            filename=filename,
+            mime_type=mime_type,
+            file_size_bytes=file_size_bytes,
+            gcs_bucket=gcs_bucket,
+            gcs_object_path=gcs_object_path,
+            extraction_status=AttachmentExtractionStatus.PENDING,
+            attachment_type=attachment_type,
+            source_system=source_system,
+            source_url=source_url,
+            created_at=now,
+            updated_at=now,
+        )
+        return await self._repo.create(attachment)
+
+    async def list_attachments(self, incident_id: UUID) -> list[IncidentAttachment]:
+        return await self._repo.list_by_incident(incident_id)
+
+    async def delete_attachment(self, attachment_id: UUID) -> None:
+        await self._repo.delete(attachment_id)

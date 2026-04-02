@@ -361,3 +361,33 @@ class IncidentActionItem(BaseModel):
             msg = "Title must not be empty"
             raise ValueError(msg)
         return v
+
+
+class IncidentAttachment(BaseModel):
+    """Immutable domain entity for a file attachment on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    uploaded_by: UUID | None = None
+    filename: str
+    mime_type: str
+    file_size_bytes: int
+    gcs_bucket: str
+    gcs_object_path: str
+    content_text: str | None = None
+    extraction_status: AttachmentExtractionStatus = AttachmentExtractionStatus.PENDING
+    attachment_type: AttachmentType
+    source_system: str | None = None
+    source_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("file_size_bytes")
+    @classmethod
+    def file_size_positive(cls, v: int) -> int:
+        if v <= 0:
+            msg = "file_size_bytes must be > 0"
+            raise ValueError(msg)
+        return v

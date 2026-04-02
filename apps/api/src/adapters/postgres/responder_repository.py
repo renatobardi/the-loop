@@ -49,7 +49,9 @@ class PostgresResponderRepository:
             await self._session.commit()
         except IntegrityError as exc:
             await self._session.rollback()
-            raise DuplicateResponderError(str(responder.incident_id), str(responder.user_id)) from exc
+            raise DuplicateResponderError(
+                str(responder.incident_id), str(responder.user_id)
+            ) from exc
         await self._session.refresh(row)
         return _row_to_responder(row)
 

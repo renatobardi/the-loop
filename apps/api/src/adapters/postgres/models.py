@@ -150,3 +150,30 @@ class IncidentActionItemRow(Base):
         default=lambda: datetime.now(UTC),
         onupdate=func.now(),
     )
+
+
+class IncidentAttachmentRow(Base):
+    __tablename__ = "incident_attachments"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    incident_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    filename: Mapped[str] = mapped_column(String(500), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    gcs_bucket: Mapped[str] = mapped_column(String(255), nullable=False)
+    gcs_object_path: Mapped[str] = mapped_column(String(1000), nullable=False)
+    content_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extraction_status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    attachment_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_system: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=func.now(),
+    )

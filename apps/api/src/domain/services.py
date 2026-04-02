@@ -6,19 +6,28 @@ from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
 from src.domain.exceptions import (
+    ActionItemNotFoundError,
     IncidentHasActiveRuleError,
     IncidentNotFoundError,
+    ResponderNotFoundError,
 )
 from src.domain.models import (
+    ActionItemPriority,
+    ActionItemStatus,
     Category,
     DetectionMethod,
     Incident,
+    IncidentActionItem,
+    IncidentResponder,
     IncidentTimelineEvent,
     PostmortemStatus,
+    ResponderRole,
     Severity,
     TimelineEventType,
 )
+from src.ports.action_item_repo import ActionItemRepoPort
 from src.ports.incident_repo import IncidentRepoPort
+from src.ports.responder_repo import ResponderRepoPort
 from src.ports.timeline_event_repo import TimelineEventRepoPort
 
 
@@ -227,3 +236,108 @@ class TimelineEventService:
 
     async def delete(self, event_id: UUID) -> None:
         await self._repo.delete(event_id)
+
+
+class ResponderService:
+    def __init__(self, repo: ResponderRepoPort) -> None:
+        self._repo = repo
+
+    async def add_responder(
+        self,
+        *,
+        incident_id: UUID,
+        user_id: UUID,
+        role: ResponderRole,
+        joined_at: datetime | None = None,
+        contribution_summary: str | None = None,
+    ) -> IncidentResponder:
+        now = datetime.now(UTC)
+        responder = IncidentResponder(
+            id=uuid4(),
+            incident_id=incident_id,
+            user_id=user_id,
+            role=role,
+            joined_at=joined_at or now,
+            contribution_summary=contribution_summary,
+            created_at=now,
+            updated_at=now,
+        )
+        return await self._repo.create(responder)
+
+    async def list_responders(self, incident_id: UUID) -> list[IncidentResponder]:
+        return await self._repo.list_by_incident(incident_id)
+
+    async def update_responder(
+        self,
+        responder_id: UUID,
+        **fields: object,
+    ) -> IncidentResponder:
+        existing = await self._repo.get_by_id(responder_id)
+        if existing is None:
+            raise ResponderNotFoundError(str(responder_id))
+        now = datetime.now(UTC)
+        updated = existing.model_copy(update={**fields, "updated_at": now})
+        return await self._repo.update(updated)
+
+    async def remove_responder(self, responder_id: UUID) -> None:
+        await self._repo.delete(responder_id)
+
+
+class ActionItemService:
+    def __init__(self, repo: ActionItemRepoPort) -> None:
+        self._repo = repo
+
+    async def create_action_item(
+        self,
+        *,
+        incident_id: UUID,
+        title: str,
+        description: str | None = None,
+        owner_id: UUID | None = None,
+        priority: ActionItemPriority = ActionItemPriority.MEDIUM,
+        due_date: date | None = None,
+    ) -> IncidentActionItem:
+        now = datetime.now(UTC)
+        item = IncidentActionItem(
+            id=uuid4(),
+            incident_id=incident_id,
+            title=title,
+            description=description,
+            owner_id=owner_id,
+            status=ActionItemStatus.OPEN,
+            priority=priority,
+            due_date=due_date,
+            created_at=now,
+            updated_at=now,
+        )
+        return await self._repo.create(item)
+
+    async def list_action_items(
+        self,
+        incident_id: UUID,
+        *,
+        status: ActionItemStatus | None = None,
+    ) -> list[IncidentActionItem]:
+        return await self._repo.list_by_incident(incident_id, status_filter=status)
+
+    async def update_action_item(
+        self,
+        item_id: UUID,
+        **fields: object,
+    ) -> IncidentActionItem:
+        existing = await self._repo.get_by_id(item_id)
+        if existing is None:
+            raise ActionItemNotFoundError(str(item_id))
+        now = datetime.now(UTC)
+        update_data: dict[str, object] = {**fields, "updated_at": now}
+        if (
+            update_data.get("status") == ActionItemStatus.COMPLETED
+            and existing.completed_at is None
+            and "completed_at" not in update_data
+        ):
+            update_data["completed_at"] = now
+        updated = existing.model_copy(update=update_data)
+        return await self._repo.update(updated)
+
+    async def delete_action_item(self, item_id: UUID) -> None:
+        await self._repo.delete(item_id)

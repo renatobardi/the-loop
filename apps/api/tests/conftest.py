@@ -25,6 +25,14 @@ def mock_repo() -> AsyncMock:
     return AsyncMock()
 
 
+@pytest.fixture(autouse=True)
+def cleanup_overrides() -> None:
+    """Ensure dependency overrides are cleared before and after each test."""
+    app.dependency_overrides.clear()
+    yield
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture
 def client() -> TestClient:
     app.dependency_overrides[get_current_user] = lambda: TEST_USER_ID

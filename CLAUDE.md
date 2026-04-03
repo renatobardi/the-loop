@@ -84,10 +84,14 @@ For CI tests, a temporary test database is created with the same setup.
 - **`routes/`** — File-based routing with plain paths. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes use plain paths (`/`, `/incidents/`, `/constitution/`).
 - **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`.
 - **`routes/login/` and `routes/signup/`** — Firebase email/password auth pages. SSR disabled (client-side only) to avoid server-side Firebase Auth SDK usage.
-- **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
+- **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink, Tabs). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
 - **`lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.). All text hardcoded in English.
+- **`lib/components/incidents/`** — Incident CRUD components. `IncidentDetail.svelte` is the master incident view with 7 tabs:
+  - Details, Operational, Postmortem (core incident fields)
+  - Timeline, Responders, Action Items, Attachments (sub-resources with lazy loading)
+- **`lib/components/incidents/tabs/`** — Individual tab components. Each implements lazy loading pattern (see "Lazy-Loading Tab Pattern" section).
 - **`lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
-- **`lib/services/incidents.ts`** — API client for incident CRUD. Attaches Firebase Auth token to requests.
+- **`lib/services/incidents.ts`** — API client for incident CRUD + sub-resources (timeline, responders, action items, attachments). Attaches Firebase Auth token to requests.
 - **`lib/stores/auth.ts`** — Svelte store wrapping Firebase `onAuthStateChanged`; exports a `user` store used across authenticated routes.
 
 #### Import Path Aliases
@@ -148,16 +152,46 @@ This project uses Svelte 5 runes exclusively (enforced in `svelte.config.js`):
 - **State**: `let value = $state('')` — no `$:` reactive declarations
 - **Derived**: `let computedVal = $derived(expression)` — replaces `$: computedVal = ...`
 - **Children**: Use `{@render children?.()}` snippet pattern, not `<slot />`
+- **Effects**: Use `$effect()` with guards to defer side effects (e.g., API calls) until conditions are met
+
+## Lazy-Loading Tab Pattern (Spec-009)
+
+Sub-resource tabs (Timeline, Responders, Action Items, Attachments) implement lazy loading to avoid unnecessary API calls:
+
+**Parent component** (`IncidentDetail.svelte`):
+```svelte
+<TimelineTab incidentId={incident.id} active={activeTab === 'timeline'} />
+```
+
+**Tab component** (e.g., `TimelineTab.svelte`):
+```svelte
+let { incidentId, active } = $props();
+let loaded = $state(false);
+
+$effect(() => {
+  if (active && !loaded) {
+    load(); // Fetch data only when tab becomes active
+  }
+});
+```
+
+**Key patterns:**
+- Parent passes `incidentId` (not full incident object) + `active={boolean}` prop
+- Tab uses `$effect()` guard: only fetch if `active && !loaded`
+- Prevents duplicate API calls and reduces initial page load time
+- All error/empty states rendered in English with design tokens only
 
 ## Design Tokens (Tailwind 4)
 
 `app.css` defines a `@theme` block with custom CSS variables consumed as Tailwind utility classes:
 
-- Colors: `bg-bg`, `bg-bg-surface`, `bg-bg-elevated`, `text-text`, `text-text-muted`, `text-accent`, `bg-accent`
-- Glow effect: `shadow-glow` token for accent-colored shadows
-- Font: Geist via CDN, with size scale defined as CSS variables (`--font-size-xs` through `--font-size-7xl`)
+- **Backgrounds**: `bg-bg`, `bg-bg-surface`, `bg-bg-elevated`
+- **Text colors**: `text-text`, `text-text-muted`
+- **Semantic colors**: `text-accent`, `bg-accent`, `text-error`, `bg-error`, `text-success`, `bg-success`
+- **Utility**: `border-border` (for borders), `shadow-glow` (accent-colored glow)
+- **Font**: Geist via CDN, with size scale defined as CSS variables (`--font-size-xs` through `--font-size-7xl`)
 
-All visual styling must use these tokens — no ad-hoc color/spacing values.
+All visual styling must use these tokens — no ad-hoc color/spacing values. Use opacity modifiers (`/20`, `/50`) for tinted backgrounds.
 
 ## Code Style
 

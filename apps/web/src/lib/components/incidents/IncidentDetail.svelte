@@ -4,13 +4,21 @@
 	import DetailsTab from './tabs/DetailsTab.svelte';
 	import OperationalTab from './tabs/OperationalTab.svelte';
 	import PostmortemTab from './tabs/PostmortemTab.svelte';
+	import TimelineTab from './tabs/TimelineTab.svelte';
+	import RespondersTab from './tabs/RespondersTab.svelte';
+	import ActionItemsTab from './tabs/ActionItemsTab.svelte';
+	import AttachmentsTab from './tabs/AttachmentsTab.svelte';
 
 	let { incident }: { incident: Incident } = $props();
 
 	const tabs = [
-		{ id: 'details', label: 'Detalhes' },
-		{ id: 'operational', label: 'Operacional' },
-		{ id: 'postmortem', label: 'Postmortem' }
+		{ id: 'details', label: 'Details' },
+		{ id: 'operational', label: 'Operational' },
+		{ id: 'postmortem', label: 'Postmortem' },
+		{ id: 'timeline', label: 'Timeline' },
+		{ id: 'responders', label: 'Responders' },
+		{ id: 'actions', label: 'Action Items' },
+		{ id: 'attachments', label: 'Attachments' }
 	];
 
 	let activeTab = $state('details');
@@ -42,6 +50,14 @@
 			<OperationalTab {incident} />
 		{:else if activeTab === 'postmortem'}
 			<PostmortemTab {incident} />
+		{:else if activeTab === 'timeline'}
+			<TimelineTab incidentId={incident.id} active={activeTab === 'timeline'} />
+		{:else if activeTab === 'responders'}
+			<RespondersTab incidentId={incident.id} active={activeTab === 'responders'} />
+		{:else if activeTab === 'actions'}
+			<ActionItemsTab incidentId={incident.id} active={activeTab === 'actions'} />
+		{:else if activeTab === 'attachments'}
+			<AttachmentsTab incidentId={incident.id} active={activeTab === 'attachments'} />
 		{/if}
 	</div>
 </div>

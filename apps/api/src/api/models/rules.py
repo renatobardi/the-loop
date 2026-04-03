@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class RuleData(BaseModel):
@@ -61,3 +61,28 @@ class PublishRulesResponse(BaseModel):
     version: str
     created_at: datetime
     rules_count: int
+
+
+class DeprecateRulesRequest(BaseModel):
+    """Request body for POST /api/v1/rules/deprecate."""
+
+    version: str = Field(..., description="Semantic version to deprecate (e.g., '0.1.0')")
+
+    @field_validator("version")
+    @classmethod
+    def validate_semver(cls, v: str) -> str:
+        """Validate that version matches semantic versioning pattern X.Y.Z."""
+        import re
+
+        if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+$", v):
+            msg = f"Invalid semver format: {v}. Expected X.Y.Z (e.g., '0.1.0')"
+            raise ValueError(msg)
+        return v
+
+
+class DeprecateRulesResponse(BaseModel):
+    """Response body for POST /api/v1/rules/deprecate (200 OK)."""
+
+    message: str
+    version: str
+    deprecated_at: datetime

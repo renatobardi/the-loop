@@ -211,3 +211,90 @@ async def test_publish_rules_missing_fields() -> None:
 
     # 422 is correct — Pydantic validates request body before route handler
     assert response.status_code == 422
+
+
+async def test_deprecate_version_success(
+    mock_rule_version_service: AsyncMock,
+    mock_rule_version_cache: AsyncMock,
+) -> None:
+    """Test POST /rules/deprecate marks version as deprecated."""
+    deprecated_version = _make_rule_version(
+        version="0.1.0", status=RuleVersionStatus.DEPRECATED, deprecated_at=_NOW
+    )
+    mock_rule_version_service.deprecate_version = AsyncMock(
+        return_value=deprecated_version
+    )
+    mock_rule_version_cache.invalidate = AsyncMock()
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
+    app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.1.0"})
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "0.1.0"
+    assert "deprecated_at" in data
+    mock_rule_version_cache.invalidate.assert_called_once()
+
+
+async def test_deprecate_version_not_found(mock_rule_version_service: AsyncMock) -> None:
+    """Test POST /rules/deprecate returns 404 when version not found."""
+    from src.domain.exceptions import RuleVersionNotFoundError
+
+    mock_rule_version_service.deprecate_version = AsyncMock(
+        side_effect=RuleVersionNotFoundError("0.99.0")
+    )
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.99.0"})
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+async def test_deprecate_version_missing_auth() -> None:
+    """Test POST /rules/deprecate returns 403 without auth."""
+    app.dependency_overrides[get_current_user] = lambda: None
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.1.0"})
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+
+
+async def test_deprecate_version_invalid_semver() -> None:
+    """Test POST /rules/deprecate returns 422 for invalid semver."""
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/api/v1/rules/deprecate", json={"version": "invalid"})
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+
+
+async def test_list_deprecated_versions(mock_rule_version_service: AsyncMock) -> None:
+    """Test GET /rules/deprecated returns only deprecated versions."""
+    versions = [
+        _make_rule_version(version="0.2.0", status=RuleVersionStatus.ACTIVE),
+        _make_rule_version(
+            version="0.1.0", status=RuleVersionStatus.DEPRECATED, deprecated_at=_NOW
+        ),
+    ]
+    mock_rule_version_service.list_all = AsyncMock(return_value=versions)
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get("/api/v1/rules/deprecated")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["versions"]) == 1
+    assert data["versions"][0]["version"] == "0.1.0"
+    assert data["versions"][0]["status"] == "deprecated"

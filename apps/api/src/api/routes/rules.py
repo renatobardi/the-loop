@@ -11,6 +11,8 @@ from src.adapters.postgres.cache import RuleVersionCache
 from src.api.deps import get_rule_version_cache, get_rule_version_service
 from src.api.middleware import limiter
 from src.api.models.rules import (
+    DeprecateRulesRequest,
+    DeprecateRulesResponse,
     PublishRulesRequest,
     PublishRulesResponse,
     RuleVersionResponse,
@@ -50,6 +52,13 @@ def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
         "notes": rv.notes,
         "deprecated_at": rv.deprecated_at,
     }
+
+
+async def _invalidate_rules_cache(
+    cache: RuleVersionCache,
+) -> None:
+    """Invalidate rules cache after publish/deprecate operations."""
+    await cache.invalidate()
 
 
 @router.get("/rules/latest", response_model=RuleVersionResponse)
@@ -124,6 +133,38 @@ async def list_all_versions(
         return VersionListResponse(versions=summaries)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list versions: {e!s}") from e
+
+
+@router.get("/rules/deprecated", response_model=VersionListResponse)
+@limiter.limit("60/minute")
+async def list_deprecated_versions(
+    request: Request,
+    service: RuleVersionService = Depends(get_rule_version_service),
+) -> VersionListResponse:
+    """List all deprecated rule versions (useful for rollback decisions).
+
+    Returns:
+        200: List of deprecated version summaries in reverse creation order
+        500: Server error
+    """
+    try:
+        versions = await service.list_all()
+        # Filter to deprecated only, sorted by created_at DESC
+        deprecated = [v for v in versions if v.status.value == "deprecated"]
+        summaries = [
+            VersionSummary(
+                version=rv.version,
+                status=rv.status.value,
+                created_at=rv.created_at,
+                rules_count=rv.rules_count,
+                deprecated_at=rv.deprecated_at,
+            )
+            for rv in deprecated
+        ]
+        return VersionListResponse(versions=summaries)
+    except Exception as e:
+        detail = f"Failed to list deprecated versions: {e!s}"
+        raise HTTPException(status_code=500, detail=detail) from e
 
 
 @router.get("/rules/{version}", response_model=RuleVersionResponse)
@@ -207,8 +248,8 @@ async def publish_rules(
             notes=body.notes,
         )
 
-        # Invalidate cache
-        await cache.invalidate()
+        # Invalidate cache (shared with deprecate endpoint)
+        await _invalidate_rules_cache(cache)
 
         return PublishRulesResponse(
             message=f"Published {new_version.version} with {new_version.rules_count} rules",
@@ -225,3 +266,64 @@ async def publish_rules(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to publish version: {e!s}") from e
+
+
+@router.post("/rules/deprecate", response_model=DeprecateRulesResponse, status_code=200)
+@limiter.limit("10/minute")
+async def deprecate_rules_version(
+    request: Request,
+    body: DeprecateRulesRequest,
+    user_id: UUID = Depends(get_current_user),
+    service: RuleVersionService = Depends(get_rule_version_service),
+    cache: RuleVersionCache = Depends(get_rule_version_cache),
+) -> DeprecateRulesResponse:
+    """Mark a rule version as deprecated (admin only).
+
+    Useful for marking versions as no longer active when security issues or bugs are found.
+    The deprecation takes effect immediately — the next /latest request will return the
+    newest non-deprecated version.
+
+    Args:
+        version: Semantic version to deprecate (e.g., "0.1.0")
+
+    Returns:
+        200: Version marked deprecated with deprecation timestamp
+        403: User is not authenticated
+        404: Version not found
+        500: Server error
+
+    Example:
+        ```bash
+        curl -X POST https://api.../api/v1/rules/deprecate \\
+          -H "Authorization: Bearer $TOKEN" \\
+          -d '{"version": "0.1.0"}'
+        ```
+
+    Side effects:
+        - Marks version.status = "deprecated"
+        - Sets version.deprecated_at = now()
+        - Invalidates /latest cache immediately
+    """
+    # Check auth (same pattern as publish)
+    if not user_id:
+        raise HTTPException(status_code=403, detail="Admin role required")
+
+    try:
+        # Deprecate version
+        deprecated_version = await service.deprecate_version(body.version)
+
+        # Invalidate cache (shared with publish endpoint)
+        await _invalidate_rules_cache(cache)
+
+        return DeprecateRulesResponse(
+            message=f"Deprecated version {deprecated_version.version}",
+            version=deprecated_version.version,
+            deprecated_at=deprecated_version.deprecated_at,  # type: ignore[arg-type]
+        )
+
+    except RuleVersionNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Version {body.version} not found") from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to deprecate version: {e!s}") from e

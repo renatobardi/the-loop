@@ -1,0 +1,63 @@
+"""Request/response models for rules API — Phase B integration."""
+
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class RuleData(BaseModel):
+    """Individual rule within a version."""
+
+    id: str
+    languages: list[str]
+    message: str
+    severity: str
+    metadata: dict[str, Any]
+    patterns: list[dict[str, Any]]
+
+
+class PublishRulesRequest(BaseModel):
+    """Request body for POST /api/v1/rules/publish."""
+
+    version: str = Field(..., description="Semantic version (e.g., '0.2.0')")
+    rules: list[RuleData] = Field(..., description="Array of rule definitions")
+    notes: str | None = Field(None, description="Optional release notes")
+
+
+class RuleVersionResponse(BaseModel):
+    """Response body for GET /api/v1/rules/latest or /api/v1/rules/{version}."""
+
+    version: str
+    rules_count: int
+    created_at: datetime
+    status: str
+    rules: list[RuleData]
+    published_by: str | None = None
+    notes: str | None = None
+    deprecated_at: datetime | None = None
+
+
+class VersionSummary(BaseModel):
+    """Summary of a rule version (for list endpoint)."""
+
+    version: str
+    status: str
+    created_at: datetime
+    rules_count: int
+    deprecated_at: datetime | None = None
+
+
+class VersionListResponse(BaseModel):
+    """Response body for GET /api/v1/rules/versions."""
+
+    versions: list[VersionSummary]
+
+
+class PublishRulesResponse(BaseModel):
+    """Response body for POST /api/v1/rules/publish (201 Created)."""
+
+    message: str
+    version: str
+    created_at: datetime
+    rules_count: int

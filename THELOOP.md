@@ -1,16 +1,19 @@
-# The Loop — Installation (5 Minutes)
+# The Loop — Installation & Usage
 
-Convert production incidents into code guardrails. Static rules layer (Phase A).
+Convert production incidents into code guardrails. Rules layer provides static pattern detection.
 
 ## What Is This?
 
-GitHub Actions workflow that scans every PR for patterns that previously caused production incidents.
+GitHub Actions workflow that scans every PR for patterns that previously caused production incidents. Rules are distributed via:
+- **Phase A (Static)**: Immutable rule file (`.semgrep/theloop-rules.yml`)
+- **Phase B (API)**: Versioned rules API with live updates (Phase B deployment)
 
 When a PR opens:
 1. Checkout code
-2. Run Semgrep with The Loop rules
-3. Comment on PR with findings
-4. Block merge if ERROR-severity findings
+2. Fetch latest rules (Phase B: from API; Phase A: static file)
+3. Run Semgrep with The Loop rules
+4. Comment on PR with findings
+5. Block merge if ERROR-severity findings
 
 ## Install in Your Project
 
@@ -80,16 +83,51 @@ Review and fix when possible (doesn't block merge):
 4. 🔧 Fix or acknowledge (if warning-only)
 5. ✅ Merge when ready
 
+## Phase B — Versioned Rules API (Coming Soon)
+
+Phase B enables live rule updates without redeploying dependent projects:
+
+**Benefits**:
+- Semantic versioning (v0.1.0, v0.2.0, ...) with rollback support
+- Rules update immediately across all projects
+- Deprecation lifecycle (draft → active → deprecated)
+- Admin control via Firebase authentication
+
+**Workflow Integration (Phase B)**:
+```yaml
+- name: Fetch latest rules from The Loop API
+  run: |
+    curl -s https://theloop-api.run.app/api/v1/rules/latest \
+      --max-time 5 \
+      -o rules.json || {
+        echo "API unavailable, using Phase A backup"
+        cp .semgrep/theloop-rules.yml.bak rules.json
+      }
+
+- name: Run Semgrep scan
+  run: semgrep scan --config rules.json --json --output results.json
+```
+
+**Fallback**: If API is unavailable (>5s timeout), uses local `.semgrep/theloop-rules.yml.bak` (Phase A backup).
+
+---
+
 ## FAQ
 
 **Q: Why block on ERROR but not WARNING?**
 A: ERROR patterns caused production incidents; WARNING patterns need review but may have context.
 
 **Q: Can I disable a rule?**
-A: Edit `.semgrep/theloop-rules.yml` and remove the rule block, then commit locally.
+A: Phase A: Edit `.semgrep/theloop-rules.yml` and remove the rule block. Phase B: Contact @renatobardi for admin publish control.
 
 **Q: What if I get a false positive?**
 A: Report at https://loop.oute.pro/feedback — helps improve rules.
+
+**Q: How often are rules updated?**
+A: Phase A: manually (static file). Phase B: real-time via API (with deprecation timeline).
+
+**Q: What's the difference between Phase A and Phase B?**
+A: Phase A uses static rules file (stable, immutable). Phase B uses versioned API (live updates, rollback support).
 
 ---
 

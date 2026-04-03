@@ -1,15 +1,15 @@
 # Implementation Plan: Incident Data Model — Production-Ready Schema
 
-**Branches**: 5 separate `feat/` branches, one PR + deploy per phase group  
+**Branches**: 5 separate `feat/` branches (Phases 1–2 are sequential; Phases 3–10 can overlap once Phase 2 completes)  
 **Date**: 2026-04-01 | **Spec**: [spec.md](spec.md)
 
-| Branch | Scope | Tasks |
-|---|---|---|
-| `feat/incident-data-model-schema-phase-1` | Enums + all migrations + backfill | T001–T008 |
-| `feat/incident-data-model-schema-phase-2` | Extended Incident: US1 constraints, US2 MTTR, US3 postmortem, US8 JSONB | T009–T032, T080 |
-| `feat/incident-data-model-schema-phase-3` | Timeline events full stack | T033–T042 |
-| `feat/incident-data-model-schema-phase-4` | Responders + Action items | T043–T062 |
-| `feat/incident-data-model-schema-phase-5` | Attachments + Polish + Deploy | T063–T079 |
+| Branch | Scope | Tasks | Execution |
+|---|---|---|---|
+| `feat/incident-data-model-schema-phase-1` | Enums + all migrations + backfill | T001–T008 | Sequential (Phase 1) |
+| `feat/incident-data-model-schema-phase-2` | Extended Incident: US1 constraints, US2 MTTR, US3 postmortem, US8 JSONB | T009–T032, T080 | Sequential (Phase 2) |
+| `feat/incident-data-model-schema-phase-3` | Timeline events full stack | T033–T042 | Can overlap with Phase 4–5 after Phase 2 |
+| `feat/incident-data-model-schema-phase-4` | Responders + Action items | T043–T062 | Can overlap with Phase 3, 5 after Phase 2 |
+| `feat/incident-data-model-schema-phase-5` | Attachments + Polish + Deploy | T063–T079 | Can overlap with Phase 3–4 after Phase 2 |
 
 ## Summary
 

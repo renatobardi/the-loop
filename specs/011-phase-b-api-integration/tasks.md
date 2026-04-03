@@ -198,24 +198,24 @@
 
 ### Documentation
 
-- [ ] T084 [P] Create API documentation (endpoints, examples, errors)
-- [ ] T085 Create versioning strategy guide (semver, deprecation, rollback)
-- [ ] T086 [P] Update README.md (Phase B section)
-- [ ] T087 Create migration guide (Phase A → Phase B)
-- [ ] T088 [P] Update _deepwiki/the-loop/NOTES/spec-011-learnings.md
-- [ ] T089 Update _deepwiki/the-loop/ROADMAP.md (Phase C next)
-- [ ] T090 [P] Create troubleshooting guide (API down, fallback, etc)
+- [x] T084 [P] Create API documentation (endpoints, examples, errors)
+- [x] T085 Create versioning strategy guide (semver, deprecation, rollback)
+- [x] T086 [P] Update README.md (Phase B section)
+- [x] T087 Create migration guide (Phase A → Phase B)
+- [x] T088 [P] Update _deepwiki/the-loop/NOTES/spec-011-learnings.md
+- [x] T089 Update _deepwiki/the-loop/ROADMAP.md (Phase C next)
+- [x] T090 [P] Create troubleshooting guide (API down, fallback, etc)
 
 ### Code Review & Merge
 
-- [ ] T091 Self-review: check all spec requirements met
+- [x] T091 Self-review: check all spec requirements met
 - [x] T092 [P] Create PR feat/phase-b-api-integration
 - [x] T093 Code review (against CONSTITUTION.md, testing, docs)
 - [x] T094 [P] Address review feedback
 - [x] T095 Ensure all CI gates pass
 - [x] T096 [P] Merge PR to main
 - [x] T097 Verify Cloud Run auto-deploy completes
-- [ ] T098 [P] Post-mortem: learnings to _deepwiki
+- [x] T098 [P] Post-mortem: learnings to _deepwiki
 
 ---
 

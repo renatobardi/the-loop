@@ -22,22 +22,22 @@ class TestDeprecateRulesRequest:
         """Test DeprecateRulesRequest rejects version without patch."""
         with pytest.raises(ValidationError) as exc_info:
             DeprecateRulesRequest(version="0.1")
-        assert "Invalid semantic version format" in str(exc_info.value)
+        assert "Invalid semver format" in str(exc_info.value)
 
     def test_invalid_semver_extra_number(self) -> None:
         """Test DeprecateRulesRequest rejects version with extra component."""
         with pytest.raises(ValidationError) as exc_info:
             DeprecateRulesRequest(version="0.1.0.0")
-        assert "Invalid semantic version format" in str(exc_info.value)
+        assert "Invalid semver format" in str(exc_info.value)
 
     def test_invalid_semver_letters(self) -> None:
         """Test DeprecateRulesRequest rejects version with letters."""
         with pytest.raises(ValidationError) as exc_info:
             DeprecateRulesRequest(version="0.1.a")
-        assert "Invalid semantic version format" in str(exc_info.value)
+        assert "Invalid semver format" in str(exc_info.value)
 
     def test_invalid_semver_empty(self) -> None:
         """Test DeprecateRulesRequest rejects empty version."""
         with pytest.raises(ValidationError) as exc_info:
             DeprecateRulesRequest(version="")
-        assert "Invalid semantic version format" in str(exc_info.value)
+        assert "Invalid semver format" in str(exc_info.value)

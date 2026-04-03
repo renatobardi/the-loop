@@ -219,7 +219,7 @@ async def test_deprecate_version_success(
 ) -> None:
     """Test POST /rules/deprecate marks version as deprecated."""
     deprecated_version = _make_rule_version(
-        version="0.1.0", status=RuleVersionStatus.DEPRECATED
+        version="0.1.0", status=RuleVersionStatus.DEPRECATED, deprecated_at=_NOW
     )
     mock_rule_version_service.deprecate_version = AsyncMock(
         return_value=deprecated_version
@@ -281,7 +281,7 @@ async def test_list_deprecated_versions(mock_rule_version_service: AsyncMock) ->
     """Test GET /rules/deprecated returns only deprecated versions."""
     versions = [
         _make_rule_version(version="0.2.0", status=RuleVersionStatus.ACTIVE),
-        _make_rule_version(version="0.1.0", status=RuleVersionStatus.DEPRECATED),
+        _make_rule_version(version="0.1.0", status=RuleVersionStatus.DEPRECATED, deprecated_at=_NOW),
     ]
     mock_rule_version_service.list_all = AsyncMock(return_value=versions)
 

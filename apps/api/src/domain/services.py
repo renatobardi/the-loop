@@ -10,6 +10,9 @@ from src.domain.exceptions import (
     ActionItemNotFoundError,
     IncidentHasActiveRuleError,
     IncidentNotFoundError,
+    PostmortumAlreadyExistsError,
+    PostmortumLockedError,
+    PostmortumNotFoundError,
     ResponderNotFoundError,
 )
 from src.domain.models import (
@@ -24,8 +27,11 @@ from src.domain.models import (
     IncidentAttachment,
     IncidentResponder,
     IncidentTimelineEvent,
+    Postmortem,
     PostmortemStatus,
+    PostmortumSeverity,
     ResponderRole,
+    RootCauseCategory,
     RuleVersion,
     Severity,
     TimelineEventType,
@@ -33,6 +39,7 @@ from src.domain.models import (
 from src.ports.action_item_repo import ActionItemRepoPort
 from src.ports.attachment_repo import AttachmentRepoPort
 from src.ports.incident_repo import IncidentRepoPort
+from src.ports.postmortem_repo import PostmortumRepoPort
 from src.ports.responder_repo import ResponderRepoPort
 from src.ports.rule_version_repo import RuleVersionRepository
 from src.ports.timeline_event_repo import TimelineEventRepoPort
@@ -488,3 +495,150 @@ class RuleVersionService:
             RuleVersionNotFoundError: If version not found
         """
         return await self._repo.deprecate_version(version)
+
+
+# ─── Phase C: Incident Knowledge Capture (Postmortem) ────────────────────────
+
+
+class PostmortumService:
+    """Service layer for postmortem root cause analysis."""
+
+    def __init__(self, repo: PostmortumRepoPort) -> None:
+        self._repo = repo
+
+    async def create(
+        self,
+        *,
+        incident_id: UUID,
+        root_cause_category: RootCauseCategory,
+        description: str,
+        team_responsible: str,
+        severity_for_rule: PostmortumSeverity,
+        created_by: UUID,
+        suggested_pattern: str | None = None,
+        related_rule_id: str | None = None,
+    ) -> Postmortem:
+        """Create a postmortem for an incident.
+
+        Args:
+            incident_id: UUID of the incident being analyzed
+            root_cause_category: Category of root cause (e.g., CODE_PATTERN, INFRASTRUCTURE)
+            description: Detailed analysis (20-2000 characters)
+            team_responsible: Team accountable for prevention (e.g., "backend", "security")
+            severity_for_rule: Severity for prevention rule (ERROR or WARNING)
+            created_by: UUID of the user creating the postmortem
+            suggested_pattern: Optional regex or semgrep pattern to detect this issue
+            related_rule_id: Optional reference to existing rule (e.g., "injection-001")
+
+        Returns:
+            Created Postmortem object
+
+        Raises:
+            PostmortumAlreadyExistsError: If postmortem already exists for incident
+        """
+        # Check if postmortem already exists
+        existing = await self._repo.get_by_incident_id(incident_id)
+        if existing is not None:
+            raise PostmortumAlreadyExistsError(incident_id)
+
+        now = datetime.now(UTC)
+        postmortem = Postmortem(
+            id=uuid4(),
+            incident_id=incident_id,
+            root_cause_category=root_cause_category,
+            description=description,
+            suggested_pattern=suggested_pattern,
+            team_responsible=team_responsible,
+            severity_for_rule=severity_for_rule,
+            related_rule_id=related_rule_id,
+            created_by=created_by,
+            created_at=now,
+            updated_by=None,
+            updated_at=None,
+            is_locked=False,
+        )
+        return await self._repo.create(postmortem)
+
+    async def get_by_id(self, postmortem_id: UUID) -> Postmortem:
+        """Retrieve postmortem by ID.
+
+        Raises:
+            PostmortumNotFoundError: If not found
+        """
+        return await self._repo.get_by_id(postmortem_id)
+
+    async def get_by_incident_id(self, incident_id: UUID) -> Postmortem | None:
+        """Retrieve postmortem by incident ID (1:1 relationship)."""
+        return await self._repo.get_by_incident_id(incident_id)
+
+    async def update(
+        self,
+        postmortem_id: UUID,
+        **fields: object,
+    ) -> Postmortem:
+        """Update a postmortem (except is_locked, which is enforced at API level).
+
+        Raises:
+            PostmortumNotFoundError: If not found
+            PostmortumLockedError: If postmortem is locked
+        """
+        existing = await self._repo.get_by_id(postmortem_id)
+        if existing.is_locked:
+            raise PostmortumLockedError(postmortem_id)
+
+        update_data: dict[str, object] = {}
+        allowed_fields = {
+            "root_cause_category",
+            "description",
+            "suggested_pattern",
+            "team_responsible",
+            "severity_for_rule",
+            "related_rule_id",
+        }
+        for key, value in fields.items():
+            if key in allowed_fields:
+                update_data[key] = value
+
+        if not update_data:
+            return existing
+
+        # Convert string enums back to domain enums if needed
+        if "root_cause_category" in update_data:
+            val = update_data["root_cause_category"]
+            if isinstance(val, str):
+                update_data["root_cause_category"] = RootCauseCategory(val)
+
+        if "severity_for_rule" in update_data:
+            val = update_data["severity_for_rule"]
+            if isinstance(val, str):
+                update_data["severity_for_rule"] = PostmortumSeverity(val)
+
+        now = datetime.now(UTC)
+        updated = existing.model_copy(
+            update={
+                **update_data,
+                "updated_by": existing.created_by,  # Placeholder; API will set actual user
+                "updated_at": now,
+            }
+        )
+        return await self._repo.update(updated)
+
+    async def lock(self, postmortem_id: UUID) -> Postmortem:
+        """Lock a postmortem after incident resolution (immutable audit trail).
+
+        Raises:
+            PostmortumNotFoundError: If not found
+        """
+        existing = await self._repo.get_by_id(postmortem_id)
+        now = datetime.now(UTC)
+        locked = existing.model_copy(
+            update={
+                "is_locked": True,
+                "updated_at": now,
+            }
+        )
+        return await self._repo.update(locked)
+
+    async def list_all(self) -> list[Postmortem]:
+        """List all postmortems for analytics and reporting."""
+        return await self._repo.list_all()

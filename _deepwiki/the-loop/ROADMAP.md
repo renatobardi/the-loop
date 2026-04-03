@@ -35,34 +35,48 @@
 - 51 tests, 80%+ coverage
 - Full documentation (API, versioning, migration, troubleshooting)
 
-### 🔄 Phase C: Scaling & Rules Expansion (Next)
+### 📅 Phase C: Incident Knowledge Capture (Next - Planned)
 
-**Timeline**: Q2 2026 (8-12 weeks)
+**Timeline**: Q2 2026 (6-8 weeks)
 
-#### C.1: Redis Caching
-- Shared cache across API replicas
-- Survives restarts
-- Key-value store for version metadata
+#### C.1: Postmortem Workflow
+- Long-form incident analysis (why it happened, impact analysis)
+- Root cause templates + patterns
+- Corrective actions tracking
+- Links to Semgrep rules triggered by incident pattern
 
-#### C.2: 14 Phase B Rules
-- Injection (3): path-traversal, XXE, unsafe-deserialization
-- Crypto (2): weak-MD5, weak-random
-- Security (3): TLS-verify-false, JWT-hardcoded, CORS-wildcard
-- Performance (2): SQL-timeout, N+1-queries
-- Infrastructure (1): Docker-runs-as-root
-- Config (2): hardcoded-URL, DEBUG-enabled
-- Dependencies (1): vulnerable-dependency-scan
+#### C.2: Incident Analytics Dashboard
+- Top incident categories (by frequency, severity)
+- Team vulnerability heatmap (which teams hit which patterns most?)
+- Rule effectiveness (how many times caught pattern in PRs?)
+- Incident timeline (when did patterns start appearing?)
 
-#### C.3: Workflow Enhancements
-- Version comparison API (`GET /compare?v1=x&v2=y`)
-- Deprecation notifications (email/Slack)
-- Rate limit headers (X-RateLimit-*)
-- Version migration tool (CLI to detect breaking changes)
+#### C.3: Webhook Integrations
+- Slack: Post incident detection + analysis to team channels
+- GitHub: Auto-comment on PRs with related past incidents
+- PagerDuty: Create incidents when critical patterns found
+- Custom webhooks for third-party integrations
 
-#### C.4: Admin Dashboard
-- Rule management UI (create/edit/publish/deprecate versions)
+---
+
+### 🔮 Phase C.X: Future Optimization (Deferred)
+
+**Decision**: Defer Redis + advanced features until high-volume data warrants complexity.
+
+#### C.X.1: Redis Caching (When >10 replicas needed)
+- Shared cache across API replicas (survives restarts)
+- Multi-region failover
+- Cache invalidation <100ms across fleet
+
+#### C.X.2: Admin Dashboard
+- Rule management UI (create/edit/publish/deprecate)
 - Version history timeline
 - Deprecation analytics
+
+#### C.X.3: Advanced Workflow
+- Version comparison API (`GET /compare?v1=x&v2=y`)
+- Custom rule builder (no-code UI)
+- Rule performance profiling
 
 ---
 

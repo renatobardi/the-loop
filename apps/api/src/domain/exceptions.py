@@ -10,6 +10,9 @@ __all__ = [
     "IncidentNotFoundError",
     "InvalidVersionFormatError",
     "OptimisticLockError",
+    "PostmortumAlreadyExistsError",
+    "PostmortumLockedError",
+    "PostmortumNotFoundError",
     "ResponderNotFoundError",
     # Phase B exceptions
     "RuleVersionNotFoundError",
@@ -100,3 +103,30 @@ class InvalidVersionFormatError(Exception):
     def __init__(self, version: str) -> None:
         self.version = version
         super().__init__(f"Invalid semantic version format: {version}. Expected: X.Y.Z")
+
+
+# ─── Phase C: Incident Knowledge Capture (Postmortem) ────────────────────────
+
+
+class PostmortumNotFoundError(Exception):
+    def __init__(self, postmortem_id: str | object) -> None:
+        self.postmortem_id = postmortem_id
+        super().__init__(f"Postmortem not found: {postmortem_id}")
+
+
+class PostmortumAlreadyExistsError(Exception):
+    def __init__(self, incident_id: str | object) -> None:
+        self.incident_id = incident_id
+        super().__init__(
+            f"Postmortem already exists for incident {incident_id}. "
+            f"Use PUT to update existing postmortem."
+        )
+
+
+class PostmortumLockedError(Exception):
+    def __init__(self, postmortem_id: str | object) -> None:
+        self.postmortem_id = postmortem_id
+        super().__init__(
+            f"Postmortem {postmortem_id} is locked after incident resolution. "
+            f"Create a new incident if you need to add analysis."
+        )

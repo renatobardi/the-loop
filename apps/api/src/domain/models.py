@@ -16,14 +16,18 @@ __all__ = [
     "AttachmentType",
     "Category",
     "DetectionMethod",
+    "PostmortumSeverity",
+    "RootCauseCategory",
     # Models
     "Incident",
     "IncidentActionItem",
     "IncidentAttachment",
     "IncidentResponder",
     "IncidentTimelineEvent",
+    "Postmortem",
     "PostmortemStatus",
     "ResponderRole",
+    "RootCauseTemplate",
     "Rule",
     "RuleVersion",
     "RuleVersionStatus",
@@ -467,3 +471,68 @@ class RuleVersion(BaseModel):
     def rules_count(self) -> int:
         """Count of rules in this version."""
         return len(self.rules)
+
+
+# ─── Phase C: Incident Knowledge Capture (Postmortem) ────────────────────────
+
+
+class RootCauseCategory(StrEnum):
+    """Root cause categories for incident postmortems."""
+
+    CODE_PATTERN = "code_pattern"
+    INFRASTRUCTURE = "infrastructure"
+    PROCESS_BREAKDOWN = "process_breakdown"
+    THIRD_PARTY = "third_party"
+    UNKNOWN = "unknown"
+
+
+class PostmortumSeverity(StrEnum):
+    """Severity level for prevention rules (from postmortem)."""
+
+    ERROR = "error"  # Blocks merge in CI/CD
+    WARNING = "warning"  # Advisory, non-blocking
+
+
+class RootCauseTemplate(BaseModel):
+    """Pre-filled template for postmortem form."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str  # "sql-injection", "n-plus-one", etc.
+    category: RootCauseCategory
+    title: str  # Human-readable: "SQL Injection"
+    description_template: str  # Template with hints
+    pattern_example: str | None = None  # Example regex or semgrep pattern
+    severity_default: PostmortumSeverity
+
+
+class Postmortem(BaseModel):
+    """Root cause analysis for an incident (immutable once resolved)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID  # Foreign key to Incident
+    root_cause_category: RootCauseCategory
+    description: str  # 20-2000 chars
+    suggested_pattern: str | None = None  # Regex or semgrep pattern (optional)
+    team_responsible: str  # "backend", "frontend", etc.
+    severity_for_rule: PostmortumSeverity
+    related_rule_id: str | None = None  # Reference existing rule (e.g., "injection-001")
+    created_by: UUID
+    created_at: datetime
+    updated_by: UUID | None = None
+    updated_at: datetime | None = None
+    is_locked: bool = False  # Read-only after incident resolved
+
+    @field_validator("description")
+    @classmethod
+    def validate_description_length(cls, v: str) -> str:
+        """Validate description is between 20-2000 chars."""
+        if len(v) < 20:
+            msg = "Description must be at least 20 characters"
+            raise ValueError(msg)
+        if len(v) > 2000:
+            msg = "Description must not exceed 2000 characters"
+            raise ValueError(msg)
+        return v

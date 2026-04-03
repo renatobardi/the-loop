@@ -1,20 +1,13 @@
 <script lang="ts">
 	import type { Incident } from '$lib/types/incident';
 	import type { Postmortem, RootCauseTemplate, PostmortumCreateRequest } from '$lib/types/postmortem';
-	import {
-		createPostmortem,
-		updatePostmortem,
-		listPostmortumTemplates,
-		getPostmortemByIncident
-	} from '$lib/services/incidents';
+	import { createPostmortem, updatePostmortem, listPostmortumTemplates } from '$lib/services/incidents';
 	import TemplateSelector from './TemplateSelector.svelte';
 	import Button from '$lib/ui/Button.svelte';
-	import { user } from '$lib/stores/auth';
 
 	let { incident, postmortem }: { incident: Incident; postmortem?: Postmortem } = $props();
 
 	let templates: RootCauseTemplate[] = $state([]);
-	let selectedTemplate: RootCauseTemplate | null = $state(null);
 	let templatesLoaded = $state(false);
 
 	let formData = $state<PostmortumCreateRequest>({
@@ -48,13 +41,13 @@
 	}
 
 	function selectTemplate(template: RootCauseTemplate) {
-		selectedTemplate = template;
 		formData.root_cause_category = template.category;
 		formData.description = template.description_template;
 		formData.severity_for_rule = template.severity_default;
 	}
 
-	async function handleSubmit() {
+	async function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
 		if (!formData.description.trim()) {
 			error = 'Description is required';
 			return;
@@ -91,20 +84,6 @@
 			submitting = false;
 		}
 	}
-
-	$derived.by(() => {
-		const charCount = formData.description.length;
-		const minChars = 20;
-		const maxChars = 2000;
-
-		if (charCount < minChars) {
-			return `${minChars - charCount} more characters required`;
-		}
-		if (charCount > maxChars) {
-			return `${charCount - maxChars} characters over limit`;
-		}
-		return `${charCount}/${maxChars}`;
-	});
 </script>
 
 <div class="space-y-6">
@@ -112,7 +91,7 @@
 		<TemplateSelector {templates} onSelect={selectTemplate} />
 	{/if}
 
-	<form class="space-y-6" onsubmit|preventDefault={handleSubmit}>
+	<form class="space-y-6" onsubmit={handleSubmit}>
 		{#if error}
 			<div class="rounded bg-error/10 p-4 text-sm text-error">
 				<p class="font-medium">Error</p>

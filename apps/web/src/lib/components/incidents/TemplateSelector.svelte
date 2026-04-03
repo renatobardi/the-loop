@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { RootCauseTemplate } from '$lib/types/postmortem';
 
+	// eslint-disable-next-line no-unused-vars
 	let { templates, onSelect }: { templates: RootCauseTemplate[]; onSelect: (template: RootCauseTemplate) => void } =
 		$props();
 

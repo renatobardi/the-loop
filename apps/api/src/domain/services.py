@@ -207,11 +207,14 @@ class IncidentService:
             update_data["postmortem_published_at"] = datetime.now(UTC)
 
         # Enforce postmortem requirement: incident cannot be resolved without postmortem
-        if "resolved_at" in fields and fields.get("resolved_at") is not None:
-            if self._postmortem_repo is not None:
-                postmortem = await self._postmortem_repo.get_by_incident_id(incident_id)
-                if postmortem is None:
-                    raise IncidentMissingPostmortumError(str(incident_id))
+        if (
+            "resolved_at" in fields
+            and fields.get("resolved_at") is not None
+            and self._postmortem_repo is not None
+        ):
+            postmortem = await self._postmortem_repo.get_by_incident_id(incident_id)
+            if postmortem is None:
+                raise IncidentMissingPostmortumError(str(incident_id))
 
         updated = existing.model_copy(update=update_data)
         return await self._repo.update(updated, expected_version)

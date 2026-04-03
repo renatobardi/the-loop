@@ -10,15 +10,11 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 __all__ = [
-    # Enums
     "ActionItemStatus",
     "AttachmentExtractionStatus",
     "AttachmentType",
     "Category",
     "DetectionMethod",
-    "PostmortumSeverity",
-    "RootCauseCategory",
-    # Models
     "Incident",
     "IncidentActionItem",
     "IncidentAttachment",
@@ -26,7 +22,9 @@ __all__ = [
     "IncidentTimelineEvent",
     "Postmortem",
     "PostmortemStatus",
+    "PostmortumSeverity",
     "ResponderRole",
+    "RootCauseCategory",
     "RootCauseTemplate",
     "Rule",
     "RuleVersion",

@@ -50,7 +50,6 @@ def _make_rule_version(**kwargs: object) -> RuleVersion:
 
 async def test_get_latest_rules_from_cache(async_client: AsyncClient) -> None:
     """Test GET /rules/latest returns cached version when available."""
-    # Override dependencies
     mock_cache = AsyncMock(spec=RuleVersionCache)
     mock_service = AsyncMock()
     cached_version = _make_rule_version(version="0.1.0", status=RuleVersionStatus.ACTIVE)
@@ -59,17 +58,14 @@ async def test_get_latest_rules_from_cache(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.get("/api/v1/rules/latest")
+    response = await async_client.get("/api/v1/rules/latest")
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["version"] == "0.1.0"
-        assert data["status"] == "active"
-        assert data["rules_count"] == 1
-        assert response.headers["Cache-Control"] == "public, max-age=300"
-    finally:
-        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "0.1.0"
+    assert data["status"] == "active"
+    assert data["rules_count"] == 1
+    assert response.headers["Cache-Control"] == "public, max-age=300"
 
 
 async def test_get_latest_rules_from_service(async_client: AsyncClient) -> None:
@@ -84,14 +80,11 @@ async def test_get_latest_rules_from_service(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.get("/api/v1/rules/latest")
+    response = await async_client.get("/api/v1/rules/latest")
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["version"] == "0.2.0"
-    finally:
-        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "0.2.0"
 
 
 async def test_get_latest_rules_not_found(async_client: AsyncClient) -> None:
@@ -104,11 +97,9 @@ async def test_get_latest_rules_not_found(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.get("/api/v1/rules/latest")
-        assert response.status_code == 503
-    finally:
-        app.dependency_overrides.clear()
+    response = await async_client.get("/api/v1/rules/latest")
+
+    assert response.status_code == 503
 
 
 async def test_get_rules_by_version(async_client: AsyncClient) -> None:
@@ -121,14 +112,11 @@ async def test_get_rules_by_version(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.get("/api/v1/rules/0.1.0")
+    response = await async_client.get("/api/v1/rules/0.1.0")
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["version"] == "0.1.0"
-    finally:
-        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "0.1.0"
 
 
 async def test_get_rules_by_version_not_found(async_client: AsyncClient) -> None:
@@ -140,11 +128,9 @@ async def test_get_rules_by_version_not_found(async_client: AsyncClient) -> None
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.get("/api/v1/rules/9.9.9")
-        assert response.status_code == 404
-    finally:
-        app.dependency_overrides.clear()
+    response = await async_client.get("/api/v1/rules/9.9.9")
+
+    assert response.status_code == 404
 
 
 async def test_list_all_versions(async_client: AsyncClient) -> None:
@@ -160,16 +146,13 @@ async def test_list_all_versions(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.get("/api/v1/rules/versions")
+    response = await async_client.get("/api/v1/rules/versions")
 
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data["versions"]) == 2
-        assert data["versions"][0]["version"] == "0.2.0"
-        assert data["versions"][0]["status"] == "active"
-    finally:
-        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["versions"]) == 2
+    assert data["versions"][0]["version"] == "0.2.0"
+    assert data["versions"][0]["status"] == "active"
 
 
 async def test_publish_rules_success(async_client: AsyncClient) -> None:
@@ -183,31 +166,28 @@ async def test_publish_rules_success(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        payload = {
-            "version": "0.2.0",
-            "rules": [
-                {
-                    "id": "test-rule-001",
-                    "languages": ["python"],
-                    "message": "New rule",
-                    "severity": "ERROR",
-                    "metadata": {"cwe": "CWE-89"},
-                    "patterns": [{"pattern": "test"}],
-                }
-            ],
-            "notes": "Initial rules",
-        }
+    payload = {
+        "version": "0.2.0",
+        "rules": [
+            {
+                "id": "test-rule-001",
+                "languages": ["python"],
+                "message": "New rule",
+                "severity": "ERROR",
+                "metadata": {"cwe": "CWE-89"},
+                "patterns": [{"pattern": "test"}],
+            }
+        ],
+        "notes": "Initial rules",
+    }
 
-        response = await async_client.post("/api/v1/rules/publish", json=payload)
+    response = await async_client.post("/api/v1/rules/publish", json=payload)
 
-        assert response.status_code == 201
-        data = response.json()
-        assert "version" in data
-        assert "rules_count" in data
-        assert "created_at" in data
-    finally:
-        app.dependency_overrides.clear()
+    assert response.status_code == 201
+    data = response.json()
+    assert "version" in data
+    assert "rules_count" in data
+    assert "created_at" in data
 
 
 async def test_publish_rules_version_exists(async_client: AsyncClient) -> None:
@@ -221,16 +201,14 @@ async def test_publish_rules_version_exists(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        payload = {
-            "version": "0.1.0",
-            "rules": [_make_rule().__dict__],
-        }
+    payload = {
+        "version": "0.1.0",
+        "rules": [_make_rule().__dict__],
+    }
 
-        response = await async_client.post("/api/v1/rules/publish", json=payload)
-        assert response.status_code == 409
-    finally:
-        app.dependency_overrides.clear()
+    response = await async_client.post("/api/v1/rules/publish", json=payload)
+
+    assert response.status_code == 409
 
 
 async def test_publish_rules_invalid_format(async_client: AsyncClient) -> None:
@@ -244,16 +222,14 @@ async def test_publish_rules_invalid_format(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        payload = {
-            "version": "invalid",
-            "rules": [_make_rule().__dict__],
-        }
+    payload = {
+        "version": "invalid",
+        "rules": [_make_rule().__dict__],
+    }
 
-        response = await async_client.post("/api/v1/rules/publish", json=payload)
-        assert response.status_code == 400
-    finally:
-        app.dependency_overrides.clear()
+    response = await async_client.post("/api/v1/rules/publish", json=payload)
+
+    assert response.status_code == 400
 
 
 async def test_publish_rules_missing_fields(async_client: AsyncClient) -> None:
@@ -264,8 +240,6 @@ async def test_publish_rules_missing_fields(async_client: AsyncClient) -> None:
     app.dependency_overrides[get_rule_version_service] = lambda: mock_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_cache
 
-    try:
-        response = await async_client.post("/api/v1/rules/publish", json={"version": "0.1.0"})
-        assert response.status_code == 400
-    finally:
-        app.dependency_overrides.clear()
+    response = await async_client.post("/api/v1/rules/publish", json={"version": "0.1.0"})
+
+    assert response.status_code == 400

@@ -9,9 +9,19 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.firebase.auth import get_current_user
+from src.adapters.postgres.action_item_repository import PostgresActionItemRepository
+from src.adapters.postgres.attachment_repository import PostgresAttachmentRepository
 from src.adapters.postgres.repository import PostgresIncidentRepository
+from src.adapters.postgres.responder_repository import PostgresResponderRepository
 from src.adapters.postgres.session import get_async_session
-from src.domain.services import IncidentService
+from src.adapters.postgres.timeline_event_repository import PostgresTimelineEventRepository
+from src.domain.services import (
+    ActionItemService,
+    AttachmentService,
+    IncidentService,
+    ResponderService,
+    TimelineEventService,
+)
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -35,3 +45,51 @@ def get_authenticated_user(
     user_id: UUID = Depends(get_current_user),
 ) -> UUID:
     return user_id
+
+
+def get_timeline_event_repository(
+    session: AsyncSession = Depends(get_session),
+) -> PostgresTimelineEventRepository:
+    return PostgresTimelineEventRepository(session)
+
+
+def get_timeline_event_service(
+    repo: PostgresTimelineEventRepository = Depends(get_timeline_event_repository),
+) -> TimelineEventService:
+    return TimelineEventService(repo)
+
+
+def get_responder_repository(
+    session: AsyncSession = Depends(get_session),
+) -> PostgresResponderRepository:
+    return PostgresResponderRepository(session)
+
+
+def get_responder_service(
+    repo: PostgresResponderRepository = Depends(get_responder_repository),
+) -> ResponderService:
+    return ResponderService(repo)
+
+
+def get_action_item_repository(
+    session: AsyncSession = Depends(get_session),
+) -> PostgresActionItemRepository:
+    return PostgresActionItemRepository(session)
+
+
+def get_action_item_service(
+    repo: PostgresActionItemRepository = Depends(get_action_item_repository),
+) -> ActionItemService:
+    return ActionItemService(repo)
+
+
+def get_attachment_repository(
+    session: AsyncSession = Depends(get_session),
+) -> PostgresAttachmentRepository:
+    return PostgresAttachmentRepository(session)
+
+
+def get_attachment_service(
+    repo: PostgresAttachmentRepository = Depends(get_attachment_repository),
+) -> AttachmentService:
+    return AttachmentService(repo)

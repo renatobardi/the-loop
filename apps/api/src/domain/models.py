@@ -276,3 +276,118 @@ class Incident(BaseModel):
         if self.started_at and self.resolved_at:
             return int((self.resolved_at - self.started_at).total_seconds() / 60)
         return None
+
+
+class IncidentTimelineEvent(BaseModel):
+    """Immutable domain entity for a single timeline event on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    event_type: TimelineEventType
+    description: str
+    occurred_at: datetime
+    recorded_by: UUID
+    duration_minutes: int | None = None
+    external_reference_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("description")
+    @classmethod
+    def description_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            msg = "Description must not be empty"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("duration_minutes")
+    @classmethod
+    def duration_nonneg(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            msg = "duration_minutes must be >= 0"
+            raise ValueError(msg)
+        return v
+
+
+class IncidentResponder(BaseModel):
+    """Immutable domain entity for a responder on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    user_id: UUID
+    role: ResponderRole
+    joined_at: datetime
+    left_at: datetime | None = None
+    contribution_summary: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @model_validator(mode="after")
+    def left_after_joined(self) -> "IncidentResponder":
+        if self.left_at is not None and self.left_at < self.joined_at:
+            msg = "left_at must not be before joined_at"
+            raise ValueError(msg)
+        return self
+
+
+class IncidentActionItem(BaseModel):
+    """Immutable domain entity for a follow-up action item on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    title: str
+    description: str | None = None
+    owner_id: UUID | None = None
+    status: ActionItemStatus = ActionItemStatus.OPEN
+    priority: ActionItemPriority = ActionItemPriority.MEDIUM
+    due_date: _Date | None = None
+    completed_at: datetime | None = None
+    completed_by: UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            msg = "Title must not be empty"
+            raise ValueError(msg)
+        return v
+
+
+class IncidentAttachment(BaseModel):
+    """Immutable domain entity for a file attachment on an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    incident_id: UUID
+    uploaded_by: UUID | None = None
+    filename: str
+    mime_type: str
+    file_size_bytes: int
+    gcs_bucket: str
+    gcs_object_path: str
+    content_text: str | None = None
+    extraction_status: AttachmentExtractionStatus = AttachmentExtractionStatus.PENDING
+    attachment_type: AttachmentType
+    source_system: str | None = None
+    source_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("file_size_bytes")
+    @classmethod
+    def file_size_positive(cls, v: int) -> int:
+        if v <= 0:
+            msg = "file_size_bytes must be > 0"
+            raise ValueError(msg)
+        return v

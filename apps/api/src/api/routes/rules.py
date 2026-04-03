@@ -5,12 +5,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from src.adapters.firebase.auth import get_current_user
 from src.adapters.postgres.cache import RuleVersionCache
 from src.api.deps import get_rule_version_cache, get_rule_version_service
+from src.api.middleware import limiter
 from src.api.models.rules import (
     PublishRulesRequest,
     PublishRulesResponse,
@@ -27,7 +26,6 @@ from src.domain.models import RuleVersion
 from src.domain.services import RuleVersionService
 
 router = APIRouter(prefix="/api/v1", tags=["rules"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:

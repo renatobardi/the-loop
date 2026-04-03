@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from src.domain.exceptions import (
@@ -432,7 +433,7 @@ class RuleVersionService:
     async def publish_version(
         self,
         version: str,
-        rules_json: dict,
+        rules_json: list[dict[str, Any]],
         published_by: UUID,
         notes: str | None = None,
     ) -> RuleVersion:
@@ -440,7 +441,7 @@ class RuleVersionService:
 
         Args:
             version: Semantic version (e.g., "0.2.0")
-            rules_json: Dict with rules array
+            rules_json: List of rule definitions
             published_by: UUID of publishing user
             notes: Optional release notes
 
@@ -451,7 +452,7 @@ class RuleVersionService:
             VersionAlreadyExistsError: If version already exists
             InvalidVersionFormatError: If version doesn't match semver pattern
         """
-        return await self._repo.publish_version(version, rules_json, published_by, notes)
+        return await self._repo.publish_version(version, rules_json, str(published_by), notes)
 
     async def deprecate_version(self, version: str) -> RuleVersion:
         """Mark a rule version as deprecated.

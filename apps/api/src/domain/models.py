@@ -4,6 +4,7 @@ import re
 from datetime import date as _Date
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
@@ -435,8 +436,8 @@ class Rule(BaseModel):
     languages: list[str]
     message: str
     severity: str  # "ERROR" or "WARNING"
-    metadata: dict
-    patterns: list[dict]
+    metadata: dict[str, Any]
+    patterns: list[dict[str, Any]]
 
 
 class RuleVersion(BaseModel):

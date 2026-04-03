@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 from datetime import date as _Date  # noqa: N812
+from typing import Any
 
 from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
 from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text, Uuid, func
@@ -186,7 +187,7 @@ class RuleVersionRow(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     version: Mapped[str] = mapped_column(String(20), nullable=False, unique=True, index=True)
-    rules_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    rules_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft", index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), index=True

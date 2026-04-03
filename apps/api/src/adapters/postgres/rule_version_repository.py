@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import desc, select
@@ -85,8 +86,8 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
     async def publish_version(
         self,
         version: str,
-        rules_json: dict,
-        published_by: UUID,
+        rules_json: list[dict[str, Any]],
+        published_by: str,
         notes: str | None = None,
     ) -> RuleVersion:
         """Publish a new rule version.
@@ -99,14 +100,17 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         if not version or not _is_semver(version):
             raise InvalidVersionFormatError(version)
 
-        # Serialize rules_json to JSONB
-        rules_json_str = json.dumps(rules_json) if isinstance(rules_json, dict) else rules_json
+        # Serialize rules_json list to JSONB
+        rules_json_str = json.dumps(rules_json)
+
+        # Convert published_by string to UUID
+        published_by_uuid = UUID(published_by) if isinstance(published_by, str) else published_by
 
         row = RuleVersionRow(
             version=version,
             rules_json=rules_json_str,
             status="draft",
-            published_by=published_by,
+            published_by=published_by_uuid,
             notes=notes,
         )
         self.session.add(row)

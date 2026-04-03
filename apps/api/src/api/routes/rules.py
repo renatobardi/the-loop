@@ -1,5 +1,6 @@
 """API routes for rule versioning — Phase B integration."""
 
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/api/v1", tags=["rules"])
 limiter = Limiter(key_func=get_remote_address)
 
 
-def _rule_version_to_response(rv: RuleVersion) -> dict:
+def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
     """Convert domain model to API response dict."""
     return {
         "version": rv.version,

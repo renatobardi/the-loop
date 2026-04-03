@@ -61,3 +61,24 @@ class AttachmentNotFoundError(Exception):
     def __init__(self, attachment_id: str) -> None:
         self.attachment_id = attachment_id
         super().__init__(f"Attachment not found: {attachment_id}")
+
+
+# ─── Phase B: API Integration & Versioning ───────────────────────────────────
+
+
+class RuleVersionNotFoundError(Exception):
+    def __init__(self, version: str) -> None:
+        self.version = version
+        super().__init__(f"Rule version not found: {version}")
+
+
+class VersionAlreadyExistsError(Exception):
+    def __init__(self, version: str) -> None:
+        self.version = version
+        super().__init__(f"Rule version already exists: {version}")
+
+
+class InvalidVersionFormatError(Exception):
+    def __init__(self, version: str) -> None:
+        self.version = version
+        super().__init__(f"Invalid semantic version format: {version}. Expected: X.Y.Z")

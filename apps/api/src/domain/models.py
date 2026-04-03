@@ -391,3 +391,56 @@ class IncidentAttachment(BaseModel):
             msg = "file_size_bytes must be > 0"
             raise ValueError(msg)
         return v
+
+
+# ─── Phase B: API Integration & Versioning ───────────────────────────────────
+
+
+class RuleVersionStatus(StrEnum):
+    """Status of a rule version in the versioning lifecycle."""
+
+    DRAFT = "draft"
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+
+
+class Rule(BaseModel):
+    """Individual rule definition (immutable once in a version)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    languages: list[str]
+    message: str
+    severity: str  # "ERROR" or "WARNING"
+    metadata: dict
+    patterns: list[dict]
+
+
+class RuleVersion(BaseModel):
+    """Versioned collection of rules with lifecycle management."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    version: str  # Semantic version: "0.1.0"
+    rules: list[Rule]
+    status: RuleVersionStatus
+    created_at: datetime
+    published_by: UUID
+    notes: str | None = None
+    deprecated_at: datetime | None = None
+
+    @field_validator("version")
+    @classmethod
+    def validate_semver(cls, v: str) -> str:
+        """Validate semantic versioning format (X.Y.Z)."""
+        if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+$", v):
+            msg = f"Invalid semantic version format: {v}. Expected: X.Y.Z"
+            raise ValueError(msg)
+        return v
+
+    @property
+    def rules_count(self) -> int:
+        """Count of rules in this version."""
+        return len(self.rules)

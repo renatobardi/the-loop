@@ -177,3 +177,20 @@ class IncidentAttachmentRow(Base):
         default=lambda: datetime.now(UTC),
         onupdate=func.now(),
     )
+
+
+class RuleVersionRow(Base):
+    """SQLAlchemy model for rule_versions table (Phase B API integration)."""
+
+    __tablename__ = "rule_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    version: Mapped[str] = mapped_column(String(20), nullable=False, unique=True, index=True)
+    rules_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft", index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), index=True
+    )
+    published_by: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deprecated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

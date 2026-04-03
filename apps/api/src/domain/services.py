@@ -389,3 +389,78 @@ class AttachmentService:
 
     async def delete_attachment(self, attachment_id: UUID) -> None:
         await self._repo.delete(attachment_id)
+
+
+# ─── Phase B: API Integration & Versioning ───────────────────────────────────
+
+
+class RuleVersionService:
+    """Service layer for rule versioning — orchestrates repository and cache."""
+
+    def __init__(self, repo: Any) -> None:  # repo: RuleVersionRepository
+        self._repo = repo
+
+    async def get_latest_active(self) -> Optional[RuleVersion]:
+        """Get the latest active rule version.
+
+        Returns:
+            RuleVersion with status='active' (most recently created), or None if none exists.
+        """
+        return await self._repo.get_latest_active()
+
+    async def get_by_version(self, version: str) -> Optional[RuleVersion]:
+        """Get a specific rule version by version string.
+
+        Args:
+            version: Semantic version (e.g., "0.1.0")
+
+        Returns:
+            RuleVersion object (any status), or None if not found.
+        """
+        return await self._repo.get_by_version(version)
+
+    async def list_all(self) -> list[RuleVersion]:
+        """List all rule versions (all statuses) in creation order.
+
+        Returns:
+            List of RuleVersion objects ordered by created_at DESC.
+        """
+        return await self._repo.list_all()
+
+    async def publish_version(
+        self,
+        version: str,
+        rules_json: dict,
+        published_by: UUID,
+        notes: Optional[str] = None,
+    ) -> RuleVersion:
+        """Publish a new rule version.
+
+        Args:
+            version: Semantic version (e.g., "0.2.0")
+            rules_json: Dict with rules array
+            published_by: UUID of publishing user
+            notes: Optional release notes
+
+        Returns:
+            RuleVersion object with status='draft'
+
+        Raises:
+            VersionAlreadyExistsError: If version already exists
+            InvalidVersionFormatError: If version doesn't match semver pattern
+        """
+        return await self._repo.publish_version(version, rules_json, published_by, notes)
+
+    async def deprecate_version(self, version: str) -> RuleVersion:
+        """Mark a rule version as deprecated.
+
+        Args:
+            version: Semantic version to deprecate
+
+        Returns:
+            Updated RuleVersion with status='deprecated'
+
+        Raises:
+            RuleVersionNotFoundError: If version not found
+        """
+        return await self._repo.deprecate_version(version)

@@ -209,12 +209,12 @@
 ### Code Review & Merge
 
 - [ ] T091 Self-review: check all spec requirements met
-- [ ] T092 [P] Create PR feat/phase-b-api-integration
-- [ ] T093 Code review (against CONSTITUTION.md, testing, docs)
-- [ ] T094 [P] Address review feedback
-- [ ] T095 Ensure all CI gates pass
-- [ ] T096 [P] Merge PR to main
-- [ ] T097 Verify Cloud Run auto-deploy completes
+- [x] T092 [P] Create PR feat/phase-b-api-integration
+- [x] T093 Code review (against CONSTITUTION.md, testing, docs)
+- [x] T094 [P] Address review feedback
+- [x] T095 Ensure all CI gates pass
+- [x] T096 [P] Merge PR to main
+- [x] T097 Verify Cloud Run auto-deploy completes
 - [ ] T098 [P] Post-mortem: learnings to _deepwiki
 
 ---

@@ -10,7 +10,6 @@ from uuid import UUID
 import pytest
 from httpx import ASGITransport, AsyncClient
 from src.adapters.firebase.auth import get_current_user
-from src.adapters.postgres.cache import RuleVersionCache
 from src.api.deps import get_rule_version_cache, get_rule_version_service
 from src.domain.exceptions import (
     InvalidVersionFormatError,
@@ -58,7 +57,7 @@ def mock_rule_version_service() -> AsyncMock:
 
 @pytest.fixture
 def mock_rule_version_cache() -> AsyncMock:
-    return AsyncMock(spec=RuleVersionCache)
+    return AsyncMock()
 
 
 @pytest.fixture

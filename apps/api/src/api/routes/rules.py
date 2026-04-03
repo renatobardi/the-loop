@@ -97,32 +97,6 @@ async def get_latest_rules(
         ) from e
 
 
-@router.get("/rules/{version}", response_model=RuleVersionResponse)
-@limiter.limit("60/minute")
-async def get_rules_by_version(
-    version: str,
-    request: Request,
-    service: RuleVersionService = Depends(get_rule_version_service),
-) -> RuleVersionResponse:
-    """Get a specific rule version by semantic version string.
-
-    Args:
-        version: Semantic version (e.g., "0.1.0")
-
-    Returns:
-        200: Rule version object (any status)
-        404: Version not found
-    """
-    try:
-        rule_version = await service.get_by_version(version)
-        if not rule_version:
-            raise HTTPException(status_code=404, detail=f"Version {version} not found")
-
-        return RuleVersionResponse(**_rule_version_to_response(rule_version))
-    except RuleVersionNotFoundError as e:
-        raise HTTPException(status_code=404, detail=f"Version {version} not found") from e
-
-
 @router.get("/rules/versions", response_model=VersionListResponse)
 @limiter.limit("60/minute")
 async def list_all_versions(
@@ -150,6 +124,32 @@ async def list_all_versions(
         return VersionListResponse(versions=summaries)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list versions: {e!s}") from e
+
+
+@router.get("/rules/{version}", response_model=RuleVersionResponse)
+@limiter.limit("60/minute")
+async def get_rules_by_version(
+    version: str,
+    request: Request,
+    service: RuleVersionService = Depends(get_rule_version_service),
+) -> RuleVersionResponse:
+    """Get a specific rule version by semantic version string.
+
+    Args:
+        version: Semantic version (e.g., "0.1.0")
+
+    Returns:
+        200: Rule version object (any status)
+        404: Version not found
+    """
+    try:
+        rule_version = await service.get_by_version(version)
+        if not rule_version:
+            raise HTTPException(status_code=404, detail=f"Version {version} not found")
+
+        return RuleVersionResponse(**_rule_version_to_response(rule_version))
+    except RuleVersionNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Version {version} not found") from e
 
 
 @router.post("/rules/publish", response_model=PublishRulesResponse, status_code=201)

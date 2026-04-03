@@ -10,6 +10,33 @@
 
 v0.2.0 extends The Loop's static analysis capabilities from 6 Phase A rules to 20 rules across 11 categories. All rules are derived from production incidents and are designed for multilingual code scanning.
 
+## What's New in v0.2.0
+
+**Backward Compatible**: All v0.1.0 projects continue scanning with Phase A rules. v0.2.0 adds 14 new rules without breaking changes.
+
+**14 New Rules** across 7 categories:
+- **Injection** (3): Path traversal, XXE, unsafe deserialization
+- **Crypto** (2): Weak MD5, weak random number generation
+- **Security** (3): TLS verify disabled, hardcoded JWT secrets, CORS wildcard
+- **Performance** (2): SQL without timeout, N+1 query patterns
+- **Infrastructure** (1): Docker running as root
+- **Config** (2): Hardcoded URLs, DEBUG enabled in production
+- **Dependencies** (1): Known vulnerable dependencies
+
+**How to Upgrade**:
+- If using Phase A (v0.1.0): Just update `.semgrep/theloop-rules.yml` to include Phase B rules — no code changes needed
+- Existing projects will see 14 additional warnings/errors on next PR
+- To stay on Phase A only: Set env var `THELOOP_RULES_VERSION=0.1.0` in GitHub Actions
+
+**Migration Guide**:
+| Scenario | Action |
+|----------|--------|
+| **Stay on Phase A** | Set `THELOOP_RULES_VERSION=0.1.0` in GitHub Actions settings |
+| **Migrate to Phase B** | Update `.semgrep/theloop-rules.yml` and review new findings on next PR |
+| **Need help?** | Report issues at https://loop.oute.pro/feedback |
+
+---
+
 ## Phase A Rules (6 Base Rules)
 
 ### Injection Category (2)

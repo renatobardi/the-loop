@@ -136,8 +136,8 @@ jobs:
                   '',
                   `${statusIcon} **${statusText}**`,
                   '',
-                  '| Severity | Rule | File | Line |',
-                  '|:---:|:---|:---|:---:|'
+                  '| Severity | Rule | File | Line | Incident |',
+                  '|:---:|:---|:---|:---:|:---:|'
                 ].join('\n');
 
                 for (const r of results) {
@@ -145,7 +145,11 @@ jobs:
                   const rule = r.check_id || '?';
                   const file = r.path || '?';
                   const line = r.start?.line || '?';
-                  body += `\n| ${sev} | \`${rule}\` | \`${file}\` | ${line} |`;
+                  const meta = r.extra?.metadata || {};
+                  const incidentId = meta.incident_id || '?';
+                  const incidentUrl = meta.loop_url || '#';
+                  const incidentLink = incidentUrl !== '#' ? `[${incidentId}](${incidentUrl})` : incidentId;
+                  body += `\n| ${sev} | \`${rule}\` | \`${file}\` | ${line} | ${incidentLink} |`;
                 }
 
                 body += '\n\n---\n> [The Loop](https://loop.oute.pro) | Incident Prevention';

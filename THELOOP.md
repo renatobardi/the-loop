@@ -146,6 +146,36 @@ If a new version has issues:
 
 ---
 
+## Troubleshooting
+
+**🔴 Workflow fails at "Fetch rules from API"**
+- Error: Timeout or 401 Unauthorized
+- Fix: Check `THELOOP_API_TOKEN` secret is set in GitHub Actions settings
+- Fallback: Workflow automatically uses Phase A backup rules (`.semgrep/theloop-rules.yml.bak`)
+
+**🔴 Workflow fails at "Convert JSON to YAML"**
+- Error: Script not found or permission denied
+- Fix: Ensure `scripts/json_to_semgrep_yaml.py` is in your repo root
+- Check: `git ls-files scripts/json_to_semgrep_yaml.py` returns the file path
+
+**🟡 Semgrep finds false positives on safe code**
+- Example: WARNING on `cursor.execute(query, timeout=30)` but has timeout
+- Reason: Some rules may flag patterns without checking all variations
+- Fix: Add `# nosemgrep` comment above line (not recommended) or report at https://loop.oute.pro/feedback
+- Better: Update rule via API (Phase B) to exclude safe patterns
+
+**🟡 "Critical findings detected" but code looks safe**
+- Review the rule metadata in PR comment (click incident link)
+- Check if there's actual vulnerability or false positive
+- Report at https://loop.oute.pro/feedback with code example
+
+**❓ How to temporarily skip the scan?**
+- Add to commit message: `[skip ci]` — skips entire workflow
+- Add to code: `# nosemgrep` above line — skips single rule on that line
+- Neither recommended — better to fix the underlying issue
+
+---
+
 ## FAQ
 
 **Q: Why block on ERROR but not WARNING?**

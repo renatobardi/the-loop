@@ -190,6 +190,8 @@ rules:
       category: performance
     patterns:
       - pattern: cursor.execute($QUERY)
+      - pattern-not: cursor.execute($QUERY, timeout=$TIMEOUT)
+      - pattern-not: cursor.execute($QUERY, ..., timeout=$TIMEOUT)
 
   - id: n-plus-one-001
     languages: [python, javascript]

@@ -128,11 +128,11 @@ def _rule_to_yaml(rule: dict[str, Any]) -> list[str]:
                         if key == "pattern":
                             lines.append(f"      - pattern: {val}")
                         elif key == "pattern-either":
-                            lines.append(f"      - pattern-either:")
+                            lines.append("      - pattern-either:")
                             for alt in val:
                                 lines.append(f"          - pattern: {alt}")
                         elif key == "pattern-not":
-                            lines.append(f"      - pattern-not:")
+                            lines.append("      - pattern-not:")
                             for neg in val:
                                 lines.append(f"          - pattern: {neg}")
                         elif key == "pattern-regex":
@@ -146,11 +146,11 @@ def _rule_to_yaml(rule: dict[str, Any]) -> list[str]:
                 if key == "pattern":
                     lines.append(f"      - pattern: {val}")
                 elif key == "pattern-either":
-                    lines.append(f"      - pattern-either:")
+                    lines.append("      - pattern-either:")
                     for alt in val:
                         lines.append(f"          - pattern: {alt}")
                 elif key == "pattern-not":
-                    lines.append(f"      - pattern-not:")
+                    lines.append("      - pattern-not:")
                     for neg in val:
                         lines.append(f"          - pattern: {neg}")
 

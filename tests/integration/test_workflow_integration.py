@@ -1,10 +1,8 @@
 """Integration tests for Phase 5 workflow — fetch, convert, validate, scan."""
 
-import asyncio
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -290,7 +288,7 @@ class TestCompleteRulesValidation:
         # Semgrep allows both "pattern" (singular) and "patterns" (plural)
         for rule in rules:
             rule_id = rule.get("id")
-            assert "id" in rule, f"Rule missing field: id"
+            assert "id" in rule, "Rule missing field: id"
             assert "languages" in rule, f"Rule {rule_id} missing field: languages"
             assert "message" in rule, f"Rule {rule_id} missing field: message"
             assert "severity" in rule, f"Rule {rule_id} missing field: severity"

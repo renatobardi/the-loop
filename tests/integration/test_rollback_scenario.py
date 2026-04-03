@@ -1,7 +1,5 @@
 """Integration tests for Phase 5 rollback scenarios — deprecation + fallback."""
 
-import pytest
-
 
 class TestRollbackScenario:
     """Test rollback scenario: publish bad version → deprecate → fallback."""

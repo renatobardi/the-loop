@@ -8,6 +8,8 @@ import type {
 	PaginatedResponse
 } from '$lib/types/incident';
 import type { TimelineEventListResponse } from '$lib/types/timeline_event';
+import type { ResponderListResponse } from '$lib/types/responder';
+import type { ActionItemListResponse } from '$lib/types/action_item';
 import { getFirebaseAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
@@ -90,4 +92,23 @@ export async function deleteIncident(id: string): Promise<void> {
 
 export async function listTimelineEvents(incidentId: string): Promise<TimelineEventListResponse> {
 	return request<TimelineEventListResponse>(`${BASE}/${incidentId}/timeline`);
+}
+
+export async function listResponders(incidentId: string): Promise<ResponderListResponse> {
+	return request<ResponderListResponse>(`${BASE}/${incidentId}/responders`);
+}
+
+export async function listActionItems(incidentId: string): Promise<ActionItemListResponse> {
+	return request<ActionItemListResponse>(`${BASE}/${incidentId}/action-items`);
+}
+
+export async function updateActionItemStatus(
+	incidentId: string,
+	itemId: string,
+	status: string
+): Promise<void> {
+	await request<unknown>(`${BASE}/${incidentId}/action-items/${itemId}`, {
+		method: 'PUT',
+		body: JSON.stringify({ status })
+	});
 }

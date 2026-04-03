@@ -63,6 +63,10 @@ jobs:
         run: ruff check src/ tests/
       - name: Type Check
         run: mypy src/ --strict
+      - name: Apply migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://theloop:theloop@localhost:5432/theloop_test
       - name: Test with coverage
         run: pytest --cov=src --cov-fail-under=80
         env:

@@ -22,6 +22,8 @@ jobs:
       IMAGE: us-central1-docker.pkg.dev/theloopoute/the-loop/app
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -85,6 +87,8 @@ jobs:
       IMAGE: us-central1-docker.pkg.dev/theloopoute/theloop-api/api
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

@@ -26,7 +26,7 @@
 			total = result.total;
 			loaded = true;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Erro ao carregar anexos';
+			error = err instanceof Error ? err.message : 'Error loading attachments';
 		} finally {
 			loading = false;
 		}
@@ -50,10 +50,10 @@
 {:else if error}
 	<div class="text-sm text-error">
 		{error}
-		<button onclick={load} class="ml-2 underline hover:no-underline">Tentar novamente</button>
+		<button onclick={load} class="ml-2 underline hover:no-underline">Retry</button>
 	</div>
 {:else if attachments.length === 0}
-	<p class="text-sm text-text-muted">Nenhum anexo registrado.</p>
+	<p class="text-sm text-text-muted">No attachments recorded.</p>
 {:else}
 	<div class="space-y-2">
 		{#each visibleAttachments as attachment (attachment.id)}
@@ -83,7 +83,7 @@
 
 		{#if total > 10}
 			<button onclick={() => (expanded = !expanded)} class="text-sm text-accent hover:underline">
-				{expanded ? '▲ Ocultar' : `▼ Ver todos (${total})`}
+				{expanded ? '▲ Hide' : `▼ Show all (${total})`}
 			</button>
 		{/if}
 	</div>

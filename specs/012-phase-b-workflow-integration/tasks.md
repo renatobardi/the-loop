@@ -19,16 +19,16 @@
 
 **Tasks**:
 
-- [ ] T001 Create `.github/workflows/theloop-guard.yml` skeleton with fetch step (name, on, permissions, jobs structure)
-- [ ] T002 [P] Implement curl fetch from API with 5s timeout, max-time and connect-timeout flags set
-- [ ] T003 [P] Add fallback logic to `.semgrep/theloop-rules.yml.bak` when fetch fails (timeout/5xx)
-- [ ] T004 [P] Create `.semgrep/theloop-rules.yml.bak` containing Phase A rules (6 rules in YAML format)
-- [ ] T005 Add version pinning support via `THELOOP_RULES_VERSION` environment variable (default: 'latest')
-- [ ] T006 [P] Implement JSON → YAML conversion step in workflow (call `python3 scripts/json_to_semgrep_yaml.py`)
-- [ ] T007 [P] Add Semgrep validation step (semgrep --validate --config .semgrep/theloop-rules.yml)
-- [ ] T008 Add Semgrep scan step (semgrep scan --config, --json output to /tmp/semgrep-results.json)
-- [ ] T009 [P] Implement PR comment step with findings table (use actions/github-script@v7)
-- [ ] T010 Document workflow in .github/workflows/THELOOP_WORKFLOW.md (fetch logic, fallback, version pinning, troubleshooting)
+- [x] T001 Create `.github/workflows/theloop-guard.yml` skeleton with fetch step (name, on, permissions, jobs structure)
+- [x] T002 [P] Implement curl fetch from API with 5s timeout, max-time and connect-timeout flags set
+- [x] T003 [P] Add fallback logic to `.semgrep/theloop-rules.yml.bak` when fetch fails (timeout/5xx)
+- [x] T004 [P] Create `.semgrep/theloop-rules.yml.bak` containing Phase A rules (6 rules in YAML format)
+- [x] T005 Add version pinning support via `THELOOP_RULES_VERSION` environment variable (default: 'latest')
+- [x] T006 [P] Implement JSON → YAML conversion step in workflow (call `python3 scripts/json_to_semgrep_yaml.py`)
+- [x] T007 [P] Add Semgrep validation step (semgrep --validate --config .semgrep/theloop-rules.yml)
+- [x] T008 Add Semgrep scan step (semgrep scan --config, --json output to /tmp/semgrep-results.json)
+- [x] T009 [P] Implement PR comment step with findings table (use actions/github-script@v7)
+- [x] T010 Document workflow in .github/workflows/THELOOP_WORKFLOW.md (fetch logic, fallback, version pinning, troubleshooting)
 
 ---
 
@@ -45,21 +45,21 @@
 
 **Tasks**:
 
-- [ ] T011 Create `scripts/json_to_semgrep_yaml.py` with main function signature and argparse setup
-- [ ] T012 [P] Implement JSON schema validation (check 'rules' key exists, is list, non-empty)
-- [ ] T013 [P] Implement rule ID uniqueness check (reject duplicates, raise ValueError with rule ID)
-- [ ] T014 [P] Implement required fields validation (id, languages, message, patterns, severity)
-- [ ] T015 [P] Implement `_rule_to_yaml()` helper function (convert single rule dict to YAML lines)
-- [ ] T016 Implement message text indentation (4-space indent for multiline messages)
-- [ ] T017 [P] Implement metadata serialization (string quotes, array format)
-- [ ] T018 [P] Implement patterns array conversion (handle pattern-either, pattern-not, pattern-regex)
-- [ ] T019 Implement output file writing (use pathlib.Path.write_text())
-- [ ] T020 Add comprehensive docstrings with type hints (JSON input/output examples)
-- [ ] T021 Test script with Phase A rules (convert existing 6 rules, validate output YAML)
-- [ ] T022 [P] Create `tests/unit/scripts/test_json_to_semgrep_yaml.py` with pytest setup
-- [ ] T023 [P] Add test: valid JSON conversion (Phase A 6 rules)
-- [ ] T024 [P] Add test: missing 'rules' key raises ValueError
-- [ ] T025 Add test: duplicate rule IDs detected and rejected
+- [x] T011 Create `scripts/json_to_semgrep_yaml.py` with main function signature and argparse setup
+- [x] T012 [P] Implement JSON schema validation (check 'rules' key exists, is list, non-empty)
+- [x] T013 [P] Implement rule ID uniqueness check (reject duplicates, raise ValueError with rule ID)
+- [x] T014 [P] Implement required fields validation (id, languages, message, patterns, severity)
+- [x] T015 [P] Implement `_rule_to_yaml()` helper function (convert single rule dict to YAML lines)
+- [x] T016 Implement message text indentation (4-space indent for multiline messages)
+- [x] T017 [P] Implement metadata serialization (string quotes, array format)
+- [x] T018 [P] Implement patterns array conversion (handle pattern-either, pattern-not, pattern-regex)
+- [x] T019 Implement output file writing (use pathlib.Path.write_text())
+- [x] T020 Add comprehensive docstrings with type hints (JSON input/output examples)
+- [x] T021 Test script with Phase A rules (convert existing 6 rules, validate output YAML)
+- [x] T022 [P] Create `tests/unit/scripts/test_json_to_semgrep_yaml.py` with pytest setup
+- [x] T023 [P] Add test: valid JSON conversion (Phase A 6 rules)
+- [x] T024 [P] Add test: missing 'rules' key raises ValueError
+- [x] T025 Add test: duplicate rule IDs detected and rejected
 
 ---
 
@@ -76,31 +76,31 @@
 
 **Tasks**:
 
-- [ ] T026 Define `path-traversal-001` rule with pattern-either blocks (string concat, f-string, os.path patterns)
-- [ ] T027 [P] Add test code: `tests/code_samples/path-traversal.py` (bad: concat, good: pathlib.Path.resolve)
-- [ ] T028 [P] Define `xxe-001` rule with XML parsing patterns (ElementTree.parse, lxml.etree without defusedxml)
-- [ ] T029 [P] Add test code: `tests/code_samples/xxe.py` (bad: ElementTree with URL, good: defusedxml)
-- [ ] T030 [P] Define `deserialization-001` rule (pickle.load, yaml.load without safe_load)
-- [ ] T031 [P] Add test code: `tests/code_samples/deserialization.py` (bad: pickle/yaml unsafe, good: safe variants)
-- [ ] T032 [P] Define `crypto-weak-md5-001` rule (hashlib.md5() for hashing, not crypt)
-- [ ] T033 [P] Add test code: `tests/code_samples/crypto-weak-md5.py` (bad: hashlib.md5, good: hashlib.sha256 + salt)
-- [ ] T034 [P] Define `crypto-weak-random-001` rule (Math.random, random.random without secrets.token_*)
-- [ ] T035 [P] Add test code: `tests/code_samples/crypto-weak-random.py` (bad: random/Math.random, good: secrets.token_bytes)
-- [ ] T036 [P] Define `tls-verify-false-001` rule (verify=False, ssl._create_unverified_context, NODE_TLS_REJECT_UNAUTHORIZED=0)
-- [ ] T037 [P] Add test code: `tests/code_samples/tls-verify-false.py` (bad: verify=False, good: requests with certs)
-- [ ] T038 [P] Define `jwt-hardcoded-001` rule (pattern-regex for JWT secret variables with alphanumeric values)
-- [ ] T039 [P] Add test code: `tests/code_samples/jwt-hardcoded.py` (bad: SECRET = "key...", good: os.environ['SECRET'])
-- [ ] T040 [P] Define `cors-wildcard-001` rule (Access-Control-Allow-Origin: *, CORS middleware with allowedOrigins: *)
-- [ ] T041 [P] Add test code: `tests/code_samples/cors-wildcard.py` (bad: "*", good: specific domain list)
-- [ ] T042 [P] Define `sql-timeout-001` rule (cursor.execute or query without timeout parameter)
-- [ ] T043 [P] Add test code: `tests/code_samples/sql-timeout.py` (bad: no timeout, good: timeout=30)
-- [ ] T044 [P] Define `n-plus-one-001` rule (query inside loop, cursor.execute in for loop)
-- [ ] T045 [P] Add test code: `tests/code_samples/n-plus-one.py` (bad: query in loop, good: batch query before loop)
-- [ ] T046 [P] Define `docker-root-001` rule (USER root or missing USER in Dockerfile)
-- [ ] T047 [P] Add test code: `tests/code_samples/Dockerfile.bad` (bad: USER root, good: USER appuser)
-- [ ] T048 [P] Define `hardcoded-url-001` rule (pattern-regex for API_URL = "http://...", hardcoded domains)
-- [ ] T049 [P] Add test code: `tests/code_samples/hardcoded-url.py` (bad: hardcoded URL, good: os.environ)
-- [ ] T050 [P] Define `debug-enabled-prod-001` rule (DEBUG = True, debug: true in code, FLASK_DEBUG=1)
+- [x] T026 Define `path-traversal-001` rule with pattern-either blocks (string concat, f-string, os.path patterns)
+- [x] T027 [P] Add test code: `tests/code_samples/path-traversal.py` (bad: concat, good: pathlib.Path.resolve)
+- [x] T028 [P] Define `xxe-001` rule with XML parsing patterns (ElementTree.parse, lxml.etree without defusedxml)
+- [x] T029 [P] Add test code: `tests/code_samples/xxe.py` (bad: ElementTree with URL, good: defusedxml)
+- [x] T030 [P] Define `deserialization-001` rule (pickle.load, yaml.load without safe_load)
+- [x] T031 [P] Add test code: `tests/code_samples/deserialization.py` (bad: pickle/yaml unsafe, good: safe variants)
+- [x] T032 [P] Define `crypto-weak-md5-001` rule (hashlib.md5() for hashing, not crypt)
+- [x] T033 [P] Add test code: `tests/code_samples/crypto-weak-md5.py` (bad: hashlib.md5, good: hashlib.sha256 + salt)
+- [x] T034 [P] Define `crypto-weak-random-001` rule (Math.random, random.random without secrets.token_*)
+- [x] T035 [P] Add test code: `tests/code_samples/crypto-weak-random.py` (bad: random/Math.random, good: secrets.token_bytes)
+- [x] T036 [P] Define `tls-verify-false-001` rule (verify=False, ssl._create_unverified_context, NODE_TLS_REJECT_UNAUTHORIZED=0)
+- [x] T037 [P] Add test code: `tests/code_samples/tls-verify-false.py` (bad: verify=False, good: requests with certs)
+- [x] T038 [P] Define `jwt-hardcoded-001` rule (pattern-regex for JWT secret variables with alphanumeric values)
+- [x] T039 [P] Add test code: `tests/code_samples/jwt-hardcoded.py` (bad: SECRET = "key...", good: os.environ['SECRET'])
+- [x] T040 [P] Define `cors-wildcard-001` rule (Access-Control-Allow-Origin: *, CORS middleware with allowedOrigins: *)
+- [x] T041 [P] Add test code: `tests/code_samples/cors-wildcard.py` (bad: "*", good: specific domain list)
+- [x] T042 [P] Define `sql-timeout-001` rule (cursor.execute or query without timeout parameter)
+- [x] T043 [P] Add test code: `tests/code_samples/sql-timeout.py` (bad: no timeout, good: timeout=30)
+- [x] T044 [P] Define `n-plus-one-001` rule (query inside loop, cursor.execute in for loop)
+- [x] T045 [P] Add test code: `tests/code_samples/n-plus-one.py` (bad: query in loop, good: batch query before loop)
+- [x] T046 [P] Define `docker-root-001` rule (USER root or missing USER in Dockerfile)
+- [x] T047 [P] Add test code: `tests/code_samples/Dockerfile.bad` (bad: USER root, good: USER appuser)
+- [x] T048 [P] Define `hardcoded-url-001` rule (pattern-regex for API_URL = "http://...", hardcoded domains)
+- [x] T049 [P] Add test code: `tests/code_samples/hardcoded-url.py` (bad: hardcoded URL, good: os.environ)
+- [x] T050 [P] Define `debug-enabled-prod-001` rule (DEBUG = True, debug: true in code, FLASK_DEBUG=1)
 
 ---
 
@@ -116,13 +116,13 @@
 
 **Tasks**:
 
-- [ ] T051 Create `.semgrep/theloop-rules.yml` with all 20 rules (6 Phase A + 14 Phase B) in single YAML file
-- [ ] T052 Run `semgrep --validate --config .semgrep/theloop-rules.yml` locally and fix any YAML syntax errors
-- [ ] T053 [P] Run `semgrep scan --config .semgrep/theloop-rules.yml tests/code_samples/` and verify bad samples trigger expected rules
-- [ ] T054 [P] Run `semgrep scan --config .semgrep/theloop-rules.yml tests/code_samples/` and verify good samples don't trigger
-- [ ] T055 Test workflow locally: `python3 scripts/json_to_semgrep_yaml.py --input /tmp/rules.json --output /tmp/test.yml` with Phase A JSON
-- [ ] T056 Create unit test file `tests/unit/scripts/test_json_to_semgrep_yaml.py` with pytest parametrize for all 14 new rules
-- [ ] T057 Run full test suite: `pytest tests/unit/scripts/test_json_to_semgrep_yaml.py -v` (all tests pass)
+- [x] T051 Create `.semgrep/theloop-rules.yml` with all 20 rules (6 Phase A + 14 Phase B) in single YAML file
+- [x] T052 Run `semgrep --validate --config .semgrep/theloop-rules.yml` locally and fix any YAML syntax errors
+- [x] T053 [P] Run `semgrep scan --config .semgrep/theloop-rules.yml tests/code_samples/` and verify bad samples trigger expected rules
+- [x] T054 [P] Run `semgrep scan --config .semgrep/theloop-rules.yml tests/code_samples/` and verify good samples don't trigger
+- [x] T055 Test workflow locally: `python3 scripts/json_to_semgrep_yaml.py --input /tmp/rules.json --output /tmp/test.yml` with Phase A JSON
+- [x] T056 Create unit test file `tests/unit/scripts/test_json_to_semgrep_yaml.py` with pytest parametrize for all 14 new rules
+- [x] T057 Run full test suite: `pytest tests/unit/scripts/test_json_to_semgrep_yaml.py -v` (all tests pass)
 
 ---
 
@@ -139,14 +139,14 @@
 
 **Tasks**:
 
-- [ ] T058 Create `tests/integration/test_workflow_integration.py` with pytest async fixtures (mock API)
-- [ ] T059 [P] Add test: API fetch success → workflow uses fetched rules (mock 200 response)
-- [ ] T060 [P] Add test: API timeout (>5s) → fallback to .bak used (mock timeout)
-- [ ] T061 [P] Add test: API 500 error → fallback to .bak used (mock 500)
-- [ ] T062 [P] Add test: Invalid JSON response → fallback to .bak used (malformed JSON)
-- [ ] T063 Add test: Invalid YAML from conversion → fallback to .bak used (json_to_semgrep_yaml raises exception)
-- [ ] T064 Create `tests/integration/test_rollback_scenario.py` with real API calls (requires live API)
-- [ ] T065 [P] Add test: Publish v0.2.0 → deprecate v0.2.0 → fetch /latest returns v0.1.0
+- [x] T058 Create `tests/integration/test_workflow_integration.py` with pytest async fixtures (mock API)
+- [x] T059 [P] Add test: API fetch success → workflow uses fetched rules (mock 200 response)
+- [x] T060 [P] Add test: API timeout (>5s) → fallback to .bak used (mock timeout)
+- [x] T061 [P] Add test: API 500 error → fallback to .bak used (mock 500)
+- [x] T062 [P] Add test: Invalid JSON response → fallback to .bak used (malformed JSON)
+- [x] T063 Add test: Invalid YAML from conversion → fallback to .bak used (json_to_semgrep_yaml raises exception)
+- [x] T064 Create `tests/integration/test_rollback_scenario.py` with real API calls (requires live API)
+- [x] T065 [P] Add test: Publish v0.2.0 → deprecate v0.2.0 → fetch /latest returns v0.1.0
 
 ---
 
@@ -165,12 +165,12 @@
 
 **Tasks**:
 
-- [ ] T066 Create `specs/012-phase-b-workflow-integration/CLAUDE.md` with workflow patterns (fetch + fallback, version pinning, cache invalidation)
-- [ ] T067 Create `THELOOP_RULES_v0.2.0.md` with catalog of all 20 rules (incident_id, category, severity, remediation for each)
-- [ ] T068 [P] Update `.github/workflows/THELOOP_WORKFLOW.md` with troubleshooting section (fetch timeout, invalid YAML, duplicate IDs, fallback issues)
-- [ ] T069 [P] Update main `THELOOP.md` (installation guide) to mention v0.2.0 and 14 new rules
+- [x] T066 Create `specs/012-phase-b-workflow-integration/CLAUDE.md` with workflow patterns (fetch + fallback, version pinning, cache invalidation)
+- [x] T067 Create `THELOOP_RULES_v0.2.0.md` with catalog of all 20 rules (incident_id, category, severity, remediation for each)
+- [x] T068 [P] Update `.github/workflows/THELOOP_WORKFLOW.md` with troubleshooting section (fetch timeout, invalid YAML, duplicate IDs, fallback issues)
+- [x] T069 [P] Update main `THELOOP.md` (installation guide) to mention v0.2.0 and 14 new rules
 - [ ] T070 Run full test suite: `pytest tests/ --cov=scripts --cov=tests/integration --cov-report=term-missing --cov-fail-under=80`
-- [ ] T071 [P] Run ruff lint: `ruff check scripts/ tests/` (zero errors)
+- [x] T071 [P] Run ruff lint: `ruff check scripts/ tests/` (zero errors)
 - [ ] T072 [P] Run mypy strict: `mypy scripts/ --strict` (zero errors)
 - [ ] T073 Commit all changes: Phase 5 implementation complete (workflow + 14 rules + tests)
 - [ ] T074 Create PR to main with description linking to spec.md, plan.md, tasks.md

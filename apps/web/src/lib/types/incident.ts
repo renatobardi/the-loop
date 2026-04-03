@@ -44,6 +44,30 @@ export interface Incident {
 	created_at: string;
 	updated_at: string;
 	created_by: string;
+	// Operational timestamps
+	started_at: string | null;
+	detected_at: string | null;
+	ended_at: string | null;
+	resolved_at: string | null;
+	// Impact
+	impact_summary: string | null;
+	customers_affected: number | null;
+	sla_breached: boolean;
+	slo_breached: boolean;
+	// Postmortem
+	postmortem_status: 'draft' | 'in_review' | 'approved' | 'published';
+	postmortem_published_at: string | null;
+	postmortem_due_date: string | null;
+	lessons_learned: string | null;
+	why_we_were_surprised: string | null;
+	// Operational metadata
+	detection_method: string | null;
+	slack_channel_id: string | null;
+	external_tracking_id: string | null;
+	incident_lead_id: string | null;
+	// JSONB (not displayed in UI but present in API response)
+	raw_content: Record<string, unknown> | null;
+	tech_context: Record<string, unknown> | null;
 }
 
 export interface IncidentCreate {

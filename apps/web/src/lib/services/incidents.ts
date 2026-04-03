@@ -7,6 +7,7 @@ import type {
 	ListFilters,
 	PaginatedResponse
 } from '$lib/types/incident';
+import type { TimelineEventListResponse } from '$lib/types/timeline_event';
 import { getFirebaseAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
@@ -85,4 +86,8 @@ export async function updateIncident(id: string, data: IncidentUpdate): Promise<
 
 export async function deleteIncident(id: string): Promise<void> {
 	await request(`${BASE}/${id}`, { method: 'DELETE' });
+}
+
+export async function listTimelineEvents(incidentId: string): Promise<TimelineEventListResponse> {
+	return request<TimelineEventListResponse>(`${BASE}/${incidentId}/timeline`);
 }

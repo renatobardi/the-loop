@@ -1,0 +1,84 @@
+# theloop-rules.yml
+# The Loop — Incident Patterns (Phase A)
+# Version: 0.1.0 (static, immutable)
+
+rules:
+
+  - id: injection-001-sql-string-concat
+    languages: [python, javascript, typescript, java, go, ruby]
+    message: "[The Loop] SQL injection via concatenation. Use parameterized queries."
+    severity: ERROR
+    metadata:
+      incident_id: "injection-001"
+      category: "injection"
+      loop_url: "https://loop.oute.pro/incidents/injection-001"
+    patterns:
+      - pattern-either:
+          - pattern: $DB.execute("..." + $INPUT)
+          - pattern: $DB.execute("...%s" % $INPUT)
+          - pattern: $DB.execute(f"...{$INPUT}...")
+
+  - id: injection-002-eval-dynamic-input
+    languages: [python, javascript, typescript, ruby]
+    message: "[The Loop] eval() with dynamic input. Use ast.literal_eval() instead."
+    severity: ERROR
+    metadata:
+      incident_id: "injection-002"
+      category: "injection"
+      loop_url: "https://loop.oute.pro/incidents/injection-002"
+    patterns:
+      - pattern-either:
+          - pattern: eval($INPUT)
+          - pattern: exec($INPUT)
+
+  - id: unsafe-api-usage-001-shell-injection
+    languages: [python]
+    message: "[The Loop] Shell injection via shell=True. Use subprocess with argument list."
+    severity: ERROR
+    metadata:
+      incident_id: "unsafe-api-usage-001"
+      category: "unsafe-api-usage"
+      loop_url: "https://loop.oute.pro/incidents/unsafe-api-usage-001"
+    patterns:
+      - pattern-either:
+          - pattern: os.system($CMD)
+          - pattern: subprocess.call($CMD, ..., shell=True)
+          - pattern: subprocess.run($CMD, ..., shell=True)
+
+  - id: missing-safety-check-001-hardcoded-secret
+    languages: [generic]
+    message: "[The Loop] Hardcoded secret/credential. Use os.environ.get() or Secret Manager."
+    severity: ERROR
+    metadata:
+      incident_id: "missing-safety-check-001"
+      category: "missing-safety-check"
+      loop_url: "https://loop.oute.pro/incidents/missing-safety-check-001"
+    patterns:
+      - pattern-regex: "(?i)password\\s*[:=]\\s*['\"]"
+      - pattern-regex: "(?i)api_key\\s*[:=]\\s*['\"]"
+      - pattern-regex: "(?i)secret\\s*[:=]\\s*['\"]"
+
+  - id: missing-error-handling-001-bare-except
+    languages: [python]
+    message: "[The Loop] Bare except clause. Use specific exceptions + logging."
+    severity: WARNING
+    metadata:
+      incident_id: "missing-error-handling-001"
+      category: "missing-error-handling"
+      loop_url: "https://loop.oute.pro/incidents/missing-error-handling-001"
+    pattern: |
+      try:
+          ...
+      except:
+          pass
+
+  - id: unsafe-regex-001-redos-pattern
+    languages: [python, javascript, java]
+    message: "[The Loop] Regex ReDoS pattern. Rewrite without nested quantifiers."
+    severity: WARNING
+    metadata:
+      incident_id: "unsafe-regex-001"
+      category: "unsafe-regex"
+      loop_url: "https://loop.oute.pro/incidents/unsafe-regex-001"
+    patterns:
+      - pattern-regex: "\\(([.a-zA-Z]+)[*+]\\)[*+]"

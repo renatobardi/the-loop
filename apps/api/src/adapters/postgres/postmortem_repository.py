@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.postgres.models import PostmortumRow
 from src.domain.exceptions import PostmortumNotFoundError
-from src.domain.models import Postmortem, RootCauseCategory, PostmortumSeverity
+from src.domain.models import Postmortem, PostmortumSeverity, RootCauseCategory
 
 
 def _row_to_postmortem(row: PostmortumRow) -> Postmortem:

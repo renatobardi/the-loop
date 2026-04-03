@@ -7,11 +7,9 @@ from uuid import uuid4
 import pytest
 from src.domain.exceptions import (
     IncidentMissingPostmortumError,
-    IncidentNotFoundError,
 )
 from src.domain.models import Category, Incident, Severity
 from src.domain.services import IncidentService
-
 
 _NOW = datetime(2025, 1, 1, tzinfo=UTC)
 _USER = uuid4()

@@ -208,7 +208,8 @@ async def lock_postmortem(
 ) -> PostmortumResponse:
     """Lock a postmortem after incident resolution.
 
-    Locked postmortems become immutable (read-only). Typically called when incident transitions to resolved state.
+    Locked postmortems become immutable (read-only). Typically called when
+    incident transitions to resolved state.
     """
     # Validate postmortem exists
     await _get_postmortem_or_404(postmortem_id, postmortem_service)

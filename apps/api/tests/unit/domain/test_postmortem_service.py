@@ -144,7 +144,10 @@ class TestPostmortumService:
         """Test update successfully updates a postmortem."""
         service._repo.get_by_id = AsyncMock(return_value=sample_postmortem)
         updated_postmortem = sample_postmortem.model_copy(
-            update={"description": "Updated description (20+ chars).", "updated_at": datetime.now(UTC)}
+            update={
+                "description": "Updated description (20+ chars).",
+                "updated_at": datetime.now(UTC),
+            }
         )
         service._repo.update = AsyncMock(return_value=updated_postmortem)
 

@@ -4,7 +4,7 @@ These 15 templates are built-in and cannot be customized in Phase C.1.
 Dynamic templates will be added in Spec-015 (Webhooks + Admin).
 """
 
-from domain.models import PostmortumSeverity, RootCauseCategory, RootCauseTemplate
+from src.domain.models import PostmortumSeverity, RootCauseCategory, RootCauseTemplate
 
 __all__ = ["POSTMORTEM_TEMPLATES"]
 
@@ -14,8 +14,9 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="SQL Injection",
         description_template=(
-            "SQL injection via string concatenation detected. The query was built by concatenating "
-            "user input directly into the SQL string (e.g., 'SELECT * FROM users WHERE id = ' + user_id). "
+            "SQL injection via string concatenation detected. The query was built by "
+            "concatenating user input directly into the SQL string (e.g., "
+            "'SELECT * FROM users WHERE id = ' + user_id). "
             "Fix: Use parameterized queries or prepared statements."
         ),
         pattern_example=r'execute\(".*"\s\+\s\w+\)',
@@ -39,9 +40,10 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="Hardcoded Credential/Secret",
         description_template=(
-            "Hardcoded credential or secret found in source code (e.g., API_KEY = 'sk-prod-xyz...'). "
-            "Secrets should never be committed to version control. "
-            "Fix: Move to environment variables (os.environ) or Secret Manager (GCP, AWS, Vault)."
+            "Hardcoded credential or secret found in source code "
+            "(e.g., API_KEY = 'sk-prod-xyz...'). Secrets should never be committed to "
+            "version control. Fix: Move to environment variables (os.environ) or "
+            "Secret Manager (GCP, AWS, Vault)."
         ),
         pattern_example=None,
         severity_default=PostmortumSeverity.ERROR,
@@ -66,7 +68,8 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         description_template=(
             "MD5 hash function used for security-sensitive data (passwords, etc). "
             "MD5 is cryptographically broken and should not be used for hashing secrets. "
-            "Fix: Use bcrypt, argon2, or PBKDF2 for passwords. Use SHA-256 or SHA-3 for non-password hashing."
+            "Fix: Use bcrypt, argon2, or PBKDF2 for passwords. Use SHA-256 or SHA-3 "
+            "for non-password hashing."
         ),
         pattern_example="hashlib.md5()",
         severity_default=PostmortumSeverity.ERROR,
@@ -76,8 +79,9 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="Weak Random Number Generation",
         description_template=(
-            "Non-cryptographic random number generator used for security purposes (e.g., Math.random() in JS, "
-            "random.random() in Python). These are predictable and unsuitable for tokens, nonces, or secrets. "
+            "Non-cryptographic random number generator used for security purposes "
+            "(e.g., Math.random() in JS, random.random() in Python). These are "
+            "predictable and unsuitable for tokens, nonces, or secrets. "
             "Fix: Use secrets.token_bytes() (Python) or crypto.getRandomValues() (JS)."
         ),
         pattern_example="random.random()|Math.random()",
@@ -88,9 +92,10 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="TLS/SSL Certificate Verification Disabled",
         description_template=(
-            "HTTPS certificate verification was disabled in HTTP client (e.g., requests.get(..., verify=False)). "
-            "This opens the door to man-in-the-middle attacks. "
-            "Fix: Enable verification (verify=True, the default) or provide CA bundle path."
+            "HTTPS certificate verification was disabled in HTTP client "
+            "(e.g., requests.get(..., verify=False)). This opens the door to "
+            "man-in-the-middle attacks. Fix: Enable verification (verify=True, "
+            "the default) or provide CA bundle path."
         ),
         pattern_example="verify=False",
         severity_default=PostmortumSeverity.ERROR,
@@ -100,8 +105,8 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="Hardcoded JWT Secret",
         description_template=(
-            "JWT signing secret was hardcoded in source code. Anyone with access to the code "
-            "can forge valid JWT tokens. "
+            "JWT signing secret was hardcoded in source code. Anyone with access "
+            "to the code can forge valid JWT tokens. "
             "Fix: Use environment variable or Secret Manager for JWT_SECRET."
         ),
         pattern_example=r'JWT_SECRET\s*=\s*["\'].*["\']',
@@ -112,11 +117,12 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="CORS Wildcard Origin",
         description_template=(
-            "CORS (Cross-Origin Resource Sharing) configured to allow requests from any origin (Access-Control-Allow-Origin: *). "
-            "This can expose sensitive endpoints to any website. "
-            "Fix: Whitelist specific trusted origins instead of using wildcard."
+            "CORS (Cross-Origin Resource Sharing) configured to allow requests from "
+            "any origin (Access-Control-Allow-Origin: *). This can expose sensitive "
+            "endpoints to any website. Fix: Whitelist specific trusted origins "
+            "instead of using wildcard."
         ),
-        pattern_example=r'Access-Control-Allow-Origin.*\*',
+        pattern_example=r"Access-Control-Allow-Origin.*\*",
         severity_default=PostmortumSeverity.ERROR,
     ),
     "sql-without-timeout": RootCauseTemplate(
@@ -136,9 +142,10 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.INFRASTRUCTURE,
         title="Docker Container Running as Root",
         description_template=(
-            "Docker container runs as root (UID 0) instead of a non-privileged user. "
-            "If the container is compromised, attacker has root access. "
-            "Fix: Create a non-root user in Dockerfile (RUN useradd -m appuser) and USER appuser."
+            "Docker container runs as root (UID 0) instead of a non-privileged "
+            "user. If the container is compromised, attacker has root access. "
+            "Fix: Create a non-root user in Dockerfile (RUN useradd -m appuser) "
+            "and USER appuser."
         ),
         pattern_example=None,
         severity_default=PostmortumSeverity.ERROR,
@@ -149,10 +156,11 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         title="Hardcoded API URL or Domain",
         description_template=(
             "API URL or external service domain was hardcoded in source code. "
-            "This makes it difficult to change endpoints (dev vs prod) or migrate services. "
-            "Fix: Move to environment variable (API_BASE_URL, SERVICE_ENDPOINT)."
+            "This makes it difficult to change endpoints (dev vs prod) or migrate "
+            "services. Fix: Move to environment variable (API_BASE_URL, "
+            "SERVICE_ENDPOINT)."
         ),
-        pattern_example=r'https?://[a-z.-]+\.[a-z]{2,}',
+        pattern_example=r"https?://[a-z.-]+\.[a-z]{2,}",
         severity_default=PostmortumSeverity.WARNING,
     ),
     "debug-enabled-prod": RootCauseTemplate(
@@ -160,9 +168,10 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="Debug Mode Enabled in Production",
         description_template=(
-            "Debug flag (DEBUG = True, FLASK_DEBUG=1, etc.) was left enabled in production. "
-            "Debug mode may expose stack traces, environment variables, and other sensitive information. "
-            "Fix: Ensure DEBUG is False in production (use environment variable to control)."
+            "Debug flag (DEBUG = True, FLASK_DEBUG=1, etc.) was left enabled in "
+            "production. Debug mode may expose stack traces, environment variables, "
+            "and other sensitive information. Fix: Ensure DEBUG is False in "
+            "production (use environment variable to control)."
         ),
         pattern_example="DEBUG\\s*=\\s*True|FLASK_DEBUG",
         severity_default=PostmortumSeverity.ERROR,
@@ -184,9 +193,10 @@ POSTMORTEM_TEMPLATES: dict[str, RootCauseTemplate] = {
         category=RootCauseCategory.CODE_PATTERN,
         title="Unsafe Object Deserialization",
         description_template=(
-            "Untrusted data deserialized using unsafe methods (pickle.loads, yaml.load with Loader not safe). "
-            "Attacker can achieve remote code execution by crafting malicious serialized data. "
-            "Fix: Use pickle.loads with restrict=True, yaml.safe_load, or json.loads."
+            "Untrusted data deserialized using unsafe methods (pickle.loads, "
+            "yaml.load with Loader not safe). Attacker can achieve remote code "
+            "execution by crafting malicious serialized data. Fix: Use "
+            "pickle.loads with restrict=True, yaml.safe_load, or json.loads."
         ),
         pattern_example="pickle.load|yaml.load",
         severity_default=PostmortumSeverity.ERROR,

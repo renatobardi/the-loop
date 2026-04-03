@@ -11,7 +11,10 @@ class PostmortumCreateRequest(BaseModel):
 
     root_cause_category: str = Field(
         ...,
-        description="Root cause category (code_pattern, infrastructure, process_breakdown, third_party, unknown)",
+        description=(
+            "Root cause category (code_pattern, infrastructure, "
+            "process_breakdown, third_party, unknown)"
+        ),
     )
     description: str = Field(
         ...,

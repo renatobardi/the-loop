@@ -13,7 +13,6 @@ from src.domain.exceptions import (
     IncidentNotFoundError,
     PostmortumAlreadyExistsError,
     PostmortumLockedError,
-    PostmortumNotFoundError,
     ResponderNotFoundError,
 )
 from src.domain.models import (

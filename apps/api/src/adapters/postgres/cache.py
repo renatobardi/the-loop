@@ -1,7 +1,6 @@
 """In-memory cache adapter for rule versions — Phase B API integration."""
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from src.domain.models import RuleVersion
 
@@ -21,7 +20,7 @@ class RuleVersionCache:
         self.cache: dict[str, tuple[RuleVersion, datetime]] = {}
         self.ttl_seconds = ttl_seconds
 
-    async def get_latest(self) -> Optional[RuleVersion]:
+    async def get_latest(self) -> RuleVersion | None:
         """Get cached latest rule version if not expired.
 
         Returns:
@@ -32,7 +31,7 @@ class RuleVersionCache:
             return None
 
         cached_version, expires_at = self.cache[key]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if now < expires_at:
             return cached_version
@@ -48,7 +47,7 @@ class RuleVersionCache:
             rule_version: RuleVersion object to cache
         """
         key = RULES_LATEST_CACHE_KEY
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds)
+        expires_at = datetime.now(UTC) + timedelta(seconds=self.ttl_seconds)
         self.cache[key] = (rule_version, expires_at)
 
     async def invalidate(self) -> None:
@@ -69,10 +68,19 @@ class RuleVersionCache:
         Returns:
             Dict with cache size and TTL info.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         entries = []
         for key, (_, expires_at) in self.cache.items():
             remaining_ttl = (expires_at - now).total_seconds()
-            entries.append({"key": key, "remaining_ttl_seconds": max(0, remaining_ttl)})
+            entries.append(
+                {
+                    "key": key,
+                    "remaining_ttl_seconds": max(0, remaining_ttl),
+                }
+            )
 
-        return {"total_entries": len(self.cache), "ttl_seconds": self.ttl_seconds, "entries": entries}
+        return {
+            "total_entries": len(self.cache),
+            "ttl_seconds": self.ttl_seconds,
+            "entries": entries,
+        }

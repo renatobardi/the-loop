@@ -1,11 +1,10 @@
 """Unit tests for RuleVersionService."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from src.domain.exceptions import (
     InvalidVersionFormatError,
     RuleVersionNotFoundError,
@@ -44,7 +43,7 @@ def sample_rule_version() -> RuleVersion:
             )
         ],
         status=RuleVersionStatus.ACTIVE,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         published_by=uuid4(),
     )
 
@@ -120,9 +119,20 @@ class TestRuleVersionService:
         """Test publish_version creates new version."""
         service._repo.publish_version = AsyncMock(return_value=sample_rule_version)
         user_id = uuid4()
-        rules_json = [{"id": "rule-1", "languages": ["python"], "message": "test", "severity": "ERROR", "metadata": {}, "patterns": []}]
+        rules_json = [
+            {
+                "id": "rule-1",
+                "languages": ["python"],
+                "message": "test",
+                "severity": "ERROR",
+                "metadata": {},
+                "patterns": [],
+            }
+        ]
 
-        result = await service.publish_version("0.1.0", rules_json, user_id, "Release notes")
+        result = await service.publish_version(
+            "0.1.0", rules_json, user_id, "Release notes"
+        )
 
         assert result == sample_rule_version
         service._repo.publish_version.assert_called_once_with(
@@ -160,7 +170,7 @@ class TestRuleVersionService:
             status=RuleVersionStatus.DEPRECATED,
             created_at=sample_rule_version.created_at,
             published_by=sample_rule_version.published_by,
-            deprecated_at=datetime.now(timezone.utc),
+            deprecated_at=datetime.now(UTC),
         )
         service._repo.deprecate_version = AsyncMock(return_value=deprecated_version)
 

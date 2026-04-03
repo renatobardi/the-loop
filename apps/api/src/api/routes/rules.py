@@ -1,6 +1,5 @@
 """API routes for rule versioning — Phase B integration."""
 
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -10,6 +9,7 @@ from slowapi.util import get_remote_address
 
 from src.adapters.firebase.auth import get_current_user
 from src.adapters.postgres.cache import RuleVersionCache
+from src.api.deps import get_rule_version_cache, get_rule_version_service
 from src.api.models.rules import (
     PublishRulesRequest,
     PublishRulesResponse,
@@ -17,7 +17,6 @@ from src.api.models.rules import (
     VersionListResponse,
     VersionSummary,
 )
-from src.api.deps import get_rule_version_cache, get_rule_version_service
 from src.domain.exceptions import (
     InvalidVersionFormatError,
     RuleVersionNotFoundError,
@@ -95,8 +94,8 @@ async def get_latest_rules(
     except Exception as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Rules service temporarily unavailable: {str(e)}",
-        )
+            detail=f"Rules service temporarily unavailable: {e!s}",
+        ) from e
 
 
 @router.get("/rules/{version}", response_model=RuleVersionResponse)
@@ -121,8 +120,10 @@ async def get_rules_by_version(
             raise HTTPException(status_code=404, detail=f"Version {version} not found")
 
         return RuleVersionResponse(**_rule_version_to_response(rule_version))
-    except RuleVersionNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Version {version} not found")
+    except RuleVersionNotFoundError as e:
+        raise HTTPException(
+            status_code=404, detail=f"Version {version} not found"
+        ) from e
 
 
 @router.get("/rules/versions", response_model=VersionListResponse)
@@ -151,7 +152,9 @@ async def list_all_versions(
         ]
         return VersionListResponse(versions=summaries)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list versions: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list versions: {e!s}"
+        ) from e
 
 
 @router.post("/rules/publish", response_model=PublishRulesResponse, status_code=201)
@@ -220,10 +223,16 @@ async def publish_rules(
         )
 
     except InvalidVersionFormatError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid version format: {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid version format: {e}"
+        ) from e
     except VersionAlreadyExistsError as e:
-        raise HTTPException(status_code=409, detail=f"Version conflict: {e}")
+        raise HTTPException(
+            status_code=409, detail=f"Version conflict: {e}"
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to publish version: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to publish version: {e!s}"
+        ) from e

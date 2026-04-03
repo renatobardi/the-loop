@@ -402,7 +402,7 @@ class RuleVersionService:
     def __init__(self, repo: RuleVersionRepository) -> None:
         self._repo = repo
 
-    async def get_latest_active(self) -> Optional[RuleVersion]:
+    async def get_latest_active(self) -> RuleVersion | None:
         """Get the latest active rule version.
 
         Returns:
@@ -410,7 +410,7 @@ class RuleVersionService:
         """
         return await self._repo.get_latest_active()
 
-    async def get_by_version(self, version: str) -> Optional[RuleVersion]:
+    async def get_by_version(self, version: str) -> RuleVersion | None:
         """Get a specific rule version by version string.
 
         Args:
@@ -434,7 +434,7 @@ class RuleVersionService:
         version: str,
         rules_json: dict,
         published_by: UUID,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> RuleVersion:
         """Publish a new rule version.
 

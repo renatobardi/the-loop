@@ -1,13 +1,12 @@
 """PostgreSQL adapter for RuleVersionRepository — Phase B API integration."""
 
 import json
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.exceptions import (
     InvalidVersionFormatError,
@@ -57,7 +56,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
             deprecated_at=row.deprecated_at,
         )
 
-    async def get_latest_active(self) -> Optional[RuleVersion]:
+    async def get_latest_active(self) -> RuleVersion | None:
         """Get the latest active rule version (most recently created)."""
         stmt = (
             select(RuleVersionRow)
@@ -69,7 +68,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         row = result.scalars().first()
         return self._row_to_domain(row) if row else None
 
-    async def get_by_version(self, version: str) -> Optional[RuleVersion]:
+    async def get_by_version(self, version: str) -> RuleVersion | None:
         """Get a specific rule version by version string."""
         stmt = select(RuleVersionRow).where(RuleVersionRow.version == version)
         result = await self.session.execute(stmt)
@@ -88,7 +87,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         version: str,
         rules_json: dict,
         published_by: UUID,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> RuleVersion:
         """Publish a new rule version.
 
@@ -137,7 +136,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
             raise RuleVersionNotFoundError(version)
 
         row.status = "deprecated"
-        row.deprecated_at = datetime.now(timezone.utc)
+        row.deprecated_at = datetime.now(UTC)
         await self.session.flush()
         await self.session.refresh(row)
 

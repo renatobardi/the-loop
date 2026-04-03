@@ -1,11 +1,9 @@
 """Unit tests for Rule and RuleVersion domain models."""
 
-import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-
 from src.domain.models import Rule, RuleVersion, RuleVersionStatus
 
 
@@ -71,7 +69,7 @@ class TestRuleVersion:
     """Test RuleVersion model with validation."""
 
     def test_rule_version_creation(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
         rules = [
             Rule(
@@ -98,7 +96,7 @@ class TestRuleVersion:
         assert rv.rules_count == 1
 
     def test_semver_validation_valid(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
 
         valid_versions = ["0.1.0", "1.0.0", "0.2.15", "10.20.30"]
@@ -114,7 +112,7 @@ class TestRuleVersion:
             assert rv.version == version
 
     def test_semver_validation_invalid(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
 
         invalid_versions = ["0.1", "v0.1.0", "0.1.0.0", "0.1.a", "0.1.-1"]
@@ -130,7 +128,7 @@ class TestRuleVersion:
                 )
 
     def test_rules_count_property(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
         rules = [
             Rule(
@@ -156,7 +154,7 @@ class TestRuleVersion:
         assert rv.rules_count == 6
 
     def test_rule_version_frozen(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
 
         rv = RuleVersion(
@@ -172,7 +170,7 @@ class TestRuleVersion:
             rv.version = "0.2.0"  # type: ignore[misc]
 
     def test_rule_version_with_deprecated_at(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
 
         rv = RuleVersion(
@@ -189,7 +187,7 @@ class TestRuleVersion:
         assert rv.deprecated_at is not None
 
     def test_rule_version_optional_fields(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_id = uuid4()
 
         rv = RuleVersion(

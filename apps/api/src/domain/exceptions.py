@@ -1,21 +1,21 @@
 """Typed domain exceptions for the Incident module."""
 
 __all__ = [
-    # Incident exceptions
-    "IncidentNotFoundError",
-    "DuplicateSourceUrlError",
-    "OptimisticLockError",
-    "IncidentHasActiveRuleError",
-    # Sub-resource exceptions
-    "TimelineEventNotFoundError",
-    "DuplicateResponderError",
-    "ResponderNotFoundError",
     "ActionItemNotFoundError",
     "AttachmentNotFoundError",
+    "DuplicateResponderError",
+    "DuplicateSourceUrlError",
+    "IncidentHasActiveRuleError",
+    # Incident exceptions
+    "IncidentNotFoundError",
+    "InvalidVersionFormatError",
+    "OptimisticLockError",
+    "ResponderNotFoundError",
     # Phase B exceptions
     "RuleVersionNotFoundError",
+    # Sub-resource exceptions
+    "TimelineEventNotFoundError",
     "VersionAlreadyExistsError",
-    "InvalidVersionFormatError",
 ]
 
 

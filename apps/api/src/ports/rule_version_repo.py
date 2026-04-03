@@ -1,6 +1,5 @@
 """Port (protocol) for RuleVersionRepository — Phase B API integration."""
 
-from typing import Optional
 
 from src.domain.models import RuleVersion
 
@@ -10,15 +9,16 @@ __all__ = ["RuleVersionRepository"]
 class RuleVersionRepository:
     """Interface for accessing and managing rule versions."""
 
-    async def get_latest_active(self) -> Optional[RuleVersion]:
+    async def get_latest_active(self) -> RuleVersion | None:
         """Get the latest active rule version.
 
         Returns:
-            RuleVersion with status='active' (most recently created), or None if no active version exists.
+            RuleVersion with status='active' (most recently created), or None if
+            no active version exists.
         """
         ...
 
-    async def get_by_version(self, version: str) -> Optional[RuleVersion]:
+    async def get_by_version(self, version: str) -> RuleVersion | None:
         """Get a specific rule version by version string.
 
         Args:
@@ -42,7 +42,7 @@ class RuleVersionRepository:
         version: str,
         rules_json: dict,
         published_by: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> RuleVersion:
         """Publish a new rule version.
 

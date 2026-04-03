@@ -1,10 +1,9 @@
 """Unit tests for RuleVersionCache."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-
 from src.adapters.postgres.cache import RuleVersionCache
 from src.domain.models import Rule, RuleVersion, RuleVersionStatus
 
@@ -32,7 +31,7 @@ def sample_rule_version() -> RuleVersion:
             )
         ],
         status=RuleVersionStatus.ACTIVE,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         published_by=uuid4(),
     )
 

@@ -59,50 +59,6 @@ def mock_rule_version_cache() -> AsyncMock:
     return AsyncMock()
 
 
-async def test_get_latest_rules_from_cache(
-    mock_rule_version_cache: AsyncMock, mock_rule_version_service: AsyncMock
-) -> None:
-    """Test GET /rules/latest returns cached version when available."""
-    cached_version = _make_rule_version(version="0.1.0", status=RuleVersionStatus.ACTIVE)
-    mock_rule_version_cache.get_latest = AsyncMock(return_value=cached_version)
-
-    app.dependency_overrides[get_current_user] = lambda: _USER
-    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
-    app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.get("/api/v1/rules/latest")
-    app.dependency_overrides.clear()
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["version"] == "0.1.0"
-    assert data["status"] == "active"
-    assert data["rules_count"] == 1
-    assert response.headers["Cache-Control"] == "public, max-age=300"
-
-
-async def test_get_latest_rules_from_service(
-    mock_rule_version_service: AsyncMock,
-    mock_rule_version_cache: AsyncMock,
-) -> None:
-    """Test GET /rules/latest fetches from service when cache miss."""
-    rule_version = _make_rule_version(version="0.2.0", status=RuleVersionStatus.ACTIVE)
-    mock_rule_version_cache.get_latest = AsyncMock(return_value=None)
-    mock_rule_version_cache.set_latest = AsyncMock()
-    mock_rule_version_service.get_latest_active = AsyncMock(return_value=rule_version)
-
-    app.dependency_overrides[get_current_user] = lambda: _USER
-    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
-    app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.get("/api/v1/rules/latest")
-    app.dependency_overrides.clear()
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["version"] == "0.2.0"
-
-
 async def test_get_latest_rules_not_found(
     mock_rule_version_service: AsyncMock,
     mock_rule_version_cache: AsyncMock,

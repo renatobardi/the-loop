@@ -93,3 +93,28 @@ def get_attachment_service(
     repo: PostgresAttachmentRepository = Depends(get_attachment_repository),
 ) -> AttachmentService:
     return AttachmentService(repo)
+
+
+# ─── Phase B: API Integration & Versioning ───────────────────────────────────
+
+
+def get_rule_version_repository(
+    session: AsyncSession = Depends(get_session),
+):
+    from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
+
+    return PostgresRuleVersionRepository(session)
+
+
+def get_rule_version_service(
+    repo=Depends(get_rule_version_repository),
+):
+    from src.domain.services import RuleVersionService
+
+    return RuleVersionService(repo)
+
+
+def get_rule_version_cache():
+    from src.adapters.postgres.cache import RuleVersionCache
+
+    return RuleVersionCache(ttl_seconds=300)

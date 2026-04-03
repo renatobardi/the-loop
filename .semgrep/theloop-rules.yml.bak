@@ -1,0 +1,129 @@
+# theloop-rules.yml.bak
+# The Loop Phase A Rules — Incident Guard Fallback
+# Version: 0.1.0 (static, created 2026-04-03)
+# 
+# This file serves as fallback when API is unavailable.
+# DO NOT modify — this is the static Phase A baseline.
+
+rules:
+
+  # ─── INJECTION-001: SQL via string concatenation ────────────────────────────
+  - id: injection-001-sql-string-concat
+    languages: [python, javascript, typescript, java, go, ruby]
+    message: |
+      [The Loop] SQL injection via string concatenation detected.
+      Incidente: injection-001 | Severidade: CRITICAL
+      Remediation: Use prepared statements / parametrized queries.
+      Mais info: https://loop.oute.pro/incidents/injection-001
+    severity: ERROR
+    metadata:
+      incident_id: injection-001
+      category: injection
+      loop_url: https://loop.oute.pro/incidents/injection-001
+      remediation: "Use parâmetros bindados: cursor.execute(query, (value,)) em Python"
+    patterns:
+      - pattern-either:
+          - pattern: $DB.execute("..." + $INPUT)
+          - pattern: $DB.execute("...%s" % $INPUT)
+          - pattern: $DB.execute(f"...{$INPUT}...")
+          - pattern: $DB.query("..." + $INPUT)
+          - pattern: $CONN.execute("..." + $INPUT)
+
+  # ─── INJECTION-002: eval() com input dinâmico ───────────────────────────────
+  - id: injection-002-eval-dynamic-input
+    languages: [python, javascript, typescript, ruby]
+    message: |
+      [The Loop] eval() com input dinâmico detectado.
+      Incidente: injection-002 | Severidade: CRITICAL
+      Remediation: Nunca use eval() com input do usuário.
+    severity: ERROR
+    metadata:
+      incident_id: injection-002
+      category: injection
+      loop_url: https://loop.oute.pro/incidents/injection-002
+      remediation: "Substitua eval() por lógica determinística"
+    patterns:
+      - pattern-either:
+          - pattern: eval($INPUT)
+          - pattern: eval(request.$ATTR)
+          - pattern: eval($OBJ.get(...))
+          - pattern: exec($INPUT)
+
+  # ─── UNSAFE-API-USAGE-001: shell=True com variável ──────────────────────────
+  - id: unsafe-api-usage-001-shell-injection
+    languages: [python]
+    message: |
+      [The Loop] Execução de shell com variável detectada — possível command injection.
+      Incidente: unsafe-api-usage-001 | Severidade: CRITICAL
+      Remediation: Use subprocess.run([cmd, arg1, arg2], shell=False)
+    severity: ERROR
+    metadata:
+      incident_id: unsafe-api-usage-001
+      category: unsafe-api-usage
+      loop_url: https://loop.oute.pro/incidents/unsafe-api-usage-001
+      remediation: "Substitua shell=True por lista de argumentos"
+    patterns:
+      - pattern-either:
+          - pattern: os.system($CMD)
+          - pattern: os.popen($CMD)
+          - pattern: subprocess.call($CMD, ..., shell=True)
+          - pattern: subprocess.run($CMD, ..., shell=True)
+          - pattern: subprocess.Popen($CMD, ..., shell=True)
+
+  # ─── MISSING-SAFETY-CHECK-001: credenciais hardcoded ───────────────────────
+  - id: missing-safety-check-001-hardcoded-secret
+    languages: [generic]
+    message: |
+      [The Loop] Credencial ou segredo hardcoded detectado.
+      Incidente: missing-safety-check-001 | Severidade: CRITICAL
+      Remediation: Mova para variáveis de ambiente ou Secret Manager.
+    severity: ERROR
+    metadata:
+      incident_id: missing-safety-check-001
+      category: missing-safety-check
+      loop_url: https://loop.oute.pro/incidents/missing-safety-check-001
+      remediation: "Use os.environ.get('SECRET_NAME')"
+    patterns:
+      - pattern-regex: '(?i)(password|passwd|secret|api_key|apikey|access_token|auth_token)\s*[=:]\s*["\x27][A-Za-z0-9+/\-_@#$!]{8,}["\x27]'
+    paths:
+      exclude:
+        - "*.test.*"
+        - "*.spec.*"
+        - "tests/"
+        - ".env.example"
+
+  # ─── MISSING-ERROR-HANDLING-001: bare except ────────────────────────────────
+  - id: missing-error-handling-001-bare-except
+    languages: [python]
+    message: |
+      [The Loop] Bare except detectado — engole silenciosamente todos os erros.
+      Incidente: missing-error-handling-001 | Severidade: HIGH
+      Remediation: Capture exceções específicas e faça log ou re-raise.
+    severity: WARNING
+    metadata:
+      incident_id: missing-error-handling-001
+      category: missing-error-handling
+      loop_url: https://loop.oute.pro/incidents/missing-error-handling-001
+      remediation: "Use 'except SpecificException as e:' em vez de 'except:'"
+    pattern: |
+      try:
+          ...
+      except:
+          pass
+
+  # ─── UNSAFE-REGEX-001: ReDoS patterns ───────────────────────────────────────
+  - id: unsafe-regex-001-redos-pattern
+    languages: [python, javascript, typescript, java]
+    message: |
+      [The Loop] Padrão de regex com risco de ReDoS detectado.
+      Incidente: unsafe-regex-001 | Severidade: HIGH
+      Remediation: Reescreva evitando grupos aninhados com quantificadores.
+    severity: WARNING
+    metadata:
+      incident_id: unsafe-regex-001
+      category: unsafe-regex
+      loop_url: https://loop.oute.pro/incidents/unsafe-regex-001
+      remediation: "Elimine grupos aninhados: (.+)+ → .+ | (a*)* → a*"
+    patterns:
+      - pattern-regex: '\((\.\+|\.\*|[a-zA-Z]\*)\)\+'
+      - pattern-regex: '\((\.\+|\.\*|[a-zA-Z]\*)\)\*'

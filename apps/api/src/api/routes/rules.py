@@ -11,6 +11,8 @@ from src.adapters.postgres.cache import RuleVersionCache
 from src.api.deps import get_rule_version_cache, get_rule_version_service
 from src.api.middleware import limiter
 from src.api.models.rules import (
+    DeprecateRulesRequest,
+    DeprecateRulesResponse,
     PublishRulesRequest,
     PublishRulesResponse,
     RuleVersionResponse,
@@ -225,3 +227,48 @@ async def publish_rules(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to publish version: {e!s}") from e
+
+
+@router.post("/rules/deprecate", response_model=DeprecateRulesResponse, status_code=200)
+@limiter.limit("10/minute")
+async def deprecate_rules_version(
+    request: Request,
+    body: DeprecateRulesRequest,
+    user_id: UUID = Depends(get_current_user),
+    service: RuleVersionService = Depends(get_rule_version_service),
+    cache: RuleVersionCache = Depends(get_rule_version_cache),
+) -> DeprecateRulesResponse:
+    """Mark a rule version as deprecated (admin only).
+
+    Args:
+        version: Semantic version to deprecate (e.g., "0.1.0")
+
+    Returns:
+        200: Version marked deprecated with deprecation timestamp
+        403: User is not authenticated
+        404: Version not found
+        500: Server error
+    """
+    # Check auth (same pattern as publish)
+    if not user_id:
+        raise HTTPException(status_code=403, detail="Admin role required")
+
+    try:
+        # Deprecate version
+        deprecated_version = await service.deprecate_version(body.version)
+
+        # Invalidate cache (same as publish)
+        await cache.invalidate()
+
+        return DeprecateRulesResponse(
+            message=f"Deprecated version {deprecated_version.version}",
+            version=deprecated_version.version,
+            deprecated_at=deprecated_version.deprecated_at or deprecated_version.created_at,
+        )
+
+    except RuleVersionNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Version {body.version} not found") from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to deprecate version: {e!s}") from e

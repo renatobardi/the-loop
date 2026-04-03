@@ -61,3 +61,17 @@ class PublishRulesResponse(BaseModel):
     version: str
     created_at: datetime
     rules_count: int
+
+
+class DeprecateRulesRequest(BaseModel):
+    """Request body for POST /api/v1/rules/deprecate."""
+
+    version: str = Field(..., description="Semantic version to deprecate (e.g., '0.1.0')")
+
+
+class DeprecateRulesResponse(BaseModel):
+    """Response body for POST /api/v1/rules/deprecate (200 OK)."""
+
+    message: str
+    version: str
+    deprecated_at: datetime

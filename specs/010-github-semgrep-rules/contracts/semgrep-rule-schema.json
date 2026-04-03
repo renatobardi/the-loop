@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The Loop Semgrep Rule Schema (Phase A)",
+  "description": "Defines the structure of a single Semgrep rule in theloop-rules.yml",
+  "type": "object",
+  "required": [
+    "id",
+    "languages",
+    "message",
+    "severity",
+    "metadata",
+    "patterns"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Rule identifier (kebab-case). Must be globally unique. Example: injection-001-sql-string-concat"
+    },
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "python",
+          "javascript",
+          "typescript",
+          "java",
+          "go",
+          "ruby",
+          "c",
+          "cpp",
+          "c#",
+          "kotlin",
+          "swift",
+          "php",
+          "rust",
+          "yaml",
+          "json",
+          "generic"
+        ]
+      },
+      "description": "Target languages for this rule. Use 'generic' for language-agnostic patterns (e.g., regex-based secret detection)."
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Human-readable message shown to developer in PR comment. Should include incident ID, severity, and brief remediation hint."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["ERROR", "WARNING"],
+      "description": "ERROR = blocks merge. WARNING = informational only."
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "incident_id",
+        "category",
+        "loop_url",
+        "remediation"
+      ],
+      "properties": {
+        "incident_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Reference to incident in The Loop database. Example: injection-001"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "injection",
+            "unsafe-api-usage",
+            "missing-safety-check",
+            "missing-error-handling",
+            "unsafe-regex",
+            "other"
+          ],
+          "description": "Incident category from The Loop taxonomy."
+        },
+        "loop_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to incident details. Phase A: placeholder URL (https://loop.oute.pro/incidents/{incident_id}). Phase B: actual incident detail page."
+        },
+        "remediation": {
+          "type": "string",
+          "minLength": 20,
+          "description": "Step-by-step remediation instructions for developer. Must be actionable and specific to the vulnerability."
+        }
+      },
+      "additionalProperties": false
+    },
+    "patterns": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Semgrep pattern definitions. Can include pattern, pattern-either, pattern-regex, pattern-not, etc. See Semgrep documentation for details."
+    },
+    "pattern-not": {
+      "type": "array",
+      "description": "Optional: patterns to exclude from match. Reduces false positives."
+    },
+    "paths": {
+      "type": "object",
+      "properties": {
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "File path patterns to exclude from scanning. Example: ['*.test.*', 'test_*', 'tests/', '.env.example']"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "id": "injection-001-sql-string-concat",
+      "languages": ["python", "javascript"],
+      "message": "[The Loop] SQL injection via string concatenation detected. Incident: injection-001 | Severity: CRITICAL",
+      "severity": "ERROR",
+      "metadata": {
+        "incident_id": "injection-001",
+        "category": "injection",
+        "loop_url": "https://loop.oute.pro/incidents/injection-001",
+        "remediation": "Use parameterized queries: cursor.execute(query, (value,)) in Python; prepared statements in JavaScript."
+      },
+      "patterns": [
+        {
+          "pattern-either": [
+            {
+              "pattern": "$DB.execute(\"...\" + $INPUT)"
+            },
+            {
+              "pattern": "$DB.execute(f\"...{$INPUT}...\")"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

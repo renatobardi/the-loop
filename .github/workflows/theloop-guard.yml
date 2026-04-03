@@ -1,0 +1,211 @@
+name: "🔁 The Loop — Incident Guard"
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  semgrep-scan:
+    name: "Scan — Static Rules"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 1. Checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Install Semgrep
+      - name: Install Semgrep
+        run: |
+          pip install semgrep --quiet
+          semgrep --version
+
+      # 3. Verify rules file exists
+      - name: Verify rules file
+        run: |
+          if [ ! -f ".semgrep/theloop-rules.yml" ]; then
+            echo "❌ File .semgrep/theloop-rules.yml not found."
+            echo "   Install by copying files from https://github.com/renatobardi/the-loop"
+            echo "   See THELOOP.md for instructions."
+            exit 1
+          fi
+          echo "✅ Rules file found"
+          semgrep --validate --config .semgrep/theloop-rules.yml
+          echo "✅ Rules are valid"
+
+      # 4. Run Semgrep scan
+      - name: Run Semgrep scan
+        id: semgrep
+        run: |
+          set +e
+          timeout 30 semgrep scan \
+            --config .semgrep/theloop-rules.yml \
+            --json \
+            --output semgrep-results.json \
+            --metrics off \
+            --quiet
+          SEMGREP_EXIT=$?
+          echo "semgrep_exit=$SEMGREP_EXIT" >> $GITHUB_OUTPUT
+          set -e
+
+          if [ $SEMGREP_EXIT -eq 124 ]; then
+            echo "[WARN] Semgrep scan exceeded 30s timeout; partial results reported"
+          fi
+
+          if [ -f semgrep-results.json ]; then
+            ERRORS=$(cat semgrep-results.json | jq '[.results[] | select(.extra.severity == "ERROR")] | length' 2>/dev/null || echo "0")
+            WARNINGS=$(cat semgrep-results.json | jq '[.results[] | select(.extra.severity == "WARNING")] | length' 2>/dev/null || echo "0")
+            TOTAL=$(cat semgrep-results.json | jq '.results | length' 2>/dev/null || echo "0")
+            echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+            echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          fi
+
+      # 5. Comment PR with findings
+      - name: Comment PR with findings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            let body = '';
+
+            if (!fs.existsSync('semgrep-results.json')) {
+              body = '## 🔁 The Loop — Incident Guard\n\n⚠️ Scan did not produce results (JSON file not found).';
+            } else {
+              try {
+                const raw = fs.readFileSync('semgrep-results.json', 'utf8');
+                const data = JSON.parse(raw);
+                const results = data.results || [];
+
+                const errors = results.filter(r => r.extra?.severity?.toUpperCase() === 'ERROR');
+                const warnings = results.filter(r => r.extra?.severity?.toUpperCase() === 'WARNING');
+
+                if (results.length === 0) {
+                  body = [
+                    '## 🔁 The Loop — Incident Guard',
+                    '',
+                    '✅ **No incident patterns detected.** Your code is clean.',
+                    '',
+                    `> Scanned: ${data.stats?.files?.scanned || '?'} files | ` +
+                    `[Incident database](https://loop.oute.pro) | ` +
+                    `[Rules](https://github.com/renatobardi/the-loop/blob/main/.semgrep/theloop-rules.yml)`
+                  ].join('\n');
+                } else {
+                  const statusIcon = errors.length > 0 ? '🔴' : '🟡';
+                  const statusText = errors.length > 0
+                    ? `${errors.length} error(s) critical — merge blocked`
+                    : `${warnings.length} warning(s) — info only`;
+
+                  body = [
+                    '## 🔁 The Loop — Incident Guard',
+                    '',
+                    `${statusIcon} **${statusText}**`,
+                    '',
+                    '| Severity | Rule | File | Line | Incident |',
+                    '|:---:|:---|:---|:---:|:---:|'
+                  ].join('\n');
+
+                  // Sort by severity (ERROR first)
+                  const severityRank = { ERROR: 2, WARNING: 1 };
+                  const sortedResults = results.sort((a, b) =>
+                    (severityRank[b.extra?.severity?.toUpperCase()] || 0) -
+                    (severityRank[a.extra?.severity?.toUpperCase()] || 0)
+                  );
+
+                  // Cap at 50 findings
+                  const displayResults = sortedResults.slice(0, 50);
+                  for (const r of displayResults) {
+                    const sev = r.extra?.severity?.toUpperCase() === 'ERROR' ? '🔴 ERROR' : '🟡 WARN';
+                    const rule = r.check_id?.split('.').pop() || r.check_id || '?';
+                    const file = r.path || '?';
+                    const line = r.start?.line || '?';
+                    const meta = r.extra?.metadata || {};
+                    const incidentId = meta.incident_id || '?';
+                    const loopUrl = meta.loop_url || '#';
+                    body += `\n| ${sev} | \`${rule}\` | \`${file}\` | ${line} | [${incidentId}](${loopUrl}) |`;
+                  }
+
+                  if (results.length > 50) {
+                    body += `\n\n> Showing first 50 of ${results.length} findings. Full report in [workflow summary](${context.payload.pull_request?.url})`;
+                  }
+
+                  // Add remediation instructions
+                  if (errors.length > 0) {
+                    body += '\n\n### Remediation\n\n';
+                    const seen = new Set();
+                    for (const r of errors) {
+                      const meta = r.extra?.metadata || {};
+                      const id = meta.incident_id;
+                      if (id && !seen.has(id)) {
+                        seen.add(id);
+                        body += `**${id}**: ${meta.remediation || 'See incident details.'}\n\n`;
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                body = `## 🔁 The Loop — Incident Guard\n\n⚠️ Error parsing results: ${err.message}`;
+              }
+            }
+
+            // Add footer
+            body += '\n\n---\n';
+            body += '> 🔁 [The Loop](https://loop.oute.pro) | ';
+            body += '[Report false positive](https://loop.oute.pro/feedback) | ';
+            body += 'Rules version: `0.1.0-static`';
+
+            // Find and update existing comment
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+
+              const existing = comments.find(c =>
+                c.user.login === 'github-actions[bot]' &&
+                c.body.includes('The Loop — Incident Guard')
+              );
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+                console.log(`Updated existing comment #${existing.id}`);
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body,
+                });
+                console.log('Created new comment');
+              }
+            } catch (err) {
+              console.log(`[WARN] Failed to post/update comment: ${err.message}`);
+              // Non-blocking — don't fail the job
+            }
+
+      # 6. Set job status based on ERROR findings
+      - name: Fail on critical findings
+        if: steps.semgrep.outputs.errors != '0'
+        run: |
+          echo "❌ The Loop detected ${{ steps.semgrep.outputs.errors }} critical finding(s)."
+          echo "   Fix issues marked as ERROR before merge."
+          echo "   Warnings are informational only."
+          exit 1

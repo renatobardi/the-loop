@@ -1,0 +1,141 @@
+# theloop-rules.yml
+# The Loop — Incident Patterns (Phase A)
+# Version: 0.1.0 (static, immutable)
+# For installation & updates: see THELOOP.md
+# Generated: 2026-04-03
+
+rules:
+
+  # ─── INJECTION-001: SQL via string concatenation ────────────────────────────
+  - id: injection-001-sql-string-concat
+    languages: [python, javascript, typescript, java, go, ruby]
+    message: |
+      [The Loop] SQL injection via string concatenation detected.
+      Incident: injection-001 | Severity: CRITICAL
+      Remediation: Use parameterized queries / parametrized statements.
+      More info: https://loop.oute.pro/incidents/injection-001
+    severity: ERROR
+    metadata:
+      incident_id: "injection-001"
+      category: "injection"
+      loop_url: "https://loop.oute.pro/incidents/injection-001"
+      remediation: "Use parameterized queries: cursor.execute(query, (value,)) in Python; prepared statements in other languages."
+    patterns:
+      - pattern-either:
+          - pattern: $DB.execute("..." + $INPUT)
+          - pattern: $DB.execute("...%s" % $INPUT)
+          - pattern: $DB.execute(f"...{$INPUT}...")
+          - pattern: $DB.query("..." + $INPUT)
+          - pattern: $CONN.execute("..." + $INPUT)
+
+  # ─── INJECTION-002: eval() with dynamic input ───────────────────────────────
+  - id: injection-002-eval-dynamic-input
+    languages: [python, javascript, typescript, ruby]
+    message: |
+      [The Loop] eval() with dynamic input detected.
+      Incident: injection-002 | Severity: CRITICAL
+      Remediation: Never use eval() with user input. Refactor to explicit logic.
+      More info: https://loop.oute.pro/incidents/injection-002
+    severity: ERROR
+    metadata:
+      incident_id: "injection-002"
+      category: "injection"
+      loop_url: "https://loop.oute.pro/incidents/injection-002"
+      remediation: "Replace eval() with explicit logic. If you need to evaluate expressions, use ast.literal_eval() (Python) or a dedicated expression library."
+    patterns:
+      - pattern-either:
+          - pattern: eval($INPUT)
+          - pattern: eval(request.$ATTR)
+          - pattern: eval($OBJ.get(...))
+          - pattern: exec($INPUT)
+
+  # ─── UNSAFE-API-USAGE-001: shell=True with variable ────────────────────────
+  - id: unsafe-api-usage-001-shell-injection
+    languages: [python]
+    message: |
+      [The Loop] Shell command execution with variable detected — possible command injection.
+      Incident: unsafe-api-usage-001 | Severity: CRITICAL
+      Remediation: Use subprocess.run([cmd, arg1, arg2], shell=False) with list of arguments.
+      More info: https://loop.oute.pro/incidents/unsafe-api-usage-001
+    severity: ERROR
+    metadata:
+      incident_id: "unsafe-api-usage-001"
+      category: "unsafe-api-usage"
+      loop_url: "https://loop.oute.pro/incidents/unsafe-api-usage-001"
+      remediation: "Replace shell=True with a list of arguments: subprocess.run(['cmd', variable], shell=False, check=True)"
+    patterns:
+      - pattern-either:
+          - pattern: os.system($CMD)
+          - pattern: os.popen($CMD)
+          - pattern: subprocess.call($CMD, ..., shell=True)
+          - pattern: subprocess.run($CMD, ..., shell=True)
+          - pattern: subprocess.Popen($CMD, ..., shell=True)
+    pattern-not:
+      - pattern: subprocess.run(["..."], ..., shell=True)
+      - pattern: subprocess.call(["..."], ..., shell=True)
+
+  # ─── MISSING-SAFETY-CHECK-001: hardcoded secrets ──────────────────────────
+  - id: missing-safety-check-001-hardcoded-secret
+    languages: [generic]
+    message: |
+      [The Loop] Hardcoded secret or credential detected.
+      Incident: missing-safety-check-001 | Severity: CRITICAL
+      Remediation: Move to environment variables or Secret Manager (GCP/AWS).
+      More info: https://loop.oute.pro/incidents/missing-safety-check-001
+    severity: ERROR
+    metadata:
+      incident_id: "missing-safety-check-001"
+      category: "missing-safety-check"
+      loop_url: "https://loop.oute.pro/incidents/missing-safety-check-001"
+      remediation: "Use os.environ.get('SECRET_NAME') in Python or process.env.SECRET_NAME in Node.js. For production, use GCP Secret Manager or AWS Secrets Manager."
+    patterns:
+      - pattern-regex: '(?i)(password|passwd|secret|api_key|apikey|access_token|auth_token|private_key)\s*[=:]\s*["\x27][A-Za-z0-9+/\-_@#$!]{8,}["\x27]'
+    paths:
+      exclude:
+        - "*.test.*"
+        - "*.spec.*"
+        - "*_test.*"
+        - "test_*"
+        - "tests/"
+        - ".env.example"
+        - "*.example"
+        - "*.sample"
+
+  # ─── MISSING-ERROR-HANDLING-001: bare except ────────────────────────────────
+  - id: missing-error-handling-001-bare-except
+    languages: [python]
+    message: |
+      [The Loop] Bare except detected — swallows all errors silently.
+      Incident: missing-error-handling-001 | Severity: HIGH
+      Remediation: Capture specific exceptions and log or re-raise.
+      More info: https://loop.oute.pro/incidents/missing-error-handling-001
+    severity: WARNING
+    metadata:
+      incident_id: "missing-error-handling-001"
+      category: "missing-error-handling"
+      loop_url: "https://loop.oute.pro/incidents/missing-error-handling-001"
+      remediation: "Use 'except SpecificException as e: logger.error(e); raise' instead of 'except: pass'"
+    pattern: |
+      try:
+          ...
+      except:
+          pass
+
+  # ─── UNSAFE-REGEX-001: ReDoS patterns ───────────────────────────────────────
+  - id: unsafe-regex-001-redos-pattern
+    languages: [python, javascript, typescript, java]
+    message: |
+      [The Loop] Regex pattern with ReDoS risk detected (catastrophic backtracking).
+      Incident: unsafe-regex-001 | Severity: HIGH
+      Remediation: Rewrite regex avoiding nested quantifiers.
+      More info: https://loop.oute.pro/incidents/unsafe-regex-001
+    severity: WARNING
+    metadata:
+      incident_id: "unsafe-regex-001"
+      category: "unsafe-regex"
+      loop_url: "https://loop.oute.pro/incidents/unsafe-regex-001"
+      remediation: "Eliminate nested groups with quantifiers: (.+)+ → .+ | (a*)* → a*. Test with long strings before deploying."
+    patterns:
+      - pattern-regex: '\((\.\+|\.\*|[a-zA-Z]\*)\)\+'
+      - pattern-regex: '\((\.\+|\.\*|[a-zA-Z]\*)\)\*'
+      - pattern-regex: '\((\.\+|\.\*)\)\{[0-9]'

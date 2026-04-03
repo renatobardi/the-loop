@@ -12,6 +12,7 @@ env:
   PROJECT_ID: theloopoute
   REGION: us-central1
   REGISTRY: us-central1-docker.pkg.dev
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy-web:

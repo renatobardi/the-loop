@@ -10,6 +10,9 @@ permissions:
   pull-requests: write
   security-events: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   semgrep-scan:
     name: "Scan — Static Rules"

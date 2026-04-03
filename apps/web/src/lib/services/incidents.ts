@@ -7,6 +7,8 @@ import type {
 	ListFilters,
 	PaginatedResponse
 } from '$lib/types/incident';
+import type { ResponderListResponse } from '$lib/types/responder';
+import type { ActionItemListResponse } from '$lib/types/action_item';
 import { getFirebaseAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
@@ -85,4 +87,23 @@ export async function updateIncident(id: string, data: IncidentUpdate): Promise<
 
 export async function deleteIncident(id: string): Promise<void> {
 	await request(`${BASE}/${id}`, { method: 'DELETE' });
+}
+
+export async function listResponders(incidentId: string): Promise<ResponderListResponse> {
+	return request<ResponderListResponse>(`${BASE}/${incidentId}/responders`);
+}
+
+export async function listActionItems(incidentId: string): Promise<ActionItemListResponse> {
+	return request<ActionItemListResponse>(`${BASE}/${incidentId}/action-items`);
+}
+
+export async function updateActionItemStatus(
+	incidentId: string,
+	itemId: string,
+	status: string
+): Promise<void> {
+	await request<unknown>(`${BASE}/${incidentId}/action-items/${itemId}`, {
+		method: 'PUT',
+		body: JSON.stringify({ status })
+	});
 }

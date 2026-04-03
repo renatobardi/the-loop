@@ -25,6 +25,7 @@ from src.domain.models import (
     IncidentTimelineEvent,
     PostmortemStatus,
     ResponderRole,
+    RuleVersion,
     Severity,
     TimelineEventType,
 )
@@ -32,6 +33,7 @@ from src.ports.action_item_repo import ActionItemRepoPort
 from src.ports.attachment_repo import AttachmentRepoPort
 from src.ports.incident_repo import IncidentRepoPort
 from src.ports.responder_repo import ResponderRepoPort
+from src.ports.rule_version_repo import RuleVersionRepository
 from src.ports.timeline_event_repo import TimelineEventRepoPort
 
 
@@ -397,7 +399,7 @@ class AttachmentService:
 class RuleVersionService:
     """Service layer for rule versioning — orchestrates repository and cache."""
 
-    def __init__(self, repo: Any) -> None:  # repo: RuleVersionRepository
+    def __init__(self, repo: RuleVersionRepository) -> None:
         self._repo = repo
 
     async def get_latest_active(self) -> Optional[RuleVersion]:

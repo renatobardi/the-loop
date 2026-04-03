@@ -2,7 +2,9 @@
 
 from typing import Optional
 
-from domain.models import RuleVersion
+from src.domain.models import RuleVersion
+
+__all__ = ["RuleVersionRepository"]
 
 
 class RuleVersionRepository:

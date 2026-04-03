@@ -5,17 +5,17 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import asc, desc, select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-from domain.exceptions import (
+from src.domain.exceptions import (
     InvalidVersionFormatError,
     RuleVersionNotFoundError,
     VersionAlreadyExistsError,
 )
-from domain.models import Rule, RuleVersion, RuleVersionStatus
-from ports.rule_version_repo import RuleVersionRepository
+from src.domain.models import Rule, RuleVersion, RuleVersionStatus
+from src.ports.rule_version_repo import RuleVersionRepository
 
 from .models import RuleVersionRow
 
@@ -27,10 +27,24 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         self.session = session
 
     def _row_to_domain(self, row: RuleVersionRow) -> RuleVersion:
-        """Convert ORM row to domain model."""
-        # Parse rules_json JSONB into Rule objects
-        rules_data = row.rules_json if isinstance(row.rules_json, list) else json.loads(row.rules_json)
-        rules = [Rule(**rule_data) for rule_data in rules_data]
+        """Convert ORM row to domain model.
+
+        Raises:
+            RuleVersionNotFoundError: If rules_json is malformed or missing required fields.
+        """
+        try:
+            # Parse rules_json JSONB into Rule objects
+            if isinstance(row.rules_json, str):
+                rules_data = json.loads(row.rules_json)
+            else:
+                rules_data = row.rules_json
+
+            if not isinstance(rules_data, list):
+                raise ValueError("rules_json must be an array")
+
+            rules = [Rule(**rule_data) for rule_data in rules_data]
+        except (json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            raise RuleVersionNotFoundError(row.version) from e
 
         return RuleVersion(
             id=row.id,

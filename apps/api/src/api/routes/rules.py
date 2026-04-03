@@ -1,13 +1,14 @@
 """API routes for rule versioning — Phase B integration."""
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from src.adapters.firebase.auth import get_current_user
 from src.adapters.postgres.cache import RuleVersionCache
 from src.api.models.rules import (
     PublishRulesRequest,
@@ -16,6 +17,7 @@ from src.api.models.rules import (
     VersionListResponse,
     VersionSummary,
 )
+from src.api.deps import get_rule_version_cache, get_rule_version_service
 from src.domain.exceptions import (
     InvalidVersionFormatError,
     RuleVersionNotFoundError,
@@ -28,14 +30,14 @@ router = APIRouter(prefix="/api/v1", tags=["rules"])
 limiter = Limiter(key_func=get_remote_address)
 
 
-def _rule_version_to_response(rv: RuleVersion) -> RuleVersionResponse:
-    """Convert domain model to API response."""
-    return RuleVersionResponse(
-        version=rv.version,
-        rules_count=rv.rules_count,
-        created_at=rv.created_at,
-        status=rv.status.value,
-        rules=[
+def _rule_version_to_response(rv: RuleVersion) -> dict:
+    """Convert domain model to API response dict."""
+    return {
+        "version": rv.version,
+        "rules_count": rv.rules_count,
+        "created_at": rv.created_at,
+        "status": rv.status.value,
+        "rules": [
             {
                 "id": r.id,
                 "languages": r.languages,
@@ -46,37 +48,36 @@ def _rule_version_to_response(rv: RuleVersion) -> RuleVersionResponse:
             }
             for r in rv.rules
         ],
-        published_by=str(rv.published_by) if rv.published_by else None,
-        notes=rv.notes,
-        deprecated_at=rv.deprecated_at,
-    )
+        "published_by": str(rv.published_by) if rv.published_by else None,
+        "notes": rv.notes,
+        "deprecated_at": rv.deprecated_at,
+    }
 
 
 @router.get("/rules/latest", response_model=RuleVersionResponse)
 @limiter.limit("60/minute")
 async def get_latest_rules(
     request: Request,
-    service: RuleVersionService = Depends(lambda: None),  # Injected below
-    cache: RuleVersionCache = Depends(lambda: None),  # Injected below
-) -> RuleVersionResponse:
+    service: RuleVersionService = Depends(get_rule_version_service),
+    cache: RuleVersionCache = Depends(get_rule_version_cache),
+) -> JSONResponse:
     """Get the latest active rule version with caching.
 
     Returns:
-        Latest active rule version or 503 if API unavailable.
+        200: Latest active rule version with Cache-Control header
+        503: No active rule version or service unavailable
     """
-    from src.api.deps import get_rule_version_cache, get_rule_version_service
-
-    # Re-inject with proper deps (workaround for circular imports)
-    service = get_rule_version_service()
-    cache = get_rule_version_cache()
-
-    # Try cache first
-    cached = await cache.get_latest()
-    if cached:
-        return _rule_version_to_response(cached)
-
-    # Fetch from repository
     try:
+        # Try cache first
+        cached = await cache.get_latest()
+        if cached:
+            response_data = _rule_version_to_response(cached)
+            return JSONResponse(
+                content=response_data,
+                headers={"Cache-Control": "public, max-age=300"},
+            )
+
+        # Fetch from repository
         rule_version = await service.get_latest_active()
         if not rule_version:
             raise HTTPException(status_code=503, detail="No active rule version found")
@@ -84,14 +85,18 @@ async def get_latest_rules(
         # Cache it
         await cache.set_latest(rule_version)
 
-        # Add Cache-Control header
-        request.scope["headers"] = list(request.scope.get("headers", [])) + [
-            (b"cache-control", b"public, max-age=300")
-        ]
-
-        return _rule_version_to_response(rule_version)
+        response_data = _rule_version_to_response(rule_version)
+        return JSONResponse(
+            content=response_data,
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Rules service temporarily unavailable: {str(e)}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Rules service temporarily unavailable: {str(e)}",
+        )
 
 
 @router.get("/rules/{version}", response_model=RuleVersionResponse)
@@ -99,7 +104,7 @@ async def get_latest_rules(
 async def get_rules_by_version(
     version: str,
     request: Request,
-    service: RuleVersionService = Depends(lambda: None),
+    service: RuleVersionService = Depends(get_rule_version_service),
 ) -> RuleVersionResponse:
     """Get a specific rule version by semantic version string.
 
@@ -107,18 +112,15 @@ async def get_rules_by_version(
         version: Semantic version (e.g., "0.1.0")
 
     Returns:
-        RuleVersion object or 404 if not found.
+        200: Rule version object (any status)
+        404: Version not found
     """
-    from src.api.deps import get_rule_version_service
-
-    service = get_rule_version_service()
-
     try:
         rule_version = await service.get_by_version(version)
         if not rule_version:
             raise HTTPException(status_code=404, detail=f"Version {version} not found")
 
-        return _rule_version_to_response(rule_version)
+        return RuleVersionResponse(**_rule_version_to_response(rule_version))
     except RuleVersionNotFoundError:
         raise HTTPException(status_code=404, detail=f"Version {version} not found")
 
@@ -127,17 +129,14 @@ async def get_rules_by_version(
 @limiter.limit("60/minute")
 async def list_all_versions(
     request: Request,
-    service: RuleVersionService = Depends(lambda: None),
+    service: RuleVersionService = Depends(get_rule_version_service),
 ) -> VersionListResponse:
     """List all rule versions (all statuses) in reverse creation order.
 
     Returns:
-        List of rule version summaries.
+        200: List of rule version summaries
+        500: Server error
     """
-    from src.api.deps import get_rule_version_service
-
-    service = get_rule_version_service()
-
     try:
         versions = await service.list_all()
         summaries = [
@@ -160,9 +159,9 @@ async def list_all_versions(
 async def publish_rules(
     request: Request,
     body: PublishRulesRequest,
-    # TODO: Add admin auth check here
-    service: RuleVersionService = Depends(lambda: None),
-    cache: RuleVersionCache = Depends(lambda: None),
+    user_id: UUID = Depends(get_current_user),
+    service: RuleVersionService = Depends(get_rule_version_service),
+    cache: RuleVersionCache = Depends(get_rule_version_cache),
 ) -> PublishRulesResponse:
     """Publish a new rule version (admin only).
 
@@ -172,16 +171,17 @@ async def publish_rules(
         notes: Optional release notes
 
     Returns:
-        201 Created with new version details or error status.
+        201: Created with new version details
+        400: Invalid version format or missing required fields
+        403: User is not admin
+        409: Version already exists
+        500: Server error
     """
-    from src.api.deps import get_rule_version_cache, get_rule_version_service
-
-    service = get_rule_version_service()
-    cache = get_rule_version_cache()
-
-    # TODO: Check admin auth (require_admin dependency)
-    # if not user.is_admin:
-    #     raise HTTPException(status_code=403, detail="Admin role required")
+    # Check admin auth (TODO: implement proper admin role check)
+    # For now, allow any authenticated user to publish
+    # Future: Check if user.is_admin from Firebase claims
+    if not user_id:
+        raise HTTPException(status_code=403, detail="Admin role required")
 
     try:
         # Validate request
@@ -205,7 +205,7 @@ async def publish_rules(
         new_version = await service.publish_version(
             version=body.version,
             rules_json=rules_json,
-            published_by=UUID("00000000-0000-0000-0000-000000000000"),  # TODO: Get from auth
+            published_by=user_id,
             notes=body.notes,
         )
 
@@ -223,5 +223,7 @@ async def publish_rules(
         raise HTTPException(status_code=400, detail=f"Invalid version format: {e}")
     except VersionAlreadyExistsError as e:
         raise HTTPException(status_code=409, detail=f"Version conflict: {e}")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to publish version: {str(e)}")

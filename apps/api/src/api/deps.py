@@ -114,7 +114,22 @@ def get_rule_version_service(
     return RuleVersionService(repo)
 
 
-def get_rule_version_cache():
+# Global cache singleton (initialized once at startup)
+_rule_version_cache_instance = None
+
+
+def init_rule_version_cache() -> None:
+    """Initialize the global rule version cache (call in app startup)."""
+    global _rule_version_cache_instance
     from src.adapters.postgres.cache import RuleVersionCache
 
-    return RuleVersionCache(ttl_seconds=300)
+    if _rule_version_cache_instance is None:
+        _rule_version_cache_instance = RuleVersionCache(ttl_seconds=300)
+
+
+def get_rule_version_cache():
+    """Get the singleton rule version cache instance."""
+    global _rule_version_cache_instance
+    if _rule_version_cache_instance is None:
+        init_rule_version_cache()
+    return _rule_version_cache_instance

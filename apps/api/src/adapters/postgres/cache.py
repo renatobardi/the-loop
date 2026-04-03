@@ -3,7 +3,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from domain.models import RuleVersion
+from src.domain.models import RuleVersion
+
+# Cache key constant
+RULES_LATEST_CACHE_KEY = "rules:latest"
 
 
 class RuleVersionCache:
@@ -24,7 +27,7 @@ class RuleVersionCache:
         Returns:
             RuleVersion if cached and not expired, None otherwise.
         """
-        key = "rules:latest"
+        key = RULES_LATEST_CACHE_KEY
         if key not in self.cache:
             return None
 
@@ -44,7 +47,7 @@ class RuleVersionCache:
         Args:
             rule_version: RuleVersion object to cache
         """
-        key = "rules:latest"
+        key = RULES_LATEST_CACHE_KEY
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds)
         self.cache[key] = (rule_version, expires_at)
 
@@ -53,7 +56,7 @@ class RuleVersionCache:
 
         Called after publishing a new version to ensure next request gets fresh data.
         """
-        key = "rules:latest"
+        key = RULES_LATEST_CACHE_KEY
         self.cache.pop(key, None)
 
     async def clear_all(self) -> None:

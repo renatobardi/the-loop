@@ -1,5 +1,23 @@
 """Typed domain exceptions for the Incident module."""
 
+__all__ = [
+    # Incident exceptions
+    "IncidentNotFoundError",
+    "DuplicateSourceUrlError",
+    "OptimisticLockError",
+    "IncidentHasActiveRuleError",
+    # Sub-resource exceptions
+    "TimelineEventNotFoundError",
+    "DuplicateResponderError",
+    "ResponderNotFoundError",
+    "ActionItemNotFoundError",
+    "AttachmentNotFoundError",
+    # Phase B exceptions
+    "RuleVersionNotFoundError",
+    "VersionAlreadyExistsError",
+    "InvalidVersionFormatError",
+]
+
 
 class IncidentNotFoundError(Exception):
     def __init__(self, incident_id: str) -> None:

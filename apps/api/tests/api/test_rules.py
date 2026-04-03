@@ -265,3 +265,34 @@ async def test_deprecate_version_missing_auth() -> None:
     app.dependency_overrides.clear()
 
     assert response.status_code == 403
+
+
+async def test_deprecate_version_invalid_semver() -> None:
+    """Test POST /rules/deprecate returns 422 for invalid semver."""
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/api/v1/rules/deprecate", json={"version": "invalid"})
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+
+
+async def test_list_deprecated_versions(mock_rule_version_service: AsyncMock) -> None:
+    """Test GET /rules/deprecated returns only deprecated versions."""
+    versions = [
+        _make_rule_version(version="0.2.0", status=RuleVersionStatus.ACTIVE),
+        _make_rule_version(version="0.1.0", status=RuleVersionStatus.DEPRECATED),
+    ]
+    mock_rule_version_service.list_all = AsyncMock(return_value=versions)
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get("/api/v1/rules/deprecated")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["versions"]) == 1
+    assert data["versions"][0]["version"] == "0.1.0"
+    assert data["versions"][0]["status"] == "deprecated"

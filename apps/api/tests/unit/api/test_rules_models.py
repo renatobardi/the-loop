@@ -1,8 +1,7 @@
 """Unit tests for rule API models — validation and schema."""
 
-from pydantic import ValidationError
-
 import pytest
+from pydantic import ValidationError
 
 from src.api.models.rules import DeprecateRulesRequest
 

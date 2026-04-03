@@ -5,16 +5,16 @@
 
 	const statusColors: Record<string, string> = {
 		draft: 'bg-bg-elevated text-text-muted',
-		in_review: 'bg-yellow-500/20 text-yellow-400',
-		approved: 'bg-green-500/20 text-green-400',
+		in_review: 'bg-accent/20 text-accent',
+		approved: 'bg-success/20 text-success',
 		published: 'bg-accent/20 text-accent'
 	};
 
 	const statusLabels: Record<string, string> = {
-		draft: 'Rascunho',
-		in_review: 'Em revisão',
-		approved: 'Aprovado',
-		published: 'Publicado'
+		draft: 'Draft',
+		in_review: 'In review',
+		approved: 'Approved',
+		published: 'Published'
 	};
 
 	function isDueDateUrgent(dateStr: string | null): boolean {
@@ -35,7 +35,7 @@
 </script>
 
 {#if !hasContent}
-	<p class="text-sm text-text-muted">Postmortem não iniciado.</p>
+	<p class="text-sm text-text-muted">Postmortem not started.</p>
 {:else}
 	<div class="space-y-6 text-sm">
 		<div class="flex flex-wrap gap-4">
@@ -51,19 +51,19 @@
 			{/if}
 			{#if incident.postmortem_due_date}
 				<div>
-					<span class="text-text-muted">Prazo: </span>
+					<span class="text-text-muted">Due date: </span>
 					<span
 						class={isDueDateUrgent(incident.postmortem_due_date) ? 'font-medium text-error' : 'text-text'}
 					>
-						{new Date(incident.postmortem_due_date).toLocaleDateString('pt-BR')}
+						{new Date(incident.postmortem_due_date).toLocaleDateString()}
 					</span>
 				</div>
 			{/if}
 			{#if incident.postmortem_published_at}
 				<div>
-					<span class="text-text-muted">Publicado em: </span>
+					<span class="text-text-muted">Published: </span>
 					<span class="text-text"
-						>{new Date(incident.postmortem_published_at).toLocaleString('pt-BR')}</span
+						>{new Date(incident.postmortem_published_at).toLocaleString()}</span
 					>
 				</div>
 			{/if}
@@ -71,14 +71,14 @@
 
 		{#if incident.lessons_learned}
 			<div>
-				<h3 class="mb-1 font-medium text-text">Lições aprendidas</h3>
+				<h3 class="mb-1 font-medium text-text">Lessons learned</h3>
 				<p class="whitespace-pre-wrap text-text-muted">{incident.lessons_learned}</p>
 			</div>
 		{/if}
 
 		{#if incident.why_we_were_surprised}
 			<div>
-				<h3 class="mb-1 font-medium text-text">Por que fomos pegos de surpresa</h3>
+				<h3 class="mb-1 font-medium text-text">Why we were surprised</h3>
 				<p class="whitespace-pre-wrap text-text-muted">{incident.why_we_were_surprised}</p>
 			</div>
 		{/if}

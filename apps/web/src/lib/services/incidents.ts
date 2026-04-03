@@ -10,6 +10,7 @@ import type {
 import type { TimelineEventListResponse } from '$lib/types/timeline_event';
 import type { ResponderListResponse } from '$lib/types/responder';
 import type { ActionItemListResponse } from '$lib/types/action_item';
+import type { AttachmentListResponse } from '$lib/types/attachment';
 import { getFirebaseAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
@@ -111,4 +112,8 @@ export async function updateActionItemStatus(
 		method: 'PUT',
 		body: JSON.stringify({ status })
 	});
+}
+
+export async function listAttachments(incidentId: string): Promise<AttachmentListResponse> {
+	return request<AttachmentListResponse>(`${BASE}/${incidentId}/attachments`);
 }

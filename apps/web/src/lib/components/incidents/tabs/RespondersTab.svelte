@@ -26,7 +26,7 @@
 			total = result.total;
 			loaded = true;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Erro ao carregar respondedores';
+			error = err instanceof Error ? err.message : 'Error loading responders';
 		} finally {
 			loading = false;
 		}
@@ -35,7 +35,7 @@
 	let visibleResponders = $derived(expanded ? responders : responders.slice(0, 10));
 
 	function formatDate(iso: string): string {
-		return new Date(iso).toLocaleString('pt-BR');
+		return new Date(iso).toLocaleString();
 	}
 
 	function truncateId(id: string): string {
@@ -52,10 +52,10 @@
 {:else if error}
 	<div class="text-sm text-error">
 		{error}
-		<button onclick={load} class="ml-2 underline hover:no-underline">Tentar novamente</button>
+		<button onclick={load} class="ml-2 underline hover:no-underline">Retry</button>
 	</div>
 {:else if responders.length === 0}
-	<p class="text-sm text-text-muted">Nenhum respondedor registrado.</p>
+	<p class="text-sm text-text-muted">No responders recorded.</p>
 {:else}
 	<div class="space-y-3">
 		{#each visibleResponders as responder (responder.id)}
@@ -65,9 +65,9 @@
 					<span class="rounded bg-bg-elevated px-2 py-0.5 text-xs text-text">{responder.role}</span>
 				</div>
 				<div class="mt-1 text-xs text-text-muted">
-					Entrada: {formatDate(responder.joined_at)}
+					Joined: {formatDate(responder.joined_at)}
 					{#if responder.left_at}
-						· Saída: {formatDate(responder.left_at)}
+						· Left: {formatDate(responder.left_at)}
 					{/if}
 				</div>
 				{#if responder.contribution_summary}
@@ -78,7 +78,7 @@
 
 		{#if total > 10}
 			<button onclick={() => (expanded = !expanded)} class="text-sm text-accent hover:underline">
-				{expanded ? '▲ Ocultar' : `▼ Ver todos (${total})`}
+				{expanded ? '▲ Hide' : `▼ Show all (${total})`}
 			</button>
 		{/if}
 	</div>

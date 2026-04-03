@@ -27,7 +27,7 @@
 			total = result.total;
 			loaded = true;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Erro ao carregar action items';
+			error = err instanceof Error ? err.message : 'Error loading action items';
 		} finally {
 			loading = false;
 		}
@@ -57,14 +57,14 @@
 	const priorityClass: Record<string, string> = {
 		critical: 'bg-error/20 text-error',
 		high: 'bg-accent/20 text-accent',
-		medium: 'bg-yellow-500/20 text-yellow-400',
+		medium: 'bg-accent/20 text-accent',
 		low: 'bg-bg-elevated text-text-muted'
 	};
 
 	const statusClass: Record<string, string> = {
 		open: 'text-text-muted',
 		in_progress: 'text-accent',
-		completed: 'text-green-400',
+		completed: 'text-accent',
 		cancelled: 'text-text-muted'
 	};
 </script>
@@ -78,10 +78,10 @@
 {:else if error}
 	<div class="text-sm text-error">
 		{error}
-		<button onclick={load} class="ml-2 underline hover:no-underline">Tentar novamente</button>
+		<button onclick={load} class="ml-2 underline hover:no-underline">Retry</button>
 	</div>
 {:else if items.length === 0}
-	<p class="text-sm text-text-muted">Nenhum action item registrado.</p>
+	<p class="text-sm text-text-muted">No action items recorded.</p>
 {:else}
 	<div class="space-y-2">
 		{#each visibleItems as item (item.id)}
@@ -90,7 +90,7 @@
 					onclick={() => toggleStatus(item)}
 					disabled={item.status === 'completed' || updatingIds.has(item.id)}
 					class="mt-0.5 h-4 w-4 shrink-0 rounded border border-border text-accent disabled:cursor-default"
-					aria-label="Marcar como concluído"
+					aria-label="Mark as completed"
 				>
 					{#if item.status === 'completed'}✓{/if}
 				</button>
@@ -115,7 +115,7 @@
 								? 'text-error'
 								: 'text-text-muted'}"
 						>
-							Prazo: {new Date(item.due_date).toLocaleDateString('pt-BR')}
+							Due: {new Date(item.due_date).toLocaleDateString()}
 						</p>
 					{/if}
 				</div>
@@ -124,7 +124,7 @@
 
 		{#if total > 10}
 			<button onclick={() => (expanded = !expanded)} class="text-sm text-accent hover:underline">
-				{expanded ? '▲ Ocultar' : `▼ Ver todos (${total})`}
+				{expanded ? '▲ Hide' : `▼ Show all (${total})`}
 			</button>
 		{/if}
 	</div>

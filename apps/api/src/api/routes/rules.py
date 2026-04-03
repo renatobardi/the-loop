@@ -163,7 +163,8 @@ async def list_deprecated_versions(
         ]
         return VersionListResponse(versions=summaries)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list deprecated versions: {e!s}") from e
+        detail = f"Failed to list deprecated versions: {e!s}"
+        raise HTTPException(status_code=500, detail=detail) from e
 
 
 @router.get("/rules/{version}", response_model=RuleVersionResponse)

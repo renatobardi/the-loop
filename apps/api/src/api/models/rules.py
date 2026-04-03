@@ -75,7 +75,8 @@ class DeprecateRulesRequest(BaseModel):
         import re
 
         if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+$", v):
-            raise ValueError(f"Invalid semantic version format: {v}. Expected X.Y.Z (e.g., '0.1.0')")
+            msg = f"Invalid semver format: {v}. Expected X.Y.Z (e.g., '0.1.0')"
+            raise ValueError(msg)
         return v
 
 

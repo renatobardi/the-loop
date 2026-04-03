@@ -13,9 +13,7 @@ from src.domain.exceptions import ActionItemNotFoundError, IncidentNotFoundError
 from src.domain.models import ActionItemPriority, ActionItemStatus, IncidentActionItem
 from src.domain.services import ActionItemService, IncidentService
 
-router = APIRouter(
-    prefix="/api/v1/incidents/{incident_id}/action-items", tags=["action-items"]
-)
+router = APIRouter(prefix="/api/v1/incidents/{incident_id}/action-items", tags=["action-items"])
 
 
 class ActionItemCreateRequest(BaseModel):
@@ -73,9 +71,7 @@ class ActionItemListResponse(BaseModel):
     total: int
 
 
-async def _get_incident_or_404(
-    incident_id: UUID, incident_service: IncidentService
-) -> None:
+async def _get_incident_or_404(incident_id: UUID, incident_service: IncidentService) -> None:
     try:
         await incident_service.get_by_id(incident_id)
     except IncidentNotFoundError as e:

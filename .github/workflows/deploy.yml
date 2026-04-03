@@ -12,6 +12,7 @@ env:
   PROJECT_ID: theloopoute
   REGION: us-central1
   REGISTRY: us-central1-docker.pkg.dev
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy-web:
@@ -22,6 +23,9 @@ jobs:
       IMAGE: us-central1-docker.pkg.dev/theloopoute/the-loop/app
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -85,6 +89,9 @@ jobs:
       IMAGE: us-central1-docker.pkg.dev/theloopoute/theloop-api/api
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

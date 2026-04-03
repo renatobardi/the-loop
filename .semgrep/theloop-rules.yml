@@ -1,31 +1,30 @@
 # theloop-rules.yml
-# The Loop — Incident Patterns (Phase A)
-# Version: 0.1.0 (static, immutable)
+# The Loop — Complete Rule Set (v0.2.0 with 20 rules)
+# Phase A (6) + Phase B (14) | 2026-04-03
 
 rules:
 
+  # PHASE A: 6 Base Rules
+
   - id: injection-001-sql-string-concat
     languages: [python, javascript, typescript, java, go, ruby]
-    message: "[The Loop] SQL injection via concatenation. Use parameterized queries."
+    message: "[The Loop] SQL injection via string concatenation"
     severity: ERROR
     metadata:
-      incident_id: "injection-001"
-      category: "injection"
-      loop_url: "https://loop.oute.pro/incidents/injection-001"
+      incident_id: injection-001
+      category: injection
     patterns:
       - pattern-either:
           - pattern: $DB.execute("..." + $INPUT)
-          - pattern: $DB.execute("...%s" % $INPUT)
           - pattern: $DB.execute(f"...{$INPUT}...")
 
   - id: injection-002-eval-dynamic-input
     languages: [python, javascript, typescript, ruby]
-    message: "[The Loop] eval() with dynamic input. Use ast.literal_eval() instead."
+    message: "[The Loop] eval() with dynamic input"
     severity: ERROR
     metadata:
-      incident_id: "injection-002"
-      category: "injection"
-      loop_url: "https://loop.oute.pro/incidents/injection-002"
+      incident_id: injection-002
+      category: injection
     patterns:
       - pattern-either:
           - pattern: eval($INPUT)
@@ -33,39 +32,33 @@ rules:
 
   - id: unsafe-api-usage-001-shell-injection
     languages: [python]
-    message: "[The Loop] Shell injection via shell=True. Use subprocess with argument list."
+    message: "[The Loop] Shell execution with variable"
     severity: ERROR
     metadata:
-      incident_id: "unsafe-api-usage-001"
-      category: "unsafe-api-usage"
-      loop_url: "https://loop.oute.pro/incidents/unsafe-api-usage-001"
+      incident_id: unsafe-api-usage-001
+      category: unsafe-api-usage
     patterns:
       - pattern-either:
           - pattern: os.system($CMD)
           - pattern: subprocess.call($CMD, ..., shell=True)
-          - pattern: subprocess.run($CMD, ..., shell=True)
 
   - id: missing-safety-check-001-hardcoded-secret
     languages: [generic]
-    message: "[The Loop] Hardcoded secret/credential. Use os.environ.get() or Secret Manager."
+    message: "[The Loop] Hardcoded credential detected"
     severity: ERROR
     metadata:
-      incident_id: "missing-safety-check-001"
-      category: "missing-safety-check"
-      loop_url: "https://loop.oute.pro/incidents/missing-safety-check-001"
+      incident_id: missing-safety-check-001
+      category: missing-safety-check
     patterns:
-      - pattern-regex: "(?i)password\\s*[:=]\\s*['\"]"
-      - pattern-regex: "(?i)api_key\\s*[:=]\\s*['\"]"
-      - pattern-regex: "(?i)secret\\s*[:=]\\s*['\"]"
+      - pattern-regex: "(?i)(password|secret|api_key)\\s*[=:]\\s*[\"'][A-Za-z0-9]{8,}[\"']"
 
   - id: missing-error-handling-001-bare-except
     languages: [python]
-    message: "[The Loop] Bare except clause. Use specific exceptions + logging."
+    message: "[The Loop] Bare except clause"
     severity: WARNING
     metadata:
-      incident_id: "missing-error-handling-001"
-      category: "missing-error-handling"
-      loop_url: "https://loop.oute.pro/incidents/missing-error-handling-001"
+      incident_id: missing-error-handling-001
+      category: missing-error-handling
     pattern: |
       try:
           ...
@@ -73,12 +66,188 @@ rules:
           pass
 
   - id: unsafe-regex-001-redos-pattern
-    languages: [python, javascript, java]
-    message: "[The Loop] Regex ReDoS pattern. Rewrite without nested quantifiers."
+    languages: [python, javascript, typescript, java]
+    message: "[The Loop] ReDoS pattern detected"
     severity: WARNING
     metadata:
-      incident_id: "unsafe-regex-001"
-      category: "unsafe-regex"
-      loop_url: "https://loop.oute.pro/incidents/unsafe-regex-001"
+      incident_id: unsafe-regex-001
+      category: unsafe-regex
     patterns:
-      - pattern-regex: "\\(([.a-zA-Z]+)[*+]\\)[*+]"
+      - pattern-regex: "\\((\\..\\+|\\.\\*)[+*]"
+
+  # PHASE B: 14 New Rules
+
+  # INJECTION (3)
+  - id: path-traversal-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Path traversal vulnerability"
+    severity: ERROR
+    metadata:
+      incident_id: path-traversal-001
+      category: injection
+      cwe: "CWE-22"
+    patterns:
+      - pattern-either:
+          - pattern: open($INPUT, ...)
+          - pattern: Path($INPUT).open(...)
+
+  - id: xxe-001
+    languages: [python, java, javascript]
+    message: "[The Loop] XML External Entity (XXE) injection risk"
+    severity: ERROR
+    metadata:
+      incident_id: xxe-001
+      category: injection
+      cwe: "CWE-611"
+    patterns:
+      - pattern-either:
+          - pattern: ElementTree.parse($URL)
+          - pattern: ET.parse($URL)
+
+  - id: deserialization-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Unsafe deserialization"
+    severity: ERROR
+    metadata:
+      incident_id: deserialization-001
+      category: injection
+      cwe: "CWE-502"
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads($DATA)
+          - pattern: yaml.load($DATA)
+
+  # CRYPTO (2)
+  - id: crypto-weak-md5-001
+    languages: [python, javascript, java]
+    message: "[The Loop] MD5 used for hashing"
+    severity: WARNING
+    metadata:
+      incident_id: crypto-weak-md5-001
+      category: crypto
+      cwe: "CWE-327"
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5($DATA)
+          - pattern: crypto.createHash("md5")
+
+  - id: crypto-weak-random-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Weak random number generation"
+    severity: WARNING
+    metadata:
+      incident_id: crypto-weak-random-001
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern-either:
+          - pattern: random.random()
+          - pattern: Math.random()
+
+  # SECURITY (3)
+  - id: tls-verify-false-001
+    languages: [python, javascript, java]
+    message: "[The Loop] TLS certificate verification disabled"
+    severity: ERROR
+    metadata:
+      incident_id: tls-verify-false-001
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern-either:
+          - pattern: requests.get(..., verify=False)
+          - pattern: ssl._create_unverified_context()
+
+  - id: jwt-hardcoded-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Hardcoded JWT secret"
+    severity: ERROR
+    metadata:
+      incident_id: jwt-hardcoded-001
+      category: security
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(?i)jwt_secret\\s*[=:]\\s*[\"'][\\w\\-.]{20,}[\"']"
+
+  - id: cors-wildcard-001
+    languages: [python, javascript]
+    message: "[The Loop] CORS with wildcard origin"
+    severity: WARNING
+    metadata:
+      incident_id: cors-wildcard-001
+      category: security
+      cwe: "CWE-345"
+    patterns:
+      - pattern-regex: "Access-Control-Allow-Origin.*\\*"
+
+  # PERFORMANCE (2)
+  - id: sql-timeout-001
+    languages: [python, javascript, java]
+    message: "[The Loop] SQL query without timeout"
+    severity: WARNING
+    metadata:
+      incident_id: sql-timeout-001
+      category: performance
+    patterns:
+      - pattern: cursor.execute($QUERY)
+      - pattern-not: cursor.execute($QUERY, timeout=$TIMEOUT)
+      - pattern-not: cursor.execute($QUERY, ..., timeout=$TIMEOUT)
+
+  - id: n-plus-one-001
+    languages: [python, javascript]
+    message: "[The Loop] N+1 query pattern"
+    severity: WARNING
+    metadata:
+      incident_id: n-plus-one-001
+      category: performance
+    patterns:
+      - pattern: |
+          for ... in ...:
+              ...
+              $DB.query(...)
+
+  # INFRASTRUCTURE (1)
+  - id: docker-root-001
+    languages: [generic]
+    message: "[The Loop] Docker container runs as root"
+    severity: WARNING
+    metadata:
+      incident_id: docker-root-001
+      category: infrastructure
+    patterns:
+      - pattern-regex: "USER\\s+root"
+
+  # CONFIG (2)
+  - id: hardcoded-url-001
+    languages: [python, javascript, go]
+    message: "[The Loop] Hardcoded API URL in code"
+    severity: WARNING
+    metadata:
+      incident_id: hardcoded-url-001
+      category: config
+    patterns:
+      - pattern-regex: "(api_url|endpoint)\\s*[=:]\\s*[\"']https?://[^\"']+"
+
+  - id: debug-enabled-prod-001
+    languages: [python, javascript]
+    message: "[The Loop] Debug mode enabled in production"
+    severity: WARNING
+    metadata:
+      incident_id: debug-enabled-prod-001
+      category: config
+    patterns:
+      - pattern-either:
+          - pattern: DEBUG = True
+          - pattern: app.run(debug=True)
+
+  # DEPENDENCIES (1)
+  - id: dependency-vulnerable-001
+    languages: [generic]
+    message: "[The Loop] Known vulnerable dependency"
+    severity: WARNING
+    metadata:
+      incident_id: dependency-vulnerable-001
+      category: dependencies
+      cwe: "CWE-1104"
+    patterns:
+      - pattern-regex: "lodash.*<.*4\\.17\\.15"

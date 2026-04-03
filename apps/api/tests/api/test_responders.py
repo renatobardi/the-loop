@@ -92,9 +92,7 @@ async def test_add_responder(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_responder_service.add_responder.return_value = _make_responder()
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/responders", json=_ADD_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/responders", json=_ADD_BODY)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -113,9 +111,7 @@ async def test_duplicate_responder_returns_409(
         str(_INCIDENT_ID), str(_RESPONDER_USER)
     )
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/responders", json=_ADD_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/responders", json=_ADD_BODY)
 
     assert resp.status_code == 409
 
@@ -170,9 +166,7 @@ async def test_delete_responder(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_responder_service.remove_responder.return_value = None
 
-    resp = await client.delete(
-        f"/api/v1/incidents/{_INCIDENT_ID}/responders/{_RESPONDER_ID}"
-    )
+    resp = await client.delete(f"/api/v1/incidents/{_INCIDENT_ID}/responders/{_RESPONDER_ID}")
 
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Responder removed"
@@ -188,7 +182,5 @@ async def test_delete_incident_cascades_to_responders(
     resp = await client.get(f"/api/v1/incidents/{_INCIDENT_ID}/responders")
     assert resp.status_code == 404
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/responders", json=_ADD_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/responders", json=_ADD_BODY)
     assert resp.status_code == 404

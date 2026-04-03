@@ -62,20 +62,20 @@ class RuleVersionCache:
         """Clear all cached entries (for testing or maintenance)."""
         self.cache.clear()
 
-    def get_cache_stats(self) -> dict:
+    def get_cache_stats(self) -> dict[str, int | list[dict[str, str | int]]]:
         """Get cache statistics for monitoring.
 
         Returns:
-            Dict with cache size and TTL info.
+            Dict with cache size, TTL, and entry details.
         """
         now = datetime.now(UTC)
-        entries = []
+        entries: list[dict[str, str | int]] = []
         for key, (_, expires_at) in self.cache.items():
             remaining_ttl = (expires_at - now).total_seconds()
             entries.append(
                 {
                     "key": key,
-                    "remaining_ttl_seconds": max(0, remaining_ttl),
+                    "remaining_ttl_seconds": max(0, int(remaining_ttl)),
                 }
             )
 

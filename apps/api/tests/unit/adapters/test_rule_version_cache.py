@@ -77,21 +77,19 @@ class TestRuleVersionCache:
         await cache.invalidate()
         assert await cache.get_latest() is None
 
-    async def test_cache_ttl_expiration(
-        self, sample_rule_version: RuleVersion
-    ) -> None:
+    async def test_cache_ttl_expiration(self, sample_rule_version: RuleVersion) -> None:
         """Test cache entries expire after TTL."""
         import asyncio
 
         # Create cache with 0.1 second TTL
-        cache = RuleVersionCache(ttl_seconds=0)
+        cache = RuleVersionCache(ttl_seconds=1)
         await cache.set_latest(sample_rule_version)
 
         # Should be cached immediately
         assert await cache.get_latest() is not None
 
-        # Wait for expiration
-        await asyncio.sleep(0.2)
+        # Wait for expiration (TTL is 1 second, wait 1.2 seconds)
+        await asyncio.sleep(1.2)
 
         # Should be expired
         assert await cache.get_latest() is None

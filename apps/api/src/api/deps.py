@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from fastapi import Depends
@@ -22,6 +23,11 @@ from src.domain.services import (
     ResponderService,
     TimelineEventService,
 )
+
+if TYPE_CHECKING:
+    from src.adapters.postgres.cache import RuleVersionCache
+    from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
+    from src.domain.services import RuleVersionService
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -100,22 +106,22 @@ def get_attachment_service(
 
 def get_rule_version_repository(
     session: AsyncSession = Depends(get_session),
-):
+) -> "PostgresRuleVersionRepository":  # noqa: UP037
     from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
 
     return PostgresRuleVersionRepository(session)
 
 
 def get_rule_version_service(
-    repo=Depends(get_rule_version_repository),
-):
+    repo: "PostgresRuleVersionRepository" = Depends(get_rule_version_repository),  # noqa: UP037
+) -> "RuleVersionService":  # noqa: UP037
     from src.domain.services import RuleVersionService
 
     return RuleVersionService(repo)
 
 
 # Global cache singleton (initialized once at startup)
-_rule_version_cache_instance = None
+_rule_version_cache_instance: "RuleVersionCache | None" = None  # noqa: UP037
 
 
 def init_rule_version_cache() -> None:
@@ -127,9 +133,10 @@ def init_rule_version_cache() -> None:
         _rule_version_cache_instance = RuleVersionCache(ttl_seconds=300)
 
 
-def get_rule_version_cache():
+def get_rule_version_cache() -> "RuleVersionCache":  # noqa: UP037
     """Get the singleton rule version cache instance."""
     global _rule_version_cache_instance
     if _rule_version_cache_instance is None:
         init_rule_version_cache()
+    assert _rule_version_cache_instance is not None, "Cache initialization failed"
     return _rule_version_cache_instance

@@ -67,9 +67,7 @@ def mock_timeline_service() -> AsyncMock:
 
 
 @pytest.fixture
-async def client(
-    mock_incident_service: AsyncMock, mock_timeline_service: AsyncMock
-) -> AsyncClient:
+async def client(mock_incident_service: AsyncMock, mock_timeline_service: AsyncMock) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: _USER
     app.dependency_overrides[get_incident_service] = lambda: mock_incident_service
     app.dependency_overrides[get_timeline_event_service] = lambda: mock_timeline_service
@@ -93,9 +91,7 @@ async def test_create_timeline_event(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_timeline_service.create.return_value = _make_event()
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/timeline", json=_CREATE_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/timeline", json=_CREATE_BODY)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -137,9 +133,7 @@ async def test_delete_timeline_event(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_timeline_service.delete.return_value = None
 
-    resp = await client.delete(
-        f"/api/v1/incidents/{_INCIDENT_ID}/timeline/{_EVENT_ID}"
-    )
+    resp = await client.delete(f"/api/v1/incidents/{_INCIDENT_ID}/timeline/{_EVENT_ID}")
 
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Timeline event deleted"
@@ -169,7 +163,5 @@ async def test_delete_incident_cascades_to_timeline_events(
     resp = await client.get(f"/api/v1/incidents/{_INCIDENT_ID}/timeline")
     assert resp.status_code == 404
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/timeline", json=_CREATE_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/timeline", json=_CREATE_BODY)
     assert resp.status_code == 404

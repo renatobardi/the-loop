@@ -1,5 +1,6 @@
 """Port (protocol) for RuleVersionRepository — Phase B API integration."""
 
+from typing import Any
 
 from src.domain.models import RuleVersion
 
@@ -16,7 +17,7 @@ class RuleVersionRepository:
             RuleVersion with status='active' (most recently created), or None if
             no active version exists.
         """
-        ...
+        raise NotImplementedError()
 
     async def get_by_version(self, version: str) -> RuleVersion | None:
         """Get a specific rule version by version string.
@@ -27,7 +28,7 @@ class RuleVersionRepository:
         Returns:
             RuleVersion object, or None if version not found (regardless of status).
         """
-        ...
+        raise NotImplementedError()
 
     async def list_all(self) -> list[RuleVersion]:
         """List all rule versions (all statuses) in creation order.
@@ -35,12 +36,12 @@ class RuleVersionRepository:
         Returns:
             List of RuleVersion objects ordered by created_at DESC.
         """
-        ...
+        raise NotImplementedError()
 
     async def publish_version(
         self,
         version: str,
-        rules_json: dict,
+        rules_json: list[dict[str, Any]],
         published_by: str,
         notes: str | None = None,
     ) -> RuleVersion:
@@ -48,7 +49,7 @@ class RuleVersionRepository:
 
         Args:
             version: Semantic version string (must pass validation)
-            rules_json: JSONB dict with rules array
+            rules_json: List of rule definitions
             published_by: UUID of publishing user
             notes: Optional release notes
 
@@ -59,7 +60,7 @@ class RuleVersionRepository:
             VersionAlreadyExistsError: If version already exists (UNIQUE constraint)
             InvalidVersionFormatError: If version doesn't match semver pattern
         """
-        ...
+        raise NotImplementedError()
 
     async def deprecate_version(self, version: str) -> RuleVersion:
         """Mark a rule version as deprecated.
@@ -73,4 +74,4 @@ class RuleVersionRepository:
         Raises:
             RuleVersionNotFoundError: If version not found
         """
-        ...
+        raise NotImplementedError()

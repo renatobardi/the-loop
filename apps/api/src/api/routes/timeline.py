@@ -57,9 +57,7 @@ class TimelineEventListResponse(BaseModel):
     total: int
 
 
-async def _get_incident_or_404(
-    incident_id: UUID, incident_service: IncidentService
-) -> None:
+async def _get_incident_or_404(incident_id: UUID, incident_service: IncidentService) -> None:
     try:
         await incident_service.get_by_id(incident_id)
     except IncidentNotFoundError as e:

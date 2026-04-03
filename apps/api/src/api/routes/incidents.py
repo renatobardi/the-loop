@@ -311,7 +311,11 @@ async def list_incidents(
     _user_id: UUID = Depends(get_authenticated_user),
 ) -> PaginatedResponse:
     items, total = await service.list_incidents(
-        page=page, per_page=per_page, category=category, severity=severity, keyword=q,
+        page=page,
+        per_page=per_page,
+        category=category,
+        severity=severity,
+        keyword=q,
     )
     return PaginatedResponse(
         items=[IncidentResponse.from_domain(i) for i in items],

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from src.domain.exceptions import (
@@ -143,24 +144,45 @@ class IncidentService:
             raise IncidentNotFoundError(str(incident_id))
 
         new_category = fields.get("category", existing.category)
-        if (
-            existing.semgrep_rule_id
-            and new_category != existing.category
-        ):
+        if existing.semgrep_rule_id and new_category != existing.category:
             raise IncidentHasActiveRuleError(str(incident_id), existing.semgrep_rule_id)
 
         update_data: dict[str, object] = {}
         allowed_fields = {
-            "title", "date", "source_url", "organization", "category",
-            "subcategory", "failure_mode", "severity", "affected_languages",
-            "anti_pattern", "code_example", "remediation", "static_rule_possible",
-            "semgrep_rule_id", "tags",
-            "started_at", "detected_at", "ended_at", "resolved_at",
-            "impact_summary", "customers_affected", "sla_breached", "slo_breached",
-            "postmortem_status", "postmortem_published_at", "postmortem_due_date",
-            "lessons_learned", "why_we_were_surprised", "detection_method",
-            "slack_channel_id", "external_tracking_id", "incident_lead_id",
-            "raw_content", "tech_context",
+            "title",
+            "date",
+            "source_url",
+            "organization",
+            "category",
+            "subcategory",
+            "failure_mode",
+            "severity",
+            "affected_languages",
+            "anti_pattern",
+            "code_example",
+            "remediation",
+            "static_rule_possible",
+            "semgrep_rule_id",
+            "tags",
+            "started_at",
+            "detected_at",
+            "ended_at",
+            "resolved_at",
+            "impact_summary",
+            "customers_affected",
+            "sla_breached",
+            "slo_breached",
+            "postmortem_status",
+            "postmortem_published_at",
+            "postmortem_due_date",
+            "lessons_learned",
+            "why_we_were_surprised",
+            "detection_method",
+            "slack_channel_id",
+            "external_tracking_id",
+            "incident_lead_id",
+            "raw_content",
+            "tech_context",
         }
         for key, value in fields.items():
             if key in allowed_fields:
@@ -432,7 +454,7 @@ class RuleVersionService:
     async def publish_version(
         self,
         version: str,
-        rules_json: dict,
+        rules_json: list[dict[str, Any]],
         published_by: UUID,
         notes: str | None = None,
     ) -> RuleVersion:
@@ -440,7 +462,7 @@ class RuleVersionService:
 
         Args:
             version: Semantic version (e.g., "0.2.0")
-            rules_json: Dict with rules array
+            rules_json: List of rule definitions
             published_by: UUID of publishing user
             notes: Optional release notes
 
@@ -451,7 +473,7 @@ class RuleVersionService:
             VersionAlreadyExistsError: If version already exists
             InvalidVersionFormatError: If version doesn't match semver pattern
         """
-        return await self._repo.publish_version(version, rules_json, published_by, notes)
+        return await self._repo.publish_version(version, rules_json, str(published_by), notes)
 
     async def deprecate_version(self, version: str) -> RuleVersion:
         """Mark a rule version as deprecated.

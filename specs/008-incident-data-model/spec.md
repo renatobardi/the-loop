@@ -4,6 +4,12 @@
 **Created**: 2026-04-01  
 **Status**: Draft  
 
+## Scope
+
+**This specification covers the backend API layer and database schema only.** All new fields, sub-resources (timeline events, responders, action items, attachments), and endpoints are implemented in the API. Frontend UI for these features (tabs in the incident detail page) is deferred to **spec-009** and will be built using the API endpoints defined here.
+
+---
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Data Integrity Guaranteed by Schema (Priority: P1)

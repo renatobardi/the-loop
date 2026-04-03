@@ -201,9 +201,14 @@
 
 ## Phase 11: Polish & Cross-Cutting Concerns — `feat/incident-data-model-schema-phase-5`
 
-**Purpose**: Quality gates, CI validation, and production deploy.
+**Purpose**: Pre-flight verification, quality gates, CI validation, and production deploy.
 
-- [x] T079 Verify all 4 new routers are registered in `apps/api/src/main.py`: confirm `timeline_router`, `responders_router`, `action_items_router`, `attachments_router` each appear in an `app.include_router()` call. Fix any missing registration before opening the phase-5 PR.
+**Pre-flight Check** (before opening PR):
+
+- [x] T079 Verify all 4 new routers are registered in `apps/api/src/main.py`: confirm `timeline_router`, `responders_router`, `action_items_router`, `attachments_router` each appear in an `app.include_router()` call. Fix any missing registration **before** proceeding to T073.
+
+**Execution** (open PR after T079 passes):
+
 - [x] T073 Run `ruff check apps/api/src/ apps/api/tests/` — fix all lint errors. Run `ruff format apps/api/src/ apps/api/tests/` — apply formatting.
 - [x] T074 Run `mypy apps/api/src/` — fix all strict mode errors. Confirm no `type_=None` or untyped field issues in any new model.
 - [x] T075 Run `pytest apps/api/tests/ --cov=src --cov-report=term-missing` — confirm coverage ≥ 80%.

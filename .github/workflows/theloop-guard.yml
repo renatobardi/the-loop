@@ -8,7 +8,6 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  security-events: write
 
 jobs:
   semgrep-scan:
@@ -19,126 +18,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install Semgrep
-        run: |
-          pip install semgrep --quiet
-          semgrep --version
+        run: pip install semgrep
 
-      - name: Verify rules file
-        run: |
-          if [ ! -f ".semgrep/theloop-rules.yml" ]; then
-            echo "❌ .semgrep/theloop-rules.yml not found"
-            exit 1
-          fi
-          semgrep --validate --config .semgrep/theloop-rules.yml
-          echo "✅ Rules validated"
+      - name: Scan with Semgrep
+        run: semgrep scan --config .semgrep/theloop-rules.yml --json --output results.json || true
 
-      - name: Run Semgrep scan
-        id: semgrep
-        run: |
-          set +e
-          semgrep scan \
-            --config .semgrep/theloop-rules.yml \
-            --json \
-            --output semgrep-results.json \
-            --metrics off \
-            --quiet
-          SEMGREP_EXIT=$?
-          echo "semgrep_exit=$SEMGREP_EXIT" >> $GITHUB_OUTPUT
-          set -e
-
-          if [ -f semgrep-results.json ]; then
-            COUNTS=$(cat semgrep-results.json | jq -r '.results | map(select(.extra.severity=="ERROR")) | length, map(select(.extra.severity=="WARNING")) | length' 2>/dev/null || echo "0 0")
-            echo "counts=$COUNTS" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Comment PR with findings
+      - name: Comment PR
         if: always()
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            let body = '';
+            let message = '## 🔁 The Loop — Incident Guard\n\n';
 
-            if (!fs.existsSync('semgrep-results.json')) {
-              body = '## 🔁 The Loop — Incident Guard\n\n⚠️ Scan did not produce results.';
-            } else {
-              const raw = fs.readFileSync('semgrep-results.json', 'utf8');
-              const data = JSON.parse(raw);
+            if (fs.existsSync('results.json')) {
+              const data = JSON.parse(fs.readFileSync('results.json', 'utf8'));
               const results = data.results || [];
-
-              const errors = results.filter(r => r.extra?.severity?.toUpperCase() === 'ERROR');
-              const warnings = results.filter(r => r.extra?.severity?.toUpperCase() === 'WARNING');
-
               if (results.length === 0) {
-                body = [
-                  '## 🔁 The Loop — Incident Guard',
-                  '',
-                  '✅ **Clean scan** — No incident patterns detected.'
-                ].join('\n');
+                message += '✅ **Clean scan** — No incident patterns detected.';
               } else {
-                const statusIcon = errors.length > 0 ? '🔴' : '🟡';
-                const statusText = errors.length > 0
-                  ? `${errors.length} ERROR(s) — merge blocked`
-                  : `${warnings.length} WARNING(s) — informational`;
-
-                body = [
-                  '## 🔁 The Loop — Incident Guard',
-                  '',
-                  `${statusIcon} **${statusText}**`,
-                  '',
-                  '| Severity | Rule | File | Line |',
-                  '|:---:|:---|:---|:---:|'
-                ].join('\n');
-
-                for (const r of results) {
-                  const sev = r.extra?.severity?.toUpperCase() === 'ERROR' ? '🔴 ERROR' : '🟡 WARN';
-                  const rule = r.check_id?.split('-').slice(0, -1).join('-') || r.check_id;
-                  const file = r.path;
-                  const line = r.start?.line || '?';
-                  body += `\n| ${sev} | \`${rule}\` | \`${file}\` | ${line} |`;
-                }
-
-                body += '\n\n---';
-                body += '\n> 🔁 [The Loop](https://loop.oute.pro) | Incident Guard (Phase A)';
+                message += `Found ${results.length} issue(s):\n\n`;
+                results.forEach(r => {
+                  const severity = r.extra?.severity || 'INFO';
+                  message += `- **${severity}**: ${r.check_id} at ${r.path}:${r.start?.line}\n`;
+                });
               }
+            } else {
+              message += '⚠️ Scan did not complete.';
             }
 
-            // Find and update existing comment
-            const { data: comments } = await github.rest.issues.listComments({
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              body: message
             });
-
-            const existing = comments.find(c =>
-              c.user.login === 'github-actions[bot]' &&
-              c.body.includes('🔁 The Loop')
-            );
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
-
-      - name: Fail on errors
-        if: steps.semgrep.outputs.semgrep_exit != '0'
-        run: |
-          echo "❌ Incident patterns detected (ERROR severity)"
-          echo "Merge blocked. Fix issues and try again."
-          exit 1

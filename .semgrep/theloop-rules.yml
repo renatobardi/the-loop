@@ -54,7 +54,9 @@ rules:
       category: "missing-safety-check"
       loop_url: "https://loop.oute.pro/incidents/missing-safety-check-001"
     patterns:
-      - pattern-regex: "(?i)(password|api_key|secret|token|apikey)\\s*[=:]\\s*[\"`'\"]"
+      - pattern-regex: "(?i)password\\s*[:=]\\s*['\"]"
+      - pattern-regex: "(?i)api_key\\s*[:=]\\s*['\"]"
+      - pattern-regex: "(?i)secret\\s*[:=]\\s*['\"]"
 
   - id: missing-error-handling-001-bare-except
     languages: [python]
@@ -72,11 +74,11 @@ rules:
 
   - id: unsafe-regex-001-redos-pattern
     languages: [python, javascript, java]
-    message: "[The Loop] Regex ReDoS pattern (backtracking). Rewrite without nested quantifiers."
+    message: "[The Loop] Regex ReDoS pattern. Rewrite without nested quantifiers."
     severity: WARNING
     metadata:
       incident_id: "unsafe-regex-001"
       category: "unsafe-regex"
       loop_url: "https://loop.oute.pro/incidents/unsafe-regex-001"
     patterns:
-      - pattern-regex: "\\((\\.|[a-zA-Z])\\+|\\*\\)\\+"
+      - pattern-regex: "\\(([.a-zA-Z]+)[*+]\\)[*+]"

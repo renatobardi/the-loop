@@ -26,7 +26,7 @@
 			total = result.total;
 			loaded = true;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Erro ao carregar timeline';
+			error = err instanceof Error ? err.message : 'Error loading timeline events';
 		} finally {
 			loading = false;
 		}
@@ -35,7 +35,7 @@
 	let visibleEvents = $derived(expanded ? events : events.slice(0, 10));
 
 	function formatDate(iso: string): string {
-		return new Date(iso).toLocaleString('pt-BR');
+		return new Date(iso).toLocaleString();
 	}
 </script>
 
@@ -48,10 +48,10 @@
 {:else if error}
 	<div class="text-sm text-error">
 		{error}
-		<button onclick={load} class="ml-2 underline hover:no-underline">Tentar novamente</button>
+		<button onclick={load} class="ml-2 underline hover:no-underline">Retry</button>
 	</div>
 {:else if events.length === 0}
-	<p class="text-sm text-text-muted">Nenhum evento registrado.</p>
+	<p class="text-sm text-text-muted">No timeline events recorded.</p>
 {:else}
 	<div class="space-y-4">
 		{#each visibleEvents as event (event.id)}
@@ -64,7 +64,7 @@
 					</div>
 					<p class="mt-0.5 text-text-muted">{event.description}</p>
 					{#if event.duration_minutes}
-						<p class="mt-0.5 text-xs text-text-muted">Duração: {event.duration_minutes} min</p>
+						<p class="mt-0.5 text-xs text-text-muted">Duration: {event.duration_minutes} min</p>
 					{/if}
 				</div>
 			</div>
@@ -72,7 +72,7 @@
 
 		{#if total > 10}
 			<button onclick={() => (expanded = !expanded)} class="text-sm text-accent hover:underline">
-				{expanded ? '▲ Ocultar' : `▼ Ver todos (${total})`}
+				{expanded ? '▲ Hide' : `▼ Show all (${total})`}
 			</button>
 		{/if}
 	</div>

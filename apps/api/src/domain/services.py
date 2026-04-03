@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 from src.domain.exceptions import (
     ActionItemNotFoundError,
     IncidentHasActiveRuleError,
+    IncidentMissingPostmortumError,
     IncidentNotFoundError,
     PostmortumAlreadyExistsError,
     PostmortumLockedError,
@@ -46,8 +47,11 @@ from src.ports.timeline_event_repo import TimelineEventRepoPort
 
 
 class IncidentService:
-    def __init__(self, repo: IncidentRepoPort) -> None:
+    def __init__(
+        self, repo: IncidentRepoPort, postmortem_repo: PostmortumRepoPort | None = None
+    ) -> None:
         self._repo = repo
+        self._postmortem_repo = postmortem_repo
 
     async def create(
         self,
@@ -202,6 +206,13 @@ class IncidentService:
             and "postmortem_published_at" not in update_data
         ):
             update_data["postmortem_published_at"] = datetime.now(UTC)
+
+        # Enforce postmortem requirement: incident cannot be resolved without postmortem
+        if "resolved_at" in fields and fields.get("resolved_at") is not None:
+            if self._postmortem_repo is not None:
+                postmortem = await self._postmortem_repo.get_by_incident_id(incident_id)
+                if postmortem is None:
+                    raise IncidentMissingPostmortumError(str(incident_id))
 
         updated = existing.model_copy(update=update_data)
         return await self._repo.update(updated, expected_version)

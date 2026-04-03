@@ -43,10 +43,17 @@ def get_repository(
     return PostgresIncidentRepository(session)
 
 
+def get_postmortem_repository(
+    session: AsyncSession = Depends(get_session),
+) -> PostgresPostmortumRepository:
+    return PostgresPostmortumRepository(session)
+
+
 def get_incident_service(
     repo: PostgresIncidentRepository = Depends(get_repository),
+    postmortem_repo: PostgresPostmortumRepository = Depends(get_postmortem_repository),
 ) -> IncidentService:
-    return IncidentService(repo)
+    return IncidentService(repo, postmortem_repo)
 
 
 def get_authenticated_user(
@@ -101,12 +108,6 @@ def get_attachment_service(
     repo: PostgresAttachmentRepository = Depends(get_attachment_repository),
 ) -> AttachmentService:
     return AttachmentService(repo)
-
-
-def get_postmortem_repository(
-    session: AsyncSession = Depends(get_session),
-) -> PostgresPostmortumRepository:
-    return PostgresPostmortumRepository(session)
 
 
 def get_postmortem_service(

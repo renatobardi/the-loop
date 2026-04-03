@@ -13,6 +13,7 @@ from src.api.middleware import limiter
 from src.domain.exceptions import (
     DuplicateSourceUrlError,
     IncidentHasActiveRuleError,
+    IncidentMissingPostmortumError,
     IncidentNotFoundError,
     OptimisticLockError,
 )
@@ -370,6 +371,14 @@ async def update_incident(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"detail": "Cannot change category while semgrep_rule_id is set"},
+        ) from e
+    except IncidentMissingPostmortumError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "detail": "Cannot resolve incident without postmortem",
+                "message": f"Create a postmortem at POST /api/v1/incidents/{incident_id}/postmortem first",
+            },
         ) from e
     except DuplicateSourceUrlError as e:
         raise HTTPException(

@@ -6,6 +6,7 @@ __all__ = [
     "DuplicateResponderError",
     "DuplicateSourceUrlError",
     "IncidentHasActiveRuleError",
+    "IncidentMissingPostmortumError",
     # Incident exceptions
     "IncidentNotFoundError",
     "InvalidVersionFormatError",
@@ -50,6 +51,15 @@ class IncidentHasActiveRuleError(Exception):
         self.semgrep_rule_id = semgrep_rule_id
         super().__init__(
             f"Cannot modify incident {incident_id}: active Semgrep rule {semgrep_rule_id}"
+        )
+
+
+class IncidentMissingPostmortumError(Exception):
+    def __init__(self, incident_id: str) -> None:
+        self.incident_id = incident_id
+        super().__init__(
+            f"Cannot resolve incident {incident_id}: postmortem is required before closure. "
+            f"Create a postmortem at POST /api/v1/incidents/{incident_id}/postmortem"
         )
 
 

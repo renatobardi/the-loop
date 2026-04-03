@@ -13,6 +13,7 @@ from src.api.deps import get_incident_service
 from src.domain.exceptions import (
     DuplicateSourceUrlError,
     IncidentHasActiveRuleError,
+    IncidentMissingPostmortumError,
     IncidentNotFoundError,
     OptimisticLockError,
 )
@@ -329,3 +330,38 @@ async def test_create_incident_without_raw_content_returns_null(
     assert resp.status_code == 201
     assert resp.json()["raw_content"] is None
     assert resp.json()["tech_context"] is None
+
+
+# Phase C: Postmortem Validation Tests
+
+
+async def test_update_incident_with_resolved_at_and_postmortem_missing(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    """Test updating incident with resolved_at raises 422 if postmortem missing."""
+    mock_service.update.side_effect = IncidentMissingPostmortumError(str(_INCIDENT_ID))
+
+    resp = await client.put(
+        f"/api/v1/incidents/{_INCIDENT_ID}",
+        json={"version": 1, "resolved_at": _NOW.isoformat()},
+    )
+
+    assert resp.status_code == 422
+    data = resp.json()
+    assert "Cannot resolve incident without postmortem" in data["detail"]["detail"]
+
+
+async def test_update_incident_with_resolved_at_and_postmortem_exists(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    """Test updating incident with resolved_at succeeds if postmortem exists."""
+    incident = _make_incident(resolved_at=_NOW, version=2)
+    mock_service.update.return_value = incident
+
+    resp = await client.put(
+        f"/api/v1/incidents/{_INCIDENT_ID}",
+        json={"version": 1, "resolved_at": _NOW.isoformat()},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["resolved_at"] == _NOW.isoformat()

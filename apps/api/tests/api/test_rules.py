@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import UUID
@@ -63,7 +64,7 @@ def mock_rule_version_cache() -> AsyncMock:
 @pytest.fixture
 async def client(
     mock_rule_version_service: AsyncMock, mock_rule_version_cache: AsyncMock
-) -> AsyncClient:
+) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[get_current_user] = lambda: _USER
     app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
@@ -77,7 +78,7 @@ async def test_get_latest_rules_from_cache(
 ) -> None:
     """Test GET /rules/latest returns cached version when available."""
     cached_version = _make_rule_version(version="0.1.0", status=RuleVersionStatus.ACTIVE)
-    mock_rule_version_cache.get_latest.return_value = cached_version
+    mock_rule_version_cache.get_latest = AsyncMock(return_value=cached_version)
 
     response = await client.get("/api/v1/rules/latest")
 
@@ -96,8 +97,9 @@ async def test_get_latest_rules_from_service(
 ) -> None:
     """Test GET /rules/latest fetches from service when cache miss."""
     rule_version = _make_rule_version(version="0.2.0", status=RuleVersionStatus.ACTIVE)
-    mock_rule_version_cache.get_latest.return_value = None
-    mock_rule_version_service.get_latest_active.return_value = rule_version
+    mock_rule_version_cache.get_latest = AsyncMock(return_value=None)
+    mock_rule_version_cache.set_latest = AsyncMock()
+    mock_rule_version_service.get_latest_active = AsyncMock(return_value=rule_version)
 
     response = await client.get("/api/v1/rules/latest")
 
@@ -112,8 +114,8 @@ async def test_get_latest_rules_not_found(
     mock_rule_version_cache: AsyncMock,
 ) -> None:
     """Test GET /rules/latest returns 503 when no active version exists."""
-    mock_rule_version_cache.get_latest.return_value = None
-    mock_rule_version_service.get_latest_active.return_value = None
+    mock_rule_version_cache.get_latest = AsyncMock(return_value=None)
+    mock_rule_version_service.get_latest_active = AsyncMock(return_value=None)
 
     response = await client.get("/api/v1/rules/latest")
 
@@ -125,7 +127,7 @@ async def test_get_rules_by_version(
 ) -> None:
     """Test GET /rules/{version} returns specific version."""
     rule_version = _make_rule_version(version="0.1.0")
-    mock_rule_version_service.get_by_version.return_value = rule_version
+    mock_rule_version_service.get_by_version = AsyncMock(return_value=rule_version)
 
     response = await client.get("/api/v1/rules/0.1.0")
 
@@ -138,7 +140,7 @@ async def test_get_rules_by_version_not_found(
     client: AsyncClient, mock_rule_version_service: AsyncMock
 ) -> None:
     """Test GET /rules/{version} returns 404 when version not found."""
-    mock_rule_version_service.get_by_version.return_value = None
+    mock_rule_version_service.get_by_version = AsyncMock(return_value=None)
 
     response = await client.get("/api/v1/rules/9.9.9")
 
@@ -153,7 +155,7 @@ async def test_list_all_versions(
         _make_rule_version(version="0.2.0", status=RuleVersionStatus.ACTIVE),
         _make_rule_version(version="0.1.0", status=RuleVersionStatus.DEPRECATED),
     ]
-    mock_rule_version_service.list_all.return_value = versions
+    mock_rule_version_service.list_all = AsyncMock(return_value=versions)
 
     response = await client.get("/api/v1/rules/versions")
 
@@ -171,7 +173,8 @@ async def test_publish_rules_success(
 ) -> None:
     """Test POST /rules/publish creates new version."""
     new_version = _make_rule_version(version="0.2.0", status=RuleVersionStatus.DRAFT)
-    mock_rule_version_service.publish_version.return_value = new_version
+    mock_rule_version_service.publish_version = AsyncMock(return_value=new_version)
+    mock_rule_version_cache.invalidate = AsyncMock()
 
     payload = {
         "version": "0.2.0",
@@ -201,7 +204,9 @@ async def test_publish_rules_version_exists(
     client: AsyncClient, mock_rule_version_service: AsyncMock
 ) -> None:
     """Test POST /rules/publish returns 409 when version already exists."""
-    mock_rule_version_service.publish_version.side_effect = VersionAlreadyExistsError("0.1.0")
+    mock_rule_version_service.publish_version = AsyncMock(
+        side_effect=VersionAlreadyExistsError("0.1.0")
+    )
 
     payload = {
         "version": "0.1.0",
@@ -217,7 +222,9 @@ async def test_publish_rules_invalid_format(
     client: AsyncClient, mock_rule_version_service: AsyncMock
 ) -> None:
     """Test POST /rules/publish returns 400 for invalid semver."""
-    mock_rule_version_service.publish_version.side_effect = InvalidVersionFormatError("invalid")
+    mock_rule_version_service.publish_version = AsyncMock(
+        side_effect=InvalidVersionFormatError("invalid")
+    )
 
     payload = {
         "version": "invalid",

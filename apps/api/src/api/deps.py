@@ -106,22 +106,22 @@ def get_attachment_service(
 
 def get_rule_version_repository(
     session: AsyncSession = Depends(get_session),
-) -> "PostgresRuleVersionRepository":
+) -> PostgresRuleVersionRepository:
     from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
 
     return PostgresRuleVersionRepository(session)
 
 
 def get_rule_version_service(
-    repo: "PostgresRuleVersionRepository" = Depends(get_rule_version_repository),
-) -> "RuleVersionService":
+    repo: PostgresRuleVersionRepository = Depends(get_rule_version_repository),
+) -> RuleVersionService:
     from src.domain.services import RuleVersionService
 
     return RuleVersionService(repo)
 
 
 # Global cache singleton (initialized once at startup)
-_rule_version_cache_instance: "RuleVersionCache | None" = None
+_rule_version_cache_instance: RuleVersionCache | None = None
 
 
 def init_rule_version_cache() -> None:
@@ -133,7 +133,7 @@ def init_rule_version_cache() -> None:
         _rule_version_cache_instance = RuleVersionCache(ttl_seconds=300)
 
 
-def get_rule_version_cache() -> "RuleVersionCache":
+def get_rule_version_cache() -> RuleVersionCache:
     """Get the singleton rule version cache instance."""
     global _rule_version_cache_instance
     if _rule_version_cache_instance is None:

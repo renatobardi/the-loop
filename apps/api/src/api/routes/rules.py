@@ -318,7 +318,7 @@ async def deprecate_rules_version(
         return DeprecateRulesResponse(
             message=f"Deprecated version {deprecated_version.version}",
             version=deprecated_version.version,
-            deprecated_at=deprecated_version.deprecated_at,
+            deprecated_at=deprecated_version.deprecated_at,  # type: ignore[arg-type]
         )
 
     except RuleVersionNotFoundError as e:

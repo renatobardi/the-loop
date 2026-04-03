@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.firebase.auth import get_current_user
 from src.adapters.postgres.action_item_repository import PostgresActionItemRepository
 from src.adapters.postgres.attachment_repository import PostgresAttachmentRepository
+from src.adapters.postgres.postmortem_repository import PostgresPostmortumRepository
 from src.adapters.postgres.repository import PostgresIncidentRepository
 from src.adapters.postgres.responder_repository import PostgresResponderRepository
 from src.adapters.postgres.session import get_async_session
@@ -20,6 +21,7 @@ from src.domain.services import (
     ActionItemService,
     AttachmentService,
     IncidentService,
+    PostmortumService,
     ResponderService,
     TimelineEventService,
 )
@@ -99,6 +101,18 @@ def get_attachment_service(
     repo: PostgresAttachmentRepository = Depends(get_attachment_repository),
 ) -> AttachmentService:
     return AttachmentService(repo)
+
+
+def get_postmortem_repository(
+    session: AsyncSession = Depends(get_session),
+) -> PostgresPostmortumRepository:
+    return PostgresPostmortumRepository(session)
+
+
+def get_postmortem_service(
+    repo: PostgresPostmortumRepository = Depends(get_postmortem_repository),
+) -> PostmortumService:
+    return PostmortumService(repo)
 
 
 # ─── Phase B: API Integration & Versioning ───────────────────────────────────

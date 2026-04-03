@@ -148,9 +148,7 @@ async def test_update_incident_200(client: AsyncClient, mock_service: AsyncMock)
 async def test_update_incident_404(client: AsyncClient, mock_service: AsyncMock) -> None:
     mock_service.update.side_effect = IncidentNotFoundError(str(_INCIDENT_ID))
 
-    resp = await client.put(
-        f"/api/v1/incidents/{_INCIDENT_ID}", json={"version": 1}
-    )
+    resp = await client.put(f"/api/v1/incidents/{_INCIDENT_ID}", json={"version": 1})
 
     assert resp.status_code == 404
 
@@ -160,9 +158,7 @@ async def test_update_incident_409_optimistic_lock(
 ) -> None:
     mock_service.update.side_effect = OptimisticLockError(str(_INCIDENT_ID), 2)
 
-    resp = await client.put(
-        f"/api/v1/incidents/{_INCIDENT_ID}", json={"version": 1}
-    )
+    resp = await client.put(f"/api/v1/incidents/{_INCIDENT_ID}", json={"version": 1})
 
     assert resp.status_code == 409
     assert "current_version" in resp.json()["detail"]
@@ -171,9 +167,7 @@ async def test_update_incident_409_optimistic_lock(
 async def test_update_incident_409_active_rule(
     client: AsyncClient, mock_service: AsyncMock
 ) -> None:
-    mock_service.update.side_effect = IncidentHasActiveRuleError(
-        str(_INCIDENT_ID), "injection-001"
-    )
+    mock_service.update.side_effect = IncidentHasActiveRuleError(str(_INCIDENT_ID), "injection-001")
 
     resp = await client.put(
         f"/api/v1/incidents/{_INCIDENT_ID}",
@@ -319,9 +313,7 @@ async def test_create_incident_with_raw_content_preserved(
     raw = {"summary": "DB fell over", "root_cause": "missing index"}
     mock_service.create.return_value = _make_incident(raw_content=raw)
 
-    resp = await client.post(
-        "/api/v1/incidents", json={**_CREATE_BODY, "raw_content": raw}
-    )
+    resp = await client.post("/api/v1/incidents", json={**_CREATE_BODY, "raw_content": raw})
 
     assert resp.status_code == 201
     assert resp.json()["raw_content"] == raw

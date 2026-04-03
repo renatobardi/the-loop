@@ -144,24 +144,45 @@ class IncidentService:
             raise IncidentNotFoundError(str(incident_id))
 
         new_category = fields.get("category", existing.category)
-        if (
-            existing.semgrep_rule_id
-            and new_category != existing.category
-        ):
+        if existing.semgrep_rule_id and new_category != existing.category:
             raise IncidentHasActiveRuleError(str(incident_id), existing.semgrep_rule_id)
 
         update_data: dict[str, object] = {}
         allowed_fields = {
-            "title", "date", "source_url", "organization", "category",
-            "subcategory", "failure_mode", "severity", "affected_languages",
-            "anti_pattern", "code_example", "remediation", "static_rule_possible",
-            "semgrep_rule_id", "tags",
-            "started_at", "detected_at", "ended_at", "resolved_at",
-            "impact_summary", "customers_affected", "sla_breached", "slo_breached",
-            "postmortem_status", "postmortem_published_at", "postmortem_due_date",
-            "lessons_learned", "why_we_were_surprised", "detection_method",
-            "slack_channel_id", "external_tracking_id", "incident_lead_id",
-            "raw_content", "tech_context",
+            "title",
+            "date",
+            "source_url",
+            "organization",
+            "category",
+            "subcategory",
+            "failure_mode",
+            "severity",
+            "affected_languages",
+            "anti_pattern",
+            "code_example",
+            "remediation",
+            "static_rule_possible",
+            "semgrep_rule_id",
+            "tags",
+            "started_at",
+            "detected_at",
+            "ended_at",
+            "resolved_at",
+            "impact_summary",
+            "customers_affected",
+            "sla_breached",
+            "slo_breached",
+            "postmortem_status",
+            "postmortem_published_at",
+            "postmortem_due_date",
+            "lessons_learned",
+            "why_we_were_surprised",
+            "detection_method",
+            "slack_channel_id",
+            "external_tracking_id",
+            "incident_lead_id",
+            "raw_content",
+            "tech_context",
         }
         for key, value in fields.items():
             if key in allowed_fields:

@@ -162,9 +162,7 @@ async def test_soft_delete_success(service: IncidentService, repo: AsyncMock) ->
     repo.soft_delete.assert_awaited_once_with(incident.id)
 
 
-async def test_list_incidents_delegates_to_repo(
-    service: IncidentService, repo: AsyncMock
-) -> None:
+async def test_list_incidents_delegates_to_repo(service: IncidentService, repo: AsyncMock) -> None:
     incidents = [_make_incident(), _make_incident()]
     repo.list_incidents.return_value = (incidents, 2)
 
@@ -176,9 +174,7 @@ async def test_list_incidents_delegates_to_repo(
     assert total == 2
 
 
-async def test_list_incidents_clamps_pagination(
-    service: IncidentService, repo: AsyncMock
-) -> None:
+async def test_list_incidents_clamps_pagination(service: IncidentService, repo: AsyncMock) -> None:
     repo.list_incidents.return_value = ([], 0)
 
     await service.list_incidents(page=0, per_page=200)

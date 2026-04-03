@@ -89,9 +89,7 @@ async def test_create_action_item(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_action_item_service.create_action_item.return_value = _make_item()
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/action-items", json=_CREATE_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/action-items", json=_CREATE_BODY)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -156,9 +154,7 @@ async def test_list_action_items_filter_by_status(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_action_item_service.list_action_items.return_value = [_make_item()]
 
-    resp = await client.get(
-        f"/api/v1/incidents/{_INCIDENT_ID}/action-items?status=open"
-    )
+    resp = await client.get(f"/api/v1/incidents/{_INCIDENT_ID}/action-items?status=open")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -176,9 +172,7 @@ async def test_delete_action_item(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_action_item_service.delete_action_item.return_value = None
 
-    resp = await client.delete(
-        f"/api/v1/incidents/{_INCIDENT_ID}/action-items/{_ITEM_ID}"
-    )
+    resp = await client.delete(f"/api/v1/incidents/{_INCIDENT_ID}/action-items/{_ITEM_ID}")
 
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Action item deleted"
@@ -194,7 +188,5 @@ async def test_delete_incident_cascades_to_action_items(
     resp = await client.get(f"/api/v1/incidents/{_INCIDENT_ID}/action-items")
     assert resp.status_code == 404
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/action-items", json=_CREATE_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/action-items", json=_CREATE_BODY)
     assert resp.status_code == 404

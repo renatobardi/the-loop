@@ -61,9 +61,7 @@ class PostgresAttachmentRepository:
         return _row_to_attachment(row)
 
     async def list_by_incident(self, incident_id: UUID) -> list[IncidentAttachment]:
-        stmt = select(IncidentAttachmentRow).where(
-            IncidentAttachmentRow.incident_id == incident_id
-        )
+        stmt = select(IncidentAttachmentRow).where(IncidentAttachmentRow.incident_id == incident_id)
         result = await self._session.execute(stmt)
         return [_row_to_attachment(r) for r in result.scalars().all()]
 

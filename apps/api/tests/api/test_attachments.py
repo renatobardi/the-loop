@@ -100,9 +100,7 @@ async def test_register_attachment(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_attachment_service.register_attachment.return_value = _make_attachment()
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/attachments", json=_REGISTER_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/attachments", json=_REGISTER_BODY)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -117,9 +115,7 @@ async def test_zero_file_size_returns_422(
     mock_attachment_service: AsyncMock,
 ) -> None:
     body = {**_REGISTER_BODY, "file_size_bytes": 0}
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/attachments", json=body
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/attachments", json=body)
 
     assert resp.status_code == 422
 
@@ -156,9 +152,7 @@ async def test_delete_attachment_returns_200(
     mock_incident_service.get_by_id.return_value = _make_incident()
     mock_attachment_service.delete_attachment.return_value = None
 
-    resp = await client.delete(
-        f"/api/v1/incidents/{_INCIDENT_ID}/attachments/{_ATTACHMENT_ID}"
-    )
+    resp = await client.delete(f"/api/v1/incidents/{_INCIDENT_ID}/attachments/{_ATTACHMENT_ID}")
 
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Attachment deleted"
@@ -174,7 +168,5 @@ async def test_delete_incident_cascades_to_attachments(
     resp = await client.get(f"/api/v1/incidents/{_INCIDENT_ID}/attachments")
     assert resp.status_code == 404
 
-    resp = await client.post(
-        f"/api/v1/incidents/{_INCIDENT_ID}/attachments", json=_REGISTER_BODY
-    )
+    resp = await client.post(f"/api/v1/incidents/{_INCIDENT_ID}/attachments", json=_REGISTER_BODY)
     assert resp.status_code == 404

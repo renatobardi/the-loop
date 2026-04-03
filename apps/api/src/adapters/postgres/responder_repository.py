@@ -56,9 +56,7 @@ class PostgresResponderRepository:
         return _row_to_responder(row)
 
     async def list_by_incident(self, incident_id: UUID) -> list[IncidentResponder]:
-        stmt = select(IncidentResponderRow).where(
-            IncidentResponderRow.incident_id == incident_id
-        )
+        stmt = select(IncidentResponderRow).where(IncidentResponderRow.incident_id == incident_id)
         result = await self._session.execute(stmt)
         return [_row_to_responder(r) for r in result.scalars().all()]
 

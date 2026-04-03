@@ -62,9 +62,7 @@ class IncidentRow(Base):
     customers_affected: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sla_breached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     slo_breached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    postmortem_status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="draft"
-    )
+    postmortem_status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft")
     postmortem_published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

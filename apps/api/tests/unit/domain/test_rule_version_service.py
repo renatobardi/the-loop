@@ -130,9 +130,7 @@ class TestRuleVersionService:
             }
         ]
 
-        result = await service.publish_version(
-            "0.1.0", rules_json, user_id, "Release notes"
-        )
+        result = await service.publish_version("0.1.0", rules_json, user_id, "Release notes")
 
         assert result == sample_rule_version
         service._repo.publish_version.assert_called_once_with(
@@ -141,9 +139,7 @@ class TestRuleVersionService:
 
     async def test_publish_version_duplicate(self, service: RuleVersionService) -> None:
         """Test publish_version raises on duplicate version."""
-        service._repo.publish_version = AsyncMock(
-            side_effect=VersionAlreadyExistsError("0.1.0")
-        )
+        service._repo.publish_version = AsyncMock(side_effect=VersionAlreadyExistsError("0.1.0"))
         user_id = uuid4()
 
         with pytest.raises(VersionAlreadyExistsError):
@@ -151,9 +147,7 @@ class TestRuleVersionService:
 
     async def test_publish_version_invalid_semver(self, service: RuleVersionService) -> None:
         """Test publish_version raises on invalid semver."""
-        service._repo.publish_version = AsyncMock(
-            side_effect=InvalidVersionFormatError("invalid")
-        )
+        service._repo.publish_version = AsyncMock(side_effect=InvalidVersionFormatError("invalid"))
         user_id = uuid4()
 
         with pytest.raises(InvalidVersionFormatError):
@@ -182,9 +176,7 @@ class TestRuleVersionService:
 
     async def test_deprecate_version_not_found(self, service: RuleVersionService) -> None:
         """Test deprecate_version raises when version not found."""
-        service._repo.deprecate_version = AsyncMock(
-            side_effect=RuleVersionNotFoundError("0.99.0")
-        )
+        service._repo.deprecate_version = AsyncMock(side_effect=RuleVersionNotFoundError("0.99.0"))
 
         with pytest.raises(RuleVersionNotFoundError):
             await service.deprecate_version("0.99.0")

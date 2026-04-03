@@ -60,9 +60,7 @@ class PostgresActionItemRepository:
         *,
         status_filter: ActionItemStatus | None = None,
     ) -> list[IncidentActionItem]:
-        stmt = select(IncidentActionItemRow).where(
-            IncidentActionItemRow.incident_id == incident_id
-        )
+        stmt = select(IncidentActionItemRow).where(IncidentActionItemRow.incident_id == incident_id)
         if status_filter is not None:
             stmt = stmt.where(IncidentActionItemRow.status == status_filter.value)
         result = await self._session.execute(stmt)

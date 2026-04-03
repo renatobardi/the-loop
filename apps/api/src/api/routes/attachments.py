@@ -12,9 +12,7 @@ from src.domain.exceptions import AttachmentNotFoundError, IncidentNotFoundError
 from src.domain.models import AttachmentType, IncidentAttachment
 from src.domain.services import AttachmentService, IncidentService
 
-router = APIRouter(
-    prefix="/api/v1/incidents/{incident_id}/attachments", tags=["attachments"]
-)
+router = APIRouter(prefix="/api/v1/incidents/{incident_id}/attachments", tags=["attachments"])
 
 
 class AttachmentRegisterRequest(BaseModel):
@@ -80,9 +78,7 @@ class AttachmentListResponse(BaseModel):
     total: int
 
 
-async def _get_incident_or_404(
-    incident_id: UUID, incident_service: IncidentService
-) -> None:
+async def _get_incident_or_404(incident_id: UUID, incident_service: IncidentService) -> None:
     try:
         await incident_service.get_by_id(incident_id)
     except IncidentNotFoundError as e:

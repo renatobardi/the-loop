@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import func, or_, select, update
@@ -130,7 +130,7 @@ class PostgresIncidentRepository:
         return _row_to_domain(row) if row else None
 
     async def update(self, incident: Incident, expected_version: int) -> Incident:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         stmt = (
             update(IncidentRow)
             .where(
@@ -203,7 +203,7 @@ class PostgresIncidentRepository:
             return None
         if row.deleted_at is not None:
             return _row_to_domain(row)
-        row.deleted_at = datetime.now(UTC)
+        row.deleted_at = datetime.now(timezone.utc)
         await self._session.commit()
         await self._session.refresh(row)
         return _row_to_domain(row)

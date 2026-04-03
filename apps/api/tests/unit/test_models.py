@@ -1,6 +1,6 @@
 """Unit tests for domain models — validation, enums, boundaries."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -15,8 +15,8 @@ def _make_incident(**overrides: object) -> Incident:
         "severity": Severity.HIGH,
         "anti_pattern": "Direct SQL concatenation",
         "remediation": "Use parameterized queries",
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
         "created_by": uuid4(),
     }
     defaults.update(overrides)
@@ -124,7 +124,7 @@ class TestIncident:
         assert incident.detection_method == DetectionMethod.MONITORING_ALERT
 
     def test_temporal_constraint_detect_before_start_rejected(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         with pytest.raises(ValueError, match="detected_at"):
             _make_incident(
                 started_at=now,
@@ -132,7 +132,7 @@ class TestIncident:
             )
 
     def test_temporal_constraint_end_before_resolve_rejected(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         with pytest.raises(ValueError, match="resolved_at"):
             _make_incident(
                 ended_at=now,
@@ -140,7 +140,7 @@ class TestIncident:
             )
 
     def test_temporal_constraint_valid_order_accepted(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             started_at=now,
             detected_at=now + timedelta(minutes=2),
@@ -150,7 +150,7 @@ class TestIncident:
         assert incident.started_at == now
 
     def test_duration_minutes_computed(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             started_at=now,
             ended_at=now + timedelta(minutes=42),
@@ -158,11 +158,11 @@ class TestIncident:
         assert incident.duration_minutes == 42
 
     def test_duration_minutes_none_when_missing_timestamps(self) -> None:
-        incident = _make_incident(started_at=datetime.now(UTC))
+        incident = _make_incident(started_at=datetime.now(timezone.utc))
         assert incident.duration_minutes is None
 
     def test_time_to_detect_minutes_computed(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             started_at=now,
             detected_at=now + timedelta(minutes=3),
@@ -170,7 +170,7 @@ class TestIncident:
         assert incident.time_to_detect_minutes == 3
 
     def test_time_to_resolve_minutes_computed(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             started_at=now,
             resolved_at=now + timedelta(minutes=120),

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import uuid4
 
 import pytest
@@ -10,7 +10,7 @@ from src.domain.models import AttachmentExtractionStatus, AttachmentType, Incide
 
 
 def _make_attachment(**overrides: object) -> IncidentAttachment:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     defaults: dict[str, object] = {
         "id": uuid4(),
         "incident_id": uuid4(),

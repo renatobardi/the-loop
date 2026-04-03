@@ -15,7 +15,7 @@ Session strategy:
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy import text
@@ -31,7 +31,7 @@ from src.adapters.postgres.models import (
 
 from tests.integration.conftest import _make_session_factory
 
-_NOW = datetime.now(UTC)
+_NOW = datetime.now(timezone.utc)
 
 
 def _incident(**overrides: object) -> IncidentRow:

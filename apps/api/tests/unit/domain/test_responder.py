@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -10,7 +10,7 @@ from src.domain.models import IncidentResponder, ResponderRole
 
 
 def _make_responder(**overrides: object) -> IncidentResponder:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     defaults: dict[str, object] = {
         "id": uuid4(),
         "incident_id": uuid4(),
@@ -32,13 +32,13 @@ def test_create_responder() -> None:
 
 
 def test_left_before_joined_rejected() -> None:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     with pytest.raises(ValueError, match="left_at"):
         _make_responder(joined_at=now, left_at=now - timedelta(hours=1))
 
 
 def test_left_at_equal_joined_at_allowed() -> None:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     r = _make_responder(joined_at=now, left_at=now)
     assert r.left_at == r.joined_at
 

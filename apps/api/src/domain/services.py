@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from uuid import UUID, uuid4
 
 from src.domain.exceptions import (
@@ -78,7 +78,7 @@ class IncidentService:
         raw_content: dict[str, object] | None = None,
         tech_context: dict[str, object] | None = None,
     ) -> Incident:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = Incident(
             id=uuid4(),
             title=title,
@@ -170,7 +170,7 @@ class IncidentService:
             and existing.postmortem_published_at is None
             and "postmortem_published_at" not in update_data
         ):
-            update_data["postmortem_published_at"] = datetime.now(UTC)
+            update_data["postmortem_published_at"] = datetime.now(timezone.utc)
 
         updated = existing.model_copy(update=update_data)
         return await self._repo.update(updated, expected_version)
@@ -220,7 +220,7 @@ class TimelineEventService:
         duration_minutes: int | None = None,
         external_reference_url: str | None = None,
     ) -> IncidentTimelineEvent:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         event = IncidentTimelineEvent(
             id=uuid4(),
             incident_id=incident_id,
@@ -255,7 +255,7 @@ class ResponderService:
         joined_at: datetime | None = None,
         contribution_summary: str | None = None,
     ) -> IncidentResponder:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         responder = IncidentResponder(
             id=uuid4(),
             incident_id=incident_id,
@@ -279,7 +279,7 @@ class ResponderService:
         existing = await self._repo.get_by_id(responder_id)
         if existing is None:
             raise ResponderNotFoundError(str(responder_id))
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         updated = existing.model_copy(update={**fields, "updated_at": now})
         return await self._repo.update(updated)
 
@@ -301,7 +301,7 @@ class ActionItemService:
         priority: ActionItemPriority = ActionItemPriority.MEDIUM,
         due_date: date | None = None,
     ) -> IncidentActionItem:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         item = IncidentActionItem(
             id=uuid4(),
             incident_id=incident_id,
@@ -332,7 +332,7 @@ class ActionItemService:
         existing = await self._repo.get_by_id(item_id)
         if existing is None:
             raise ActionItemNotFoundError(str(item_id))
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         update_data: dict[str, object] = {**fields, "updated_at": now}
         if (
             update_data.get("status") == ActionItemStatus.COMPLETED
@@ -365,7 +365,7 @@ class AttachmentService:
         source_system: str | None = None,
         source_url: str | None = None,
     ) -> IncidentAttachment:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         attachment = IncidentAttachment(
             id=uuid4(),
             incident_id=incident_id,

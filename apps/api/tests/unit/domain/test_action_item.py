@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import uuid4
 
 import pytest
@@ -10,7 +10,7 @@ from src.domain.models import ActionItemPriority, ActionItemStatus, IncidentActi
 
 
 def _make_item(**overrides: object) -> IncidentActionItem:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     defaults: dict[str, object] = {
         "id": uuid4(),
         "incident_id": uuid4(),

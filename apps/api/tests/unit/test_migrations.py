@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -17,8 +17,8 @@ def _make_incident(**overrides: object) -> Incident:
         "severity": Severity.HIGH,
         "anti_pattern": "Direct SQL concatenation",
         "remediation": "Use parameterized queries",
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
         "created_by": uuid4(),
     }
     defaults.update(overrides)
@@ -74,7 +74,7 @@ class TestMigration002CustomersAffectedConstraint:
 
 class TestMigration002TemporalOrderingConstraint:
     def test_detect_after_start_valid(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             started_at=now,
             detected_at=now + timedelta(minutes=5),
@@ -82,7 +82,7 @@ class TestMigration002TemporalOrderingConstraint:
         assert incident.detected_at > incident.started_at  # type: ignore[operator]
 
     def test_detect_before_start_rejected(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         with pytest.raises(ValueError, match="detected_at"):
             _make_incident(
                 started_at=now,
@@ -90,7 +90,7 @@ class TestMigration002TemporalOrderingConstraint:
             )
 
     def test_resolve_after_end_valid(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             ended_at=now,
             resolved_at=now + timedelta(minutes=5),
@@ -98,7 +98,7 @@ class TestMigration002TemporalOrderingConstraint:
         assert incident.resolved_at > incident.ended_at  # type: ignore[operator]
 
     def test_resolve_before_end_rejected(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         with pytest.raises(ValueError, match="resolved_at"):
             _make_incident(
                 ended_at=now,
@@ -106,12 +106,12 @@ class TestMigration002TemporalOrderingConstraint:
             )
 
     def test_equal_timestamps_allowed(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(started_at=now, detected_at=now)
         assert incident.started_at == incident.detected_at
 
     def test_independent_pairs_not_cross_validated(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         # detected_at before ended_at is fine — no constraint between them
         incident = _make_incident(
             started_at=now,
@@ -146,7 +146,7 @@ class TestBackfillStartedAt:
         assert simulated_started_at == created_at
 
     def test_backfill_skips_already_set_started_at(self) -> None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         incident = _make_incident(
             started_at=now,
             date=date(2024, 6, 15),

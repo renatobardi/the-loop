@@ -56,8 +56,6 @@ class PostgresPostmortumRepository:
         )
         self._session.add(row)
         await self._session.flush()
-        await self._session.commit()
-        await self._session.refresh(row)
         return _row_to_postmortem(row)
 
     async def get_by_id(self, postmortem_id: UUID) -> Postmortem:
@@ -91,8 +89,6 @@ class PostgresPostmortumRepository:
         row.is_locked = postmortem.is_locked
 
         await self._session.flush()
-        await self._session.commit()
-        await self._session.refresh(row)
         return _row_to_postmortem(row)
 
     async def delete(self, postmortem_id: UUID) -> None:
@@ -101,7 +97,7 @@ class PostgresPostmortumRepository:
         if row is None:
             raise PostmortumNotFoundError(postmortem_id)
         await self._session.delete(row)
-        await self._session.commit()
+        await self._session.flush()
 
     async def list_all(self) -> list[Postmortem]:
         """List all postmortems ordered by created_at descending."""

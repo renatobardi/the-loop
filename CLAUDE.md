@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The Loop — incident prevention platform. Monorepo with two apps:
 
 - **`apps/web/`** — SvelteKit 2 + Svelte 5 (runes), Tailwind CSS 4, Firebase Firestore. English-only. Phase 0: landing page + waitlist. Phase 1: incident CRUD UI. Phase C.1: postmortem capture. Phase C.2: analytics dashboard.
-- **`apps/api/`** — Python 3.12 FastAPI backend, SQLAlchemy 2.0 (async), Pydantic v2, PostgreSQL 16 + pgvector. Hexagonal architecture (domain/ports/adapters). Phase 1: incident CRUD. Phase C.1: postmortems API. Phase C.2: analytics API. Phase B: Semgrep rules distribution.
+- **`apps/api/`** — Python 3.12 FastAPI backend, SQLAlchemy 2.0 (async), Pydantic v2, PostgreSQL 16 + pgvector. Hexagonal architecture (domain/ports/adapters). Phase 1: incident CRUD. Phase C.1: postmortems API. Phase C.2: analytics API. Phase B: Semgrep rules distribution. Spec-016: API keys, scan history, admin rules.
 
 Deployed to GCP Cloud Run. Single environment: `main` = production.
 
@@ -111,8 +111,9 @@ Use these in all imports for cleaner, import-agnostic code.
 - **`adapters/postgres/`** — SQLAlchemy ORM row models (`*Row`) + repository implementations. Row models use `Mapped[T]` + `mapped_column()`. Enum values stored as `.value` in DB and reconstructed via `EnumType(row.column)` in the repo.
 - **`adapters/firebase/auth.py`** — Firebase token verification. Non-UUID Firebase UIDs are deterministically mapped to UUID5 via `uuid5(NAMESPACE_URL, f"firebase:{uid}")`.
 - **`api/`** — FastAPI routes, middleware, dependencies. `middleware.py` implements request ID injection (X-Request-ID header) and slowapi rate limiting. Structured logging via structlog.
-- **`api/deps.py`** — Stacked `Depends()` chain: session → repository → service → authenticated user. Each route receives only its specific service.
+- **`api/deps.py`** — Stacked `Depends()` chain: session → repository → service → authenticated user. Each route receives only its specific service. Auth tiers: `ApiKeyIdentity` (API key auth for scanner workflow), `get_optional_identity` (public endpoints that accept either Firebase or API key). New routes: `/api/v1/api-keys` (CRUD for API keys), `/api/v1/scans` (scan history ingestion and retrieval).
 - **`config.py`** — Configuration. **`main.py`** — App entrypoint with `GET /api/v1/health` check.
+- **`domain/models.py`** — includes `ApiKey` and `Scan` domain models (Spec-016).
 
 #### Sub-Resource Hexagonal Pattern
 
@@ -231,15 +232,18 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 - **Web CI**: lint + check + test + build + Trivy (`the-loop` Cloud Run)
 - **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy (`theloop-api` Cloud Run)
 
-## Semgrep Integration (Specs 010–011, Phases A & B)
+## Semgrep Integration (Specs 010–011–016, Phases A, B & C)
 
 The Loop distributes Semgrep rules via API. The CI workflow (`.github/workflows/theloop-guard.yml`) runs on every PR: fetches rules from `GET /api/v1/rules/{VERSION}`, converts JSON → YAML via `scripts/json_to_semgrep_yaml.py`, then scans. Falls back to `.semgrep/theloop-rules.yml.bak` (Phase A, 6 base rules) on API timeout.
 
 - **ERROR** findings block merge; **WARNING** findings are advisory only
 - Phase A (v0.1.0): 6 rules — SQL injection, eval, shell injection, hardcoded secrets, bare except, ReDoS
 - Phase B (v0.2.0): 14 additional rules — path traversal, XXE, weak crypto, TLS disabled, CORS wildcard, N+1, Docker root, DEBUG enabled, etc.
+- Phase C (v0.3.0): 25 new rules — 15 JS/TS + 10 Go (injection, crypto, security, performance, error handling). Total: 45 rules.
 - Version pinning: set GitHub Actions variable `THELOOP_RULES_VERSION=0.1.0` to pin to Phase A
 - Never delete `.semgrep/theloop-rules.yml.bak` — it's the non-negotiable fallback
+- Public rule browser: `loop.oute.pro/rules/latest` (no auth required)
+- Scan history: each workflow run posts to `POST /api/v1/scans` (best-effort, `continue-on-error: true`)
 
 ```bash
 # Local rule testing

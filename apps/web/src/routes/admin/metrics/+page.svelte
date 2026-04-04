@@ -74,7 +74,7 @@
 					<p class="text-sm font-medium text-text mb-3">Scans by Week</p>
 					{#if metrics.scans_by_week.length}
 						<div class="flex items-end gap-1 h-16">
-							{#each metrics.scans_by_week.slice(-24) as week}
+							{#each metrics.scans_by_week.slice(-24) as week (week.week)}
 								<div class="flex-1 flex flex-col items-center gap-0.5">
 									<div
 										class="w-full rounded-sm bg-accent/60"
@@ -97,7 +97,7 @@
 					<div class="p-4 mt-4">
 						<p class="text-sm font-medium text-text mb-3">Top Languages</p>
 						<div class="space-y-2">
-							{#each metrics.top_languages as lang}
+							{#each metrics.top_languages as lang (lang.language)}
 								<div class="flex items-center justify-between">
 									<span class="text-sm text-text">{lang.language}</span>
 									<span class="text-sm text-text-muted">{lang.count} findings</span>

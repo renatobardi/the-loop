@@ -13,7 +13,7 @@ async function getAuthToken(): Promise<string> {
 	return user.getIdToken();
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: Parameters<typeof fetch>[1]): Promise<T> {
 	const token = await getAuthToken();
 	const response = await fetch(path, {
 		...options,

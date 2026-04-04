@@ -425,7 +425,7 @@
 						<p class="text-sm text-text-muted">No API keys yet.</p>
 					{:else}
 						<div class="space-y-3">
-							{#each apiKeys as key}
+							{#each apiKeys as key (key.id)}
 								<div class="rounded-lg border border-border bg-bg-surface p-4">
 									<div class="flex items-start justify-between gap-2">
 										<div>
@@ -463,7 +463,7 @@
 											{#if expandedWhitelist[key.id]}
 												<div class="mt-2 space-y-1">
 													{#if whitelistMap[key.id]?.length}
-														{#each whitelistMap[key.id] as ruleId}
+														{#each whitelistMap[key.id] as ruleId, i (i)}
 															<div class="flex items-center justify-between">
 																<span class="font-mono text-xs text-text">{ruleId}</span>
 																<button
@@ -526,7 +526,7 @@
 								class="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text focus:border-accent focus:outline-none"
 							>
 								<option value="">— Select a key —</option>
-								{#each apiKeys.filter((k) => !k.revoked_at) as key}
+								{#each apiKeys.filter((k) => !k.revoked_at) as key (key.id)}
 									<option value={key.id}>{key.name} ({key.prefix}…)</option>
 								{/each}
 							</select>

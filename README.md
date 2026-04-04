@@ -79,16 +79,20 @@ Automatic on merge to `main` via GitHub Actions:
 2. Docker build → Artifact Registry
 3. Cloud Run deploy (web: `the-loop`, api: `theloop-api`)
 
-## Phase B: Rule Versioning API
+## API Keys & Scan History
 
-Phase B introduces **semantic versioning for Semgrep rules** with production-ready API endpoints:
+Each repository using The Loop scanner authenticates with a `THELOOP_API_TOKEN` (API key). Keys are created and revoked from the user dashboard at `loop.oute.pro/settings/`. Each scan execution posts a record to `POST /api/v1/scans`, storing repository, branch, PR number, findings count, rules version, and duration. Scan history is visible in the violations dashboard at `loop.oute.pro/dashboard/`.
+
+## Semgrep Rule Versioning API
+
+The Loop distributes Semgrep rules via a versioned API, enabling rollback, deprecation, and multi-language expansion:
 
 ### Features
 - **Versioned rule releases** (semantic versioning X.Y.Z)
 - **5-minute cache** on `/latest` for performance
 - **Deprecation & rollback** (instant version rollback on discovery of issues)
 - **Admin publishing** (Firebase-authenticated API for publishing new versions)
-- **100% test coverage** (51 unit/integration tests, all CI gates pass)
+- **Multi-language rules**: Python, JS/TS, Go
 
 ### API Endpoints
 
@@ -117,7 +121,7 @@ curl https://api.loop.oute.pro/api/v1/rules/versions \
   | jq '.versions[] | {version, status, created_at}'
 
 # Deprecate a version (admin only)
-curl -X POST https://theloop-api.../api/v1/rules/deprecate \
+curl -X POST https://api.loop.oute.pro/api/v1/rules/deprecate \
   -H "Authorization: Bearer $FIREBASE_TOKEN" \
   -d '{"version": "0.1.0"}'
 ```
@@ -133,6 +137,7 @@ curl -X POST https://theloop-api.../api/v1/rules/deprecate \
 
 | Version | Status | Rules | Released |
 |---------|--------|-------|----------|
+| 0.3.0 | ACTIVE | 45 (20 Python + 15 JS/TS + 10 Go) | — |
 | 0.2.0 | ACTIVE | 20 (6 Phase A + 14 Phase B) | 2026-04-03 |
 | 0.1.0 | ACTIVE | 6 (Phase A) | 2026-02-01 |
 

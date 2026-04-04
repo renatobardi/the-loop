@@ -90,7 +90,7 @@
 			{:else if versions.length === 0}
 				<p class="text-sm text-text-muted">No versions published yet.</p>
 			{:else}
-				{#each versions as v}
+				{#each versions as v (v.version)}
 					<Card>
 						<div class="p-4 flex items-center justify-between">
 							<div class="flex items-center gap-3">

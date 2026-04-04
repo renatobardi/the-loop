@@ -72,10 +72,27 @@ jobs:
             echo "❌ Rules JSON file not found"
             exit 1
           fi
-          python3 scripts/json_to_semgrep_yaml.py \
-            --input /tmp/rules.json \
-            --output .semgrep/theloop-rules.yml
-          echo "✅ Conversion complete"
+
+          # Check if JSON has valid 'rules' key (API response format)
+          HAS_RULES_KEY=$(python3 -c "import json, sys; data=json.load(open('/tmp/rules.json')); print('true' if 'rules' in data else 'false')" 2>/dev/null || echo "false")
+
+          if [ "$HAS_RULES_KEY" == "false" ] || [ "${{ steps.fetch_rules.outputs.fallback }}" == "true" ]; then
+            # Using fallback YAML or API returned invalid JSON
+            echo "⚠️  Using fallback rules (already YAML format or invalid API response)"
+            if [ -f ".semgrep/theloop-rules.yml.bak" ]; then
+              cp .semgrep/theloop-rules.yml.bak .semgrep/theloop-rules.yml
+              echo "✅ Fallback rules loaded"
+            else
+              echo "❌ Fallback rules file not found"
+              exit 1
+            fi
+          else
+            # Valid API JSON with rules
+            python3 scripts/json_to_semgrep_yaml.py \
+              --input /tmp/rules.json \
+              --output .semgrep/theloop-rules.yml
+            echo "✅ Conversion complete"
+          fi
 
       # T007: Validate Semgrep YAML syntax
       - name: Validate Semgrep rules

@@ -6,10 +6,14 @@ __all__ = [
     "DuplicateResponderError",
     "DuplicateSourceUrlError",
     "IncidentHasActiveRuleError",
+    "IncidentMissingPostmortumError",
     # Incident exceptions
     "IncidentNotFoundError",
     "InvalidVersionFormatError",
     "OptimisticLockError",
+    "PostmortumAlreadyExistsError",
+    "PostmortumLockedError",
+    "PostmortumNotFoundError",
     "ResponderNotFoundError",
     # Phase B exceptions
     "RuleVersionNotFoundError",
@@ -47,6 +51,15 @@ class IncidentHasActiveRuleError(Exception):
         self.semgrep_rule_id = semgrep_rule_id
         super().__init__(
             f"Cannot modify incident {incident_id}: active Semgrep rule {semgrep_rule_id}"
+        )
+
+
+class IncidentMissingPostmortumError(Exception):
+    def __init__(self, incident_id: str) -> None:
+        self.incident_id = incident_id
+        super().__init__(
+            f"Cannot resolve incident {incident_id}: postmortem is required before closure. "
+            f"Create a postmortem at POST /api/v1/incidents/{incident_id}/postmortem"
         )
 
 
@@ -100,3 +113,30 @@ class InvalidVersionFormatError(Exception):
     def __init__(self, version: str) -> None:
         self.version = version
         super().__init__(f"Invalid semantic version format: {version}. Expected: X.Y.Z")
+
+
+# ─── Phase C: Incident Knowledge Capture (Postmortem) ────────────────────────
+
+
+class PostmortumNotFoundError(Exception):
+    def __init__(self, postmortem_id: str | object) -> None:
+        self.postmortem_id = postmortem_id
+        super().__init__(f"Postmortem not found: {postmortem_id}")
+
+
+class PostmortumAlreadyExistsError(Exception):
+    def __init__(self, incident_id: str | object) -> None:
+        self.incident_id = incident_id
+        super().__init__(
+            f"Postmortem already exists for incident {incident_id}. "
+            f"Use PUT to update existing postmortem."
+        )
+
+
+class PostmortumLockedError(Exception):
+    def __init__(self, postmortem_id: str | object) -> None:
+        self.postmortem_id = postmortem_id
+        super().__init__(
+            f"Postmortem {postmortem_id} is locked after incident resolution. "
+            f"Create a new incident if you need to add analysis."
+        )

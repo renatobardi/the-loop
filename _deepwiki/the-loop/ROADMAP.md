@@ -1,7 +1,7 @@
 # The Loop — Product Roadmap
 
 **Last Updated**: 2026-04-03  
-**Status**: Phase B complete, Phase C planning
+**Status**: Phase B complete, Phase C.1 in progress (Postmortem Workflow)
 
 ---
 
@@ -35,35 +35,56 @@
 - 51 tests, 80%+ coverage
 - Full documentation (API, versioning, migration, troubleshooting)
 
-### 🔄 Phase C: Scaling & Rules Expansion (Next)
+### 📅 Phase C: Incident Knowledge Capture (In Progress)
 
-**Timeline**: Q2 2026 (8-12 weeks)
+**Timeline**: Q2 2026 (6-8 weeks)
 
-#### C.1: Redis Caching
-- Shared cache across API replicas
-- Survives restarts
-- Key-value store for version metadata
+#### C.1: Postmortem Workflow (🔄 In Progress — Spec-013)
+- Long-form incident analysis (why it happened, impact analysis)
+- Root cause templates + patterns (15 hardcoded MVP)
+- Read-only locking after incident resolution
+- Links to Semgrep rules triggered by incident pattern
 
-#### C.2: 14 Phase B Rules
-- Injection (3): path-traversal, XXE, unsafe-deserialization
-- Crypto (2): weak-MD5, weak-random
-- Security (3): TLS-verify-false, JWT-hardcoded, CORS-wildcard
-- Performance (2): SQL-timeout, N+1-queries
-- Infrastructure (1): Docker-runs-as-root
-- Config (2): hardcoded-URL, DEBUG-enabled
-- Dependencies (1): vulnerable-dependency-scan
+#### C.2: Incident Analytics Dashboard (Next — Spec-014)
+- Top incident categories (by frequency, severity)
+- Team vulnerability heatmap (which teams hit which patterns most?)
+- Rule effectiveness (how many times caught pattern in PRs?)
+- Incident timeline (when did patterns start appearing?)
 
-#### C.3: Workflow Enhancements
+#### C.3: Webhook Integrations (Spec-015)
+- Slack: Post incident detection + analysis to team channels
+- GitHub: Auto-comment on PRs with related past incidents
+- PagerDuty: Create incidents when critical patterns found
+- Custom webhooks for third-party integrations
+
+#### C.4: Phase B Rules Expansion (Spec-012 — Shipped)
+- 14 additional rules (injection, crypto, security, performance, infrastructure, config, dependencies)
+- Semantic versioning (X.Y.Z)
+- Cache layer (5-min TTL on /latest)
 - Version comparison API (`GET /compare?v1=x&v2=y`)
 - Deprecation notifications (email/Slack)
-- Rate limit headers (X-RateLimit-*)
-- Version migration tool (CLI to detect breaking changes)
 
-#### C.4: Admin Dashboard
-- Rule management UI (create/edit/publish/deprecate versions)
+---
+
+### 🔮 Phase C.X: Future Optimization (Deferred)
+
+**Decision**: Defer Redis + advanced features until high-volume data warrants complexity.
+
+#### C.X.1: Redis Caching (When >10 replicas needed)
+- Shared cache across API replicas (survives restarts)
+- Multi-region failover
+- Cache invalidation <100ms across fleet
+
+#### C.X.2: Admin Dashboard
+- Rule management UI (create/edit/publish/deprecate)
 - Version history timeline
 - Deprecation analytics
 
+#### C.X.3: Advanced Features
+- Rate limit headers (X-RateLimit-*)
+- Version migration tool (CLI to detect breaking changes)
+- Custom rule builder (no-code UI)
+- Rule performance profiling
 ---
 
 ### 📋 Phase D: Observability & Compliance (Later)
@@ -91,21 +112,21 @@
 
 ## Current Priorities (Phase C)
 
-### High Priority
-1. **Redis Cache** — Scaling readiness, shared state across replicas
-2. **14 Phase B Rules** — Coverage for Phase B tech stack (crypto, performance, infrastructure)
-3. **Workflow Integration** — `json_to_semgrep_yaml.py`, fallback testing
-4. **Version Comparison** — Support rollback decisions (what changed between versions?)
+### High Priority (In Progress)
+1. **Postmortem Workflow (C.1 — Spec-013)** — Incident analysis, templates, read-only locking ✅ SHIPPED
+2. **Analytics Dashboard (C.2 — Spec-014)** — Category heatmap, team vulnerability analysis
+3. **Webhook Integrations (C.3 — Spec-015)** — Slack, GitHub, PagerDuty notifications
+4. **Dynamic Templates (C.1 — Spec-015)** — Admin UI to create/edit root cause templates
 
 ### Medium Priority
-1. **Admin Dashboard** — Manual version management UI
-2. **Deprecation Notifications** — Email/Slack on new version (opt-in)
-3. **Rate Limit Headers** — Standard HTTP rate limit feedback
+1. **Admin Dashboard (C.X.2)** — Manual version management UI
+2. **Version Migration Tool (C.X.3)** — CLI to detect breaking changes (helpful for ops teams)
+3. **Metrics Dashboard (Phase D)** — Rule adoption, scan latency, false positive rate
 
-### Low Priority
-1. **Version Migration Tool** — CLI to detect breaking changes (helpful for ops teams)
-2. **Metrics Dashboard** — Rule adoption, scan latency, false positive rate
-3. **Analytics** — Organization stats
+### Deferred (Until >10 API Replicas)
+1. **Redis Caching (C.X.1)** — Scaling readiness, shared state across replicas
+2. **Rate Limit Headers (C.X.3)** — Standard HTTP rate limit feedback
+3. **Analytics (Phase D)** — Organization stats
 
 ---
 

@@ -1,7 +1,41 @@
 <script lang="ts">
 	import type { Incident } from '$lib/types/incident';
+	import type { Postmortem } from '$lib/types/postmortem';
+	import { getPostmortemByIncident } from '$lib/services/incidents';
+	import PostmortemForm from '../PostmortemForm.svelte';
+	import RootCauseView from '../RootCauseView.svelte';
 
 	let { incident }: { incident: Incident } = $props();
+
+	let postmortem: Postmortem | null = $state(null);
+	let loading = $state(false);
+	let error = $state<string | null>(null);
+	let loaded = $state(false);
+
+	// Lazy load postmortem when tab becomes active
+	async function loadPostmortem() {
+		if (loaded || loading) return;
+		loading = true;
+		error = null;
+
+		try {
+			postmortem = await getPostmortemByIncident(incident.id);
+		} catch (e) {
+			// 404 is expected when no postmortem exists yet
+			if (e instanceof Error && e.message.includes('404')) {
+				postmortem = null;
+			} else {
+				error = e instanceof Error ? e.message : 'Failed to load postmortem';
+			}
+		} finally {
+			loading = false;
+			loaded = true;
+		}
+	}
+
+	$effect(() => {
+		loadPostmortem();
+	});
 
 	const statusColors: Record<string, string> = {
 		draft: 'bg-bg-elevated text-text-muted',
@@ -25,7 +59,7 @@
 		return daysUntil <= 7;
 	}
 
-	let hasContent = $derived(
+	let hasLegacyContent = $derived(
 		(!!incident.postmortem_status && incident.postmortem_status !== 'draft') ||
 			!!incident.postmortem_published_at ||
 			!!incident.postmortem_due_date ||
@@ -34,9 +68,23 @@
 	);
 </script>
 
-{#if !hasContent}
-	<p class="text-sm text-text-muted">Postmortem not started.</p>
-{:else}
+{#if loading}
+	<div class="flex items-center justify-center py-12">
+		<p class="text-sm text-text-muted">Loading postmortem...</p>
+	</div>
+{:else if error}
+	<div class="rounded bg-error/10 p-4 text-sm text-error">
+		<p class="font-medium">Error loading postmortem</p>
+		<p class="mt-1">{error}</p>
+	</div>
+{:else if postmortem}
+	{#if postmortem.is_locked}
+		<RootCauseView {postmortem} />
+	{:else}
+		<PostmortemForm {incident} {postmortem} />
+	{/if}
+{:else if hasLegacyContent}
+	<!-- Legacy postmortem status display -->
 	<div class="space-y-6 text-sm">
 		<div class="flex flex-wrap gap-4">
 			{#if incident.postmortem_status}
@@ -83,4 +131,6 @@
 			</div>
 		{/if}
 	</div>
+{:else}
+	<PostmortemForm {incident} />
 {/if}

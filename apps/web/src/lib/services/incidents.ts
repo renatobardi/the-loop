@@ -11,6 +11,13 @@ import type { TimelineEventListResponse } from '$lib/types/timeline_event';
 import type { ResponderListResponse } from '$lib/types/responder';
 import type { ActionItemListResponse } from '$lib/types/action_item';
 import type { AttachmentListResponse } from '$lib/types/attachment';
+import type {
+	Postmortem,
+	PostmortumCreateRequest,
+	PostmortumUpdateRequest,
+	TemplateListResponse,
+	PostmortumListResponse
+} from '$lib/types/postmortem';
 import { getFirebaseAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
@@ -116,4 +123,53 @@ export async function updateActionItemStatus(
 
 export async function listAttachments(incidentId: string): Promise<AttachmentListResponse> {
 	return request<AttachmentListResponse>(`${BASE}/${incidentId}/attachments`);
+}
+
+// ─── Postmortem Endpoints ─────────────────────────────────────────────
+
+export async function createPostmortem(
+	incidentId: string,
+	data: PostmortumCreateRequest
+): Promise<Postmortem> {
+	return request<Postmortem>(`${BASE}/${incidentId}/postmortem`, {
+		method: 'POST',
+		body: JSON.stringify(data)
+	});
+}
+
+export async function getPostmortemByIncident(incidentId: string): Promise<Postmortem> {
+	return request<Postmortem>(`${BASE}/${incidentId}/postmortem`);
+}
+
+export async function getPostmortem(postmortemId: string): Promise<Postmortem> {
+	const url = `${API_BASE}/api/v1/postmortems/${postmortemId}`;
+	return request<Postmortem>(url);
+}
+
+export async function updatePostmortem(
+	postmortemId: string,
+	data: PostmortumUpdateRequest
+): Promise<Postmortem> {
+	const url = `${API_BASE}/api/v1/postmortems/${postmortemId}`;
+	return request<Postmortem>(url, {
+		method: 'PUT',
+		body: JSON.stringify(data)
+	});
+}
+
+export async function lockPostmortem(postmortemId: string): Promise<Postmortem> {
+	const url = `${API_BASE}/api/v1/postmortems/${postmortemId}/lock`;
+	return request<Postmortem>(url, {
+		method: 'POST'
+	});
+}
+
+export async function listPostmortumTemplates(): Promise<TemplateListResponse> {
+	const url = `${API_BASE}/api/v1/postmortem-templates`;
+	return request<TemplateListResponse>(url);
+}
+
+export async function listPostmortems(): Promise<PostmortumListResponse> {
+	const url = `${API_BASE}/api/v1/postmortems`;
+	return request<PostmortumListResponse>(url);
 }

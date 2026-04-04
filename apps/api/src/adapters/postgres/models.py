@@ -193,3 +193,25 @@ class RuleVersionRow(Base):
     published_by: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     deprecated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PostmortumRow(Base):
+    """SQLAlchemy model for postmortems table (Phase C incident knowledge capture)."""
+
+    __tablename__ = "postmortems"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    incident_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, unique=True, index=True)
+    root_cause_category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    suggested_pattern: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    team_responsible: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    severity_for_rule: Mapped[str] = mapped_column(String(50), nullable=False)
+    related_rule_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), index=True
+    )
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

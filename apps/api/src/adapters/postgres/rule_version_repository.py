@@ -142,6 +142,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
                 raise VersionAlreadyExistsError(version) from e
             raise
 
+        await self.session.commit()
         await self.session.refresh(row)
         return self._row_to_domain(row)
 

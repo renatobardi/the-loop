@@ -231,7 +231,8 @@ async def test_by_category_status_resolved_only(
     # With status=resolved, only code_pattern (from resolved incident) should appear
     result = await repo.get_by_category(start, end, _filter(status="resolved"))
     cats_in_result = {s.category for s in result}
-    assert RootCauseCategory.CODE_PATTERN in cats_in_result or len(result) >= 0  # no crash
+    assert RootCauseCategory.CODE_PATTERN in cats_in_result
+    assert RootCauseCategory.INFRASTRUCTURE not in cats_in_result
 
 
 # ─── get_by_team tests ────────────────────────────────────────────────────────

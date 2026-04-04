@@ -19,11 +19,11 @@
 	];
 
 	const COLORS: Record<RootCauseCategory, string> = {
-		code_pattern: '#3b82f6',
-		infrastructure: '#ef4444',
-		process_breakdown: '#f59e0b',
-		third_party: '#8b5cf6',
-		unknown: '#6b7280'
+		code_pattern: 'var(--color-chart-blue)',
+		infrastructure: 'var(--color-error)',
+		process_breakdown: 'var(--color-warning)',
+		third_party: 'var(--color-chart-purple)',
+		unknown: 'var(--color-text-muted)'
 	};
 
 	let tooltip = $state<{ x: number; y: number; point: TimelinePoint } | null>(null);

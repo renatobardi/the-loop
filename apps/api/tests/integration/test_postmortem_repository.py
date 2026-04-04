@@ -6,10 +6,21 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.postgres.postmortem_repository import PostgresPostmortumRepository
 from src.domain.exceptions import PostmortumNotFoundError
 from src.domain.models import Postmortem, PostmortumSeverity, RootCauseCategory
+
+
+@pytest.fixture(autouse=True)
+async def clean_postmortems(db_session: AsyncSession) -> None:
+    """Truncate postmortems before each test — commit() means rollback alone is insufficient.
+
+    CASCADE is precautionary: postmortems has no FK dependents today, but covers future migrations.
+    """
+    await db_session.execute(text("TRUNCATE TABLE postmortems CASCADE"))
+    await db_session.commit()
 
 
 @pytest.fixture

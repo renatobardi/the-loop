@@ -137,15 +137,13 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
 
         try:
             await self.session.flush()  # Flush to detect constraint violations
+            await self.session.commit()
         except (IntegrityError, UniqueViolationError) as e:
             await self.session.rollback()
             if "unique constraint" in str(e).lower() or "version" in str(e).lower():
                 raise VersionAlreadyExistsError(version) from e
             raise
-
-        try:
-            await self.session.commit()
-        except (IntegrityError, UniqueViolationError) as e:
+        except Exception as e:
             await self.session.rollback()
             if "unique constraint" in str(e).lower() or "version" in str(e).lower():
                 raise VersionAlreadyExistsError(version) from e

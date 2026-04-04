@@ -105,7 +105,15 @@ async def get_analytics_summary(
     _user_id: UUID = Depends(get_authenticated_user),
     service: AnalyticsService = Depends(get_analytics_service),
 ) -> SummaryResponse:
-    """Return total/resolved/unresolved counts and average resolution days."""
+    """Return aggregate incident counts and average resolution time.
+
+    Counts postmortems (joined to their parent incident) within the requested
+    period and optional filters.  `avg_resolution_days` is null when no
+    resolved incidents exist in the window.
+
+    Raises 400 for invalid period, status, or category values.
+    Raises 401 when the Firebase token is missing or expired.
+    """
     ap = _build_period(period, start_date, end_date)
     af = _build_filter(team, category, status)
     summary = await service.get_summary(ap, af)
@@ -130,7 +138,16 @@ async def get_analytics_by_category(
     _user_id: UUID = Depends(get_authenticated_user),
     service: AnalyticsService = Depends(get_analytics_service),
 ) -> list[CategoryStatsResponse]:
-    """Return incident stats per root cause category, sorted by count descending."""
+    """Return incident stats grouped by root cause category.
+
+    Each item includes count, percentage share of the filtered universe,
+    avg_severity (0.5-1.0 scale from severity_for_rule), and avg_resolution_days.
+    Results are sorted by count descending.  Returns an empty list when no
+    postmortems exist in the requested period.
+
+    Raises 400 for invalid period, status, or category values.
+    Raises 401 when the Firebase token is missing or expired.
+    """
     ap = _build_period(period, start_date, end_date)
     af = _build_filter(team, category, status)
     stats = await service.get_by_category(ap, af)
@@ -159,7 +176,16 @@ async def get_analytics_by_team(
     _user_id: UUID = Depends(get_authenticated_user),
     service: AnalyticsService = Depends(get_analytics_service),
 ) -> list[TeamStatsResponse]:
-    """Return incident stats per team, sorted by count descending."""
+    """Return incident stats grouped by team_responsible.
+
+    Each item includes count, top_categories (up to 3 most frequent root causes
+    for that team, derived from jsonb aggregation), and avg_resolution_days.
+    Results are sorted by count descending.  Returns an empty list when no
+    postmortems exist in the requested period.
+
+    Raises 400 for invalid period, status, or category values.
+    Raises 401 when the Firebase token is missing or expired.
+    """
     ap = _build_period(period, start_date, end_date)
     af = _build_filter(team, category, status)
     stats = await service.get_by_team(ap, af)
@@ -187,7 +213,18 @@ async def get_analytics_timeline(
     _user_id: UUID = Depends(get_authenticated_user),
     service: AnalyticsService = Depends(get_analytics_service),
 ) -> list[TimelinePointResponse]:
-    """Return weekly incident counts with per-category breakdown (12+ months)."""
+    """Return weekly incident counts with per-category breakdown.
+
+    Each point represents one ISO week (DATE_TRUNC('week', created_at)).  The
+    by_category dict always contains all 5 RootCauseCategory keys; missing
+    categories are filled with 0.  Points are sorted ascending by week.
+
+    Use period=quarter or period=custom for multi-month views (52+ weeks of
+    data are available for charting long-term trends).
+
+    Raises 400 for invalid period, status, or category values.
+    Raises 401 when the Firebase token is missing or expired.
+    """
     ap = _build_period(period, start_date, end_date)
     af = _build_filter(team, category, status)
     points = await service.get_timeline(ap, af)

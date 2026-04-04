@@ -198,9 +198,9 @@
 - [ ] T128 [P] Write 5 Cypress/Playwright E2E tests (optional for MVP)
 
 ### Documentation & QA
-- [ ] T129 Update README.md: Add "Analytics Dashboard" section
-- [ ] T130 Write ANALYTICS.md: User guide (how to filter, interpret charts)
-- [ ] T131 Add JSDoc comments to all API endpoints
+- [x] T129 Update README.md: Add "Analytics Dashboard" section
+- [x] T130 Write ANALYTICS.md: User guide (how to filter, interpret charts)
+- [x] T131 Add JSDoc comments to all API endpoints
 - [ ] T132 Verify all data in production looks sensible (sanity check)
 - [ ] T133 Performance test: Load time <2s with 1000 incidents
 - [ ] T134 Monitor query execution time in production (Grafana)

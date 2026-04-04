@@ -55,7 +55,8 @@ export function onAuthChange(callback: (user: User | null) => void): () => void 
 }
 
 /** Wait for Firebase to restore the persisted auth session.
- * Resolves once after the first auth state event — safe to call on every load. */
+ * Returns the current user (or null if not authenticated).
+ * Safe to call on every page load — resolves after the first auth state event. */
 export async function waitForAuth(): Promise<User | null> {
 	return new Promise((resolve) => {
 		const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {

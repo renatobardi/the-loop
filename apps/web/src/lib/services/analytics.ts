@@ -51,7 +51,7 @@ async function request<T>(path: string): Promise<T> {
 	return response.json() as Promise<T>;
 }
 
-function buildQueryString(filters: AnalyticsFilter): string {
+export function buildQueryString(filters: AnalyticsFilter): string {
 	const params = new URLSearchParams();
 	params.set('period', filters.period);
 	if (filters.team) params.set('team', filters.team);

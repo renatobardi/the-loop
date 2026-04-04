@@ -7,8 +7,9 @@ from datetime import datetime
 from typing import cast
 
 import structlog
-from sqlalchemy import text
+from sqlalchemy import String, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import TextClause
 
 from src.adapters.postgres.analytics_queries import (
     QUERY_BY_CATEGORY,
@@ -44,6 +45,19 @@ def _build_params(
     }
 
 
+def _typed_text(sql: str) -> TextClause:
+    """Wrap a SQL string with explicit String types for nullable 'team' and 'category'.
+
+    asyncpg cannot infer the PostgreSQL type of a Python None value in a named
+    parameter (e.g. ':team IS NULL'). Adding String() type hints lets SQLAlchemy
+    emit the correct type annotation so asyncpg knows these are TEXT columns.
+    """
+    return text(sql).bindparams(
+        bindparam("team", type_=String()),
+        bindparam("category", type_=String()),
+    )
+
+
 def _to_avg_days(raw: object) -> float | None:
     """Convert raw SQL avg_resolution_days to float | None."""
     return float(raw) if raw is not None else None  # type: ignore[arg-type]
@@ -60,7 +74,7 @@ class PostgresAnalyticsRepository:
     ) -> AnalyticsSummary:
         t0 = time.monotonic()
         params = _build_params(start, end, filters)
-        result = await self._session.execute(text(QUERY_SUMMARY), params)
+        result = await self._session.execute(_typed_text(QUERY_SUMMARY), params)
         row = result.mappings().one()
         elapsed_ms = (time.monotonic() - t0) * 1000
         logger.info(
@@ -86,7 +100,7 @@ class PostgresAnalyticsRepository:
     ) -> list[CategoryStats]:
         t0 = time.monotonic()
         params = _build_params(start, end, filters)
-        result = await self._session.execute(text(QUERY_BY_CATEGORY), params)
+        result = await self._session.execute(_typed_text(QUERY_BY_CATEGORY), params)
         rows = result.mappings().all()
         elapsed_ms = (time.monotonic() - t0) * 1000
         logger.info(
@@ -116,7 +130,7 @@ class PostgresAnalyticsRepository:
     ) -> list[TeamStats]:
         t0 = time.monotonic()
         params = _build_params(start, end, filters)
-        result = await self._session.execute(text(QUERY_BY_TEAM), params)
+        result = await self._session.execute(_typed_text(QUERY_BY_TEAM), params)
         rows = result.mappings().all()
         elapsed_ms = (time.monotonic() - t0) * 1000
         logger.info(

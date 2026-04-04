@@ -16,8 +16,8 @@ export default defineConfig({
 		include: ['tests/**/*.test.ts'],
 		environment: 'jsdom',
 		alias: {
-			'$lib': '/src/lib',
-			'$app': '/.svelte-kit/types/$app'
+			$lib: '/src/lib',
+			$app: '/.svelte-kit/types/$app'
 		}
 	}
 });

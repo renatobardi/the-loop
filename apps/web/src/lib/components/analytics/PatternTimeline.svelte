@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TimelinePoint, RootCauseCategory } from '$lib/types/analytics';
+	import { formatCategory } from '$lib/utils/analytics';
 
 	let { points }: { points: TimelinePoint[] } = $props();
 
@@ -55,16 +56,23 @@
 			}))
 	);
 
-	function formatCategory(cat: string): string {
-		return cat.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-	}
-
-	function handleMouseOver(e: MouseEvent, point: TimelinePoint) {
+function handleMouseOver(e: MouseEvent, point: TimelinePoint) {
 		const rect = (e.currentTarget as SVGElement).closest('svg')!.getBoundingClientRect();
 		tooltip = { x: e.clientX - rect.left, y: e.clientY - rect.top, point };
 	}
 
 	function handleMouseOut() {
+		tooltip = null;
+	}
+
+	function handleFocus(e: FocusEvent, point: TimelinePoint) {
+		const el = e.currentTarget as SVGElement;
+		const rect = el.closest('svg')!.getBoundingClientRect();
+		const selfRect = el.getBoundingClientRect();
+		tooltip = { x: selfRect.left - rect.left, y: selfRect.top - rect.top, point };
+	}
+
+	function handleBlur() {
 		tooltip = null;
 	}
 </script>
@@ -132,10 +140,13 @@
 						fill="transparent"
 						stroke="transparent"
 						stroke-width="12"
-						role="graphics-symbol"
+						role="button"
+						tabindex="0"
 						aria-label={`Week of ${point.week}: ${point.count} incidents`}
 						onmouseover={(e) => handleMouseOver(e, point)}
 						onmouseout={handleMouseOut}
+						onfocus={(e) => handleFocus(e, point)}
+						onblur={handleBlur}
 						style="cursor: pointer"
 					/>
 				{/each}

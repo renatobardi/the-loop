@@ -1,15 +1,12 @@
 <script lang="ts">
 	import type { TeamStats } from '$lib/types/analytics';
+	import { formatCategory, sortTeamsByCount } from '$lib/utils/analytics';
 
 	let { stats }: { stats: TeamStats[] } = $props();
 
 	let sortAsc = $state(false);
 
-	const sorted = $derived([...stats].sort((a, b) => sortAsc ? a.count - b.count : b.count - a.count));
-
-	function formatCategory(cat: string): string {
-		return cat.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-	}
+	const sorted = $derived(sortTeamsByCount(stats, sortAsc));
 
 	function toggleSort() {
 		sortAsc = !sortAsc;

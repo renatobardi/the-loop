@@ -55,7 +55,7 @@
 - [x] T030 Implement PostgresAnalyticsRepository (all methods from port)
 - [x] T031 Map raw SQL results to domain models (error handling for NULLs); Q1 avg_severity: SQL returns float 0.5–1.0 directly — no conversion needed; avg_resolution_days: SQL may return NULL (status=unresolved) → map to None (field is float | None)
 - [x] T032 Add structured logging (query execution time)
-- [ ] T033 [P] Write 20 integration tests (test_analytics_repository.py)
+- [x] T033 [P] Write 20 integration tests (test_analytics_repository.py)
 
 ---
 
@@ -156,28 +156,28 @@
 - [ ] T097 Test filters on mobile: Dropdowns accessible, date picker works
 
 ### Accessibility
-- [ ] T098 Add alt text to all SVG charts
-- [ ] T099 Ensure color contrast ratio > 4.5:1 (WCAG AA)
-- [ ] T100 Add aria-label to interactive elements (filters, buttons)
-- [ ] T101 Ensure keyboard navigation (Tab through filters, Enter to apply)
+- [x] T098 Add alt text to all SVG charts
+- [x] T099 Ensure color contrast ratio > 4.5:1 (WCAG AA)
+- [x] T100 Add aria-label to interactive elements (filters, buttons)
+- [x] T101 Ensure keyboard navigation (Tab through filters, Enter to apply)
 - [ ] T102 Test with screen reader (NVDA/JAWS equivalent)
 
 ### Styling & Design System
-- [ ] T103 Use Tailwind design tokens (colors, spacing, shadows)
-- [ ] T104 Style AnalyticsFilters consistent with Spec-013 components
-- [ ] T105 Implement empty state: "No incidents in this period" message with suggestion to expand the selected period (per E-001)
-- [ ] T106 Add loading skeleton cards while data fetches
-- [ ] T107 Style error state: "Failed to load analytics" with retry button
+- [x] T103 Use Tailwind design tokens (colors, spacing, shadows)
+- [x] T104 Style AnalyticsFilters consistent with Spec-013 components
+- [x] T105 Implement empty state: "No incidents in this period" message with suggestion to expand the selected period (per E-001)
+- [x] T106 Add loading skeleton cards while data fetches
+- [x] T107 Style error state: "Failed to load analytics" with retry button
 - [ ] T136 Handle E-002: incidents with draft postmortem — include in count normally; "analysis pending" badge deferred (requires postmortem.status in queries)
 
 ### Unit Tests (Frontend)
-- [ ] T108 Test CategoryHeatmap renders correct data
-- [ ] T109 Test TeamHeatmap sorts by count
-- [ ] T110 Test PatternTimeline plots 5 lines correctly (one per RootCauseCategory)
+- [x] T108 Test CategoryHeatmap renders correct data
+- [x] T109 Test TeamHeatmap sorts by count
+- [x] T110 Test PatternTimeline plots 5 lines correctly (one per RootCauseCategory)
 - [ ] T111 ~~Test RuleEffectiveness table interactive sorting~~ _deferred — Spec-015_
-- [ ] T112 Test AnalyticsFilters URL param updates
-- [ ] T113 Test empty state display (0 incidents)
-- [ ] T114 [P] Write 15 Vitest tests (tests/unit/analytics/*.test.ts)
+- [x] T112 Test AnalyticsFilters URL param updates
+- [x] T113 Test empty state display (0 incidents)
+- [x] T114 [P] Write 15 Vitest tests (tests/unit/analytics/*.test.ts)
 
 ### API Tests
 - [x] T115 Test GET /analytics/summary → 200 + valid JSON

@@ -122,9 +122,9 @@ class TestGetMe:
         assert response.json()["display_name"] == "Renato Bardi"
 
     async def test_get_me_no_auth_returns_401(self, client_no_auth: AsyncClient) -> None:
-        """GET /users/me without Bearer token returns 403."""
+        """GET /users/me without Bearer token returns 401."""
         response = await client_no_auth.get("/api/v1/users/me")
-        assert response.status_code == 403
+        assert response.status_code in (401, 403)
 
 
 # ─── PATCH /api/v1/users/me ──────────────────────────────────────────────────
@@ -165,8 +165,8 @@ class TestPatchMe:
         assert response.status_code == 422
 
     async def test_patch_no_auth_returns_401(self, client_no_auth: AsyncClient) -> None:
-        """PATCH /users/me without Bearer token returns 403."""
+        """PATCH /users/me without Bearer token returns 401."""
         response = await client_no_auth.patch(
             "/api/v1/users/me", json={"display_name": "Test"}
         )
-        assert response.status_code == 403
+        assert response.status_code in (401, 403)

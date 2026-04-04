@@ -276,7 +276,7 @@ async def test_deprecate_version_missing_auth() -> None:
         response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.1.0"})
     app.dependency_overrides.clear()
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 async def test_deprecate_version_invalid_semver() -> None:

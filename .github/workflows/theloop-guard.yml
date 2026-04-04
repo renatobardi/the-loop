@@ -72,10 +72,17 @@ jobs:
             echo "❌ Rules JSON file not found"
             exit 1
           fi
-          python3 scripts/json_to_semgrep_yaml.py \
-            --input /tmp/rules.json \
-            --output .semgrep/theloop-rules.yml
-          echo "✅ Conversion complete"
+          # If using fallback (YAML file was copied), skip conversion
+          if [ "${{ steps.fetch_rules.outputs.fallback }}" == "true" ]; then
+            echo "⚠️  Using fallback rules (already YAML format), skipping conversion"
+            cp /tmp/rules.json .semgrep/theloop-rules.yml
+            echo "✅ Fallback rules loaded"
+          else
+            python3 scripts/json_to_semgrep_yaml.py \
+              --input /tmp/rules.json \
+              --output .semgrep/theloop-rules.yml
+            echo "✅ Conversion complete"
+          fi
 
       # T007: Validate Semgrep YAML syntax
       - name: Validate Semgrep rules

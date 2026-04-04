@@ -92,7 +92,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         row = result.scalars().first()
         if not row:
             raise RuleVersionNotFoundError(version)
-        row.rules_json = json.dumps(rules_json)
+        row.rules_json = rules_json  # type: ignore[assignment]  # JSONB accepts list
         await self.session.flush()
         await self.session.commit()
         await self.session.refresh(row)

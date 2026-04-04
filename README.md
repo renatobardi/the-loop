@@ -14,7 +14,7 @@ apps/
 │   │   ├── lib/ui/        # Design system (tokens + components)
 │   │   ├── lib/components/ # Page sections
 │   │   ├── lib/server/    # Firebase admin, waitlist, rate limiter
-│   │   └── lib/services/  # API clients (incidents)
+│   │   └── lib/services/  # API clients (incidents, analytics)
 │   └── Dockerfile         # Multi-stage, non-root (Cloud Run)
 └── api/          # FastAPI backend (hexagonal architecture)
     ├── src/

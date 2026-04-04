@@ -1,6 +1,6 @@
 # The Loop — Incident API
 
-FastAPI backend service for the incident CRUD module. Hexagonal architecture with PostgreSQL + pgvector.
+FastAPI backend service. Hexagonal architecture with PostgreSQL + pgvector.
 
 ## Quick Start
 
@@ -26,9 +26,50 @@ API docs available at `http://localhost:8000/docs`.
 ```
 src/
 ├── domain/      # Pure Python: models (Pydantic), exceptions, services
-├── ports/       # Protocol interfaces (IncidentRepoPort)
+├── ports/       # Protocol interfaces
 ├── adapters/    # PostgreSQL (SQLAlchemy), Firebase Auth
 └── api/         # FastAPI routes, middleware, dependencies
+```
+
+## API Endpoints
+
+```
+# Incidents
+GET    /api/v1/incidents
+POST   /api/v1/incidents
+GET    /api/v1/incidents/{id}
+PUT    /api/v1/incidents/{id}
+DELETE /api/v1/incidents/{id}
+
+# Sub-resources (timeline, responders, action items, attachments)
+GET    /api/v1/incidents/{id}/timeline
+GET    /api/v1/incidents/{id}/responders
+GET    /api/v1/incidents/{id}/action-items
+PUT    /api/v1/incidents/{id}/action-items/{item_id}
+GET    /api/v1/incidents/{id}/attachments
+
+# Postmortems
+POST   /api/v1/incidents/{id}/postmortem
+GET    /api/v1/incidents/{id}/postmortem
+GET    /api/v1/postmortems
+GET    /api/v1/postmortems/{id}
+PUT    /api/v1/postmortems/{id}
+POST   /api/v1/postmortems/{id}/lock
+GET    /api/v1/postmortem-templates
+
+# Analytics (all require auth)
+GET    /api/v1/incidents/analytics/summary
+GET    /api/v1/incidents/analytics/by-category
+GET    /api/v1/incidents/analytics/by-team
+GET    /api/v1/incidents/analytics/timeline
+
+# Rules (versioning)
+GET    /api/v1/rules/latest
+GET    /api/v1/rules/{version}
+GET    /api/v1/rules/versions
+GET    /api/v1/rules/deprecated
+POST   /api/v1/rules/publish
+POST   /api/v1/rules/deprecate
 ```
 
 ## Testing
@@ -38,11 +79,12 @@ pytest                              # All tests
 pytest tests/unit/                  # Domain logic only
 pytest tests/integration/           # Requires PostgreSQL
 pytest tests/api/                   # FastAPI TestClient
+pytest --cov=src --cov-fail-under=80
 ```
 
 ## CI Gates
 
 - `ruff check src/ tests/` — lint
 - `mypy src/ --strict` — type check
-- `pytest` — tests
+- `pytest --cov=src --cov-fail-under=80` — tests with coverage
 - Docker build + Trivy scan — security

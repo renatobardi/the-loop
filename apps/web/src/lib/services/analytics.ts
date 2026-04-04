@@ -7,15 +7,14 @@ import type {
 	TeamStats,
 	TimelinePoint
 } from '$lib/types/analytics';
-import { getFirebaseAuth } from '$lib/firebase';
+import { waitForAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
 const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://theloop-api-1090621437043.us-central1.run.app';
 const BASE = `${API_BASE}/api/v1/incidents/analytics`;
 
 async function getAuthToken(): Promise<string> {
-	const auth = getFirebaseAuth();
-	const user = auth.currentUser;
+	const user = await waitForAuth();
 	if (!user) {
 		window.location.href = '/?auth=required';
 		throw new Error('Unauthenticated');

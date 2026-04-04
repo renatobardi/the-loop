@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Container, Card, Button, Badge } from '$lib/ui';
+	import { Container, Card, Badge } from '$lib/ui';
 	import type { RuleData } from '$lib/types/rules';
 
 	const API_BASE =
@@ -61,7 +61,7 @@
 			<p class="text-sm text-text-muted">No rules in this version.</p>
 		{:else}
 			<div class="space-y-2">
-				{#each rules as rule}
+				{#each rules as rule (rule.id)}
 					<Card>
 						<div class="p-4 flex items-start justify-between gap-4">
 							<div class="min-w-0 flex-1">

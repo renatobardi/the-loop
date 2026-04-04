@@ -1,6 +1,6 @@
 # Spec-016: Semgrep Platform
 
-**Status:** Ready for implementation  
+**Status:** Implementation in progress  
 **Branch:** `feat/016-semgrep-platform`  
 **Depende de:** spec-015 (nav/dashboard/profile) mergeada ✅
 

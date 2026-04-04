@@ -10,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 __all__ = [
+    "UNSET",
     "ActionItemStatus",
     "AnalyticsFilter",
     "AnalyticsPeriod",
@@ -37,6 +38,8 @@ __all__ = [
     "TeamStats",
     "TimelineEventType",
     "TimelinePoint",
+    "User",
+    "UserPlan",
 ]
 
 
@@ -607,3 +610,48 @@ class AnalyticsPeriod(BaseModel):
     value: Literal["week", "month", "quarter", "custom"]
     start_date: datetime | None = None  # Required when value="custom"
     end_date: datetime | None = None  # Required when value="custom"
+
+
+# ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────
+
+
+class _UnsetSentinel:
+    """Sentinel for distinguishing 'field omitted' from 'explicit None' in partial updates."""
+
+    _instance: "_UnsetSentinel | None" = None
+
+    def __new__(cls) -> "_UnsetSentinel":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "UNSET"
+
+
+UNSET = _UnsetSentinel()
+
+
+class UserPlan(StrEnum):
+    """Subscription plan for a user account."""
+
+    FREE = "free"
+    BETA = "beta"
+    STARTER = "starter"
+    PRO = "pro"
+    ENTERPRISE = "enterprise"
+
+
+class User(BaseModel):
+    """Immutable domain entity representing a registered user."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    firebase_uid: str
+    email: str
+    display_name: str | None = None
+    job_title: str | None = None
+    plan: UserPlan = UserPlan.BETA
+    created_at: datetime
+    updated_at: datetime

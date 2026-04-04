@@ -10,7 +10,7 @@
     class: className = '',
     ...restProps
   }: {
-    type?: 'text' | 'email';
+    type?: 'text' | 'email' | 'password';
     placeholder?: string;
     name?: string;
     value?: string;

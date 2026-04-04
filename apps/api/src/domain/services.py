@@ -36,6 +36,8 @@ from src.domain.models import (
     RuleVersion,
     Severity,
     TimelineEventType,
+    User,
+    _UnsetSentinel,
 )
 from src.ports.action_item_repo import ActionItemRepoPort
 from src.ports.attachment_repo import AttachmentRepoPort
@@ -44,6 +46,7 @@ from src.ports.postmortem_repo import PostmortumRepoPort
 from src.ports.responder_repo import ResponderRepoPort
 from src.ports.rule_version_repo import RuleVersionRepository
 from src.ports.timeline_event_repo import TimelineEventRepoPort
+from src.ports.user_repo import UserRepoPort
 
 
 class IncidentService:
@@ -804,3 +807,36 @@ class AnalyticsService:
                 s.model_copy(update={"percentage": round(s.percentage * factor, 2)})
             )
         return normalized
+
+
+# ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────
+
+
+class UserService:
+    """Thin orchestrator for user profile operations."""
+
+    def __init__(self, repo: UserRepoPort) -> None:
+        self._repo = repo
+
+    async def get_or_create(
+        self, firebase_uid: str, email: str, display_name: str | None
+    ) -> User:
+        """Get or create a user record — display_name only written on first creation."""
+        return await self._repo.get_or_create(firebase_uid, email, display_name)
+
+    async def update_profile(
+        self,
+        user_id: UUID,
+        display_name: str | None,
+        job_title: str | None | _UnsetSentinel,
+    ) -> User:
+        """Update user profile fields.
+
+        display_name: None = don't update; str = update to value.
+        job_title: UNSET = don't update; None = clear to null; str = update to value.
+        Raises ValueError if display_name is an empty string.
+        Raises UserNotFoundError if no user with user_id exists.
+        """
+        if display_name is not None and len(display_name.strip()) == 0:
+            raise ValueError("display_name cannot be empty string")
+        return await self._repo.update(user_id, display_name, job_title)

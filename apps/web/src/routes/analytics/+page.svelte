@@ -16,7 +16,7 @@
 			if (f.start_date) params.set('start_date', f.start_date);
 			if (f.end_date) params.set('end_date', f.end_date);
 		}
-		goto(`/incidents/analytics/?${params.toString()}`, { replaceState: true, invalidateAll: true });
+		goto(`/analytics/?${params.toString()}`, { replaceState: true, invalidateAll: true });
 	}
 </script>
 
@@ -30,7 +30,6 @@
 	</div>
 
 	{#if data.loadError}
-		<!-- T107: Styled error state with retry -->
 		<div
 			class="rounded-lg border border-error/40 bg-error/10 px-6 py-5"
 			role="alert"
@@ -40,7 +39,7 @@
 			<p class="mt-1 text-sm text-error/80">{data.loadError}</p>
 			<button
 				class="mt-3 rounded border border-error/40 px-3 py-1.5 text-sm text-error hover:bg-error/10 focus:outline-none focus:ring-2 focus:ring-error"
-				onclick={() => goto('/incidents/analytics/', { invalidateAll: true })}
+				onclick={() => goto('/analytics/', { invalidateAll: true })}
 				aria-label="Retry loading analytics"
 			>
 				Retry

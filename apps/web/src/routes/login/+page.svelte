@@ -14,7 +14,7 @@
 
 		try {
 			await loginWithEmail(email, password);
-			await goto('/incidents/');
+			await goto('/dashboard/');
 		} catch (err) {
 			const message = err instanceof Error ? err.message : 'Login failed';
 			error = message.includes('auth/user-not-found')

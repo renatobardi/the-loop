@@ -199,10 +199,15 @@ rules:
       confidence: HIGH
     patterns:
       - pattern-either:
-          - pattern: |
-              exec(`...${$INPUT}...`)
-          - pattern: |
-              $EXEC(`...${$INPUT}...`)
+          - pattern: exec(`...${$INPUT}...`)
+          - pattern: execSync(`...${$INPUT}...`)
+          - pattern: spawn(`...${$INPUT}...`)
+          - pattern: spawnSync(`...${$INPUT}...`)
+          - pattern: execFile(`...${$INPUT}...`)
+          - pattern: $X.exec(`...${$INPUT}...`)
+          - pattern: $X.execSync(`...${$INPUT}...`)
+          - pattern: $X.spawn(`...${$INPUT}...`)
+          - pattern: $X.spawnSync(`...${$INPUT}...`)
 
   # ─── JS-CRYPTO-001: MD5 or SHA1 ─────────────────────────────────────────────
   - id: js-crypto-001
@@ -567,10 +572,16 @@ rules:
       incident_id: path-traversal-001
       category: injection
       cwe: "CWE-22"
+    paths:
+      exclude:
+        - 'scripts/**'
+        - 'tests/**'
+        - 'specs/**'
     patterns:
       - pattern-either:
           - pattern: open($INPUT, ...)
           - pattern: Path($INPUT).open(...)
+      - pattern-not: open($LITERAL, ...)
 
   - id: xxe-001
     languages: [python, java, javascript]

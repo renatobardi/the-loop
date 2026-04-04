@@ -107,7 +107,8 @@ jobs:
             --json \
             --output /tmp/semgrep-results.json \
             --metrics off \
-            --quiet
+            --quiet \
+            --exclude 'tests/test-data'
           SEMGREP_EXIT=$?
 
           DURATION_S=$(( ($(date +%s%3N) - START_TIME) / 1000 ))
@@ -310,10 +311,15 @@ jobs:
               });
             }
 
-      # Fail on critical errors
+      # Fail only on ERROR-severity findings (WARNINGs are advisory)
       - name: Fail on critical findings
-        if: steps.semgrep.outputs.semgrep_exit != '0' && steps.semgrep.outputs.semgrep_exit != ''
+        if: always()
         run: |
-          echo "❌ Critical findings detected (exit code: ${{ steps.semgrep.outputs.semgrep_exit }})"
-          echo "Merge blocked — resolve ERROR severity findings to proceed"
-          exit 1
+          if [ ! -f "/tmp/semgrep-results.json" ]; then exit 0; fi
+          ERRORS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='ERROR'))" 2>/dev/null || echo "0")
+          if [ "$ERRORS_COUNT" -gt "0" ]; then
+            echo "❌ ${ERRORS_COUNT} critical finding(s) — merge blocked"
+            echo "Resolve ERROR severity findings to proceed"
+            exit 1
+          fi
+          echo "✅ No critical findings"

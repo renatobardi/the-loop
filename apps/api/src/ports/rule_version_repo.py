@@ -75,3 +75,20 @@ class RuleVersionRepository:
             RuleVersionNotFoundError: If version not found
         """
         raise NotImplementedError()
+
+    async def update_rules(
+        self, version: str, rules_json: list[dict[str, Any]]
+    ) -> RuleVersion:
+        """Replace the rules list of an existing version in-place.
+
+        Args:
+            version: Semantic version string of the version to update
+            rules_json: New list of rule definitions (replaces current rules_json)
+
+        Returns:
+            Updated RuleVersion object
+
+        Raises:
+            RuleVersionNotFoundError: If version not found
+        """
+        raise NotImplementedError()

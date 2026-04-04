@@ -521,6 +521,23 @@ class RuleVersionService:
         """
         return await self._repo.deprecate_version(version)
 
+    async def update_rules(
+        self, version: str, rules_json: list[dict[str, Any]]
+    ) -> RuleVersion:
+        """Replace the rules list of an existing version in-place.
+
+        Args:
+            version: Semantic version string
+            rules_json: New list of rule definitions
+
+        Returns:
+            Updated RuleVersion
+
+        Raises:
+            RuleVersionNotFoundError: If version not found
+        """
+        return await self._repo.update_rules(version, rules_json)
+
 
 # ─── Phase C: Incident Knowledge Capture (Postmortem) ────────────────────────
 

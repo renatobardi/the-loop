@@ -1,6 +1,6 @@
 /** Generates a GitHub Actions workflow YAML for The Loop Incident Guard. */
 
-export function generateWorkflowYaml(apiKey: string): string {
+export function generateWorkflowYaml(keyPrefix: string): string {
 	return `name: "The Loop - Incident Guard"
 
 on:
@@ -16,9 +16,9 @@ env:
   THELOOP_API_TOKEN: \${{ secrets.THELOOP_API_TOKEN }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-# API Key: ${apiKey}
-# Add THELOOP_API_TOKEN = ${apiKey} to your repository secrets
-# (Settings -> Secrets -> Actions -> New repository secret)
+# Key prefix: ${keyPrefix}
+# Go to your repository Settings → Secrets and variables → Actions
+# Create a secret named THELOOP_API_TOKEN with the full token shown at key creation
 
 jobs:
   theloop-guard:

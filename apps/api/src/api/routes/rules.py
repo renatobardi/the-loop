@@ -445,11 +445,7 @@ async def edit_rule(
                 status_code=404, detail=f"Rule {rule_id} not found in version {version}"
             )
 
-        # Deprecate old and re-publish with updated rules under same version string
-        # Since versions are immutable, we store the edit result as the same version's
-        # underlying row update via the repo's publish_version (which will fail on UNIQUE).
-        # Instead, patch via direct service method — for now update the in-memory list.
-        # The simplest durable approach: return the updated payload (UI uses it in memory).
+        await service.update_rules(version, rules_json)
         return {"message": f"Rule {rule_id} updated in version {version}"}
     except HTTPException:
         raise

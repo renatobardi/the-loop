@@ -1,13 +1,13 @@
 /** Admin-only API client for rule management and metrics. */
 
-import { getFirebaseAuth } from '$lib/firebase';
+import { waitForAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 import type { AdminMetrics, EditRuleData, RuleData, VersionSummary } from '$lib/types/rules';
 
 const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://api.loop.oute.pro';
 
 async function getAuthToken(): Promise<string> {
-	const user = getFirebaseAuth().currentUser;
+	const user = await waitForAuth();
 	if (!user) throw new Error('Unauthenticated');
 	return user.getIdToken();
 }

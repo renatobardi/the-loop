@@ -151,9 +151,19 @@ class PostgresScanRepository:
             {"rule_id": row.rule_id, "count": row.cnt} for row in top_rules_result.all()
         ]
 
+        # Distinct repositories scanned by this user
+        repos_stmt = (
+            select(func.count(func.distinct(ScanRow.repository)))
+            .join(ApiKeyRow, ScanRow.api_key_id == ApiKeyRow.id)
+            .where(ApiKeyRow.owner_id == owner_id)
+        )
+        repos_result = await self._session.execute(repos_stmt)
+        active_repos = repos_result.scalar_one() or 0
+
         return {
             "total_scans": total_scans,
             "total_findings": int(total_findings),
+            "active_repos": int(active_repos),
             "scans_by_week": scans_by_week,
             "top_rules": top_rules,
         }

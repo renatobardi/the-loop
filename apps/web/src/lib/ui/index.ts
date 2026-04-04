@@ -7,3 +7,4 @@ export { default as Section } from './Section.svelte';
 export { default as SkipLink } from './SkipLink.svelte';
 export { default as Navbar } from './Navbar.svelte';
 export { default as Tabs } from './Tabs.svelte';
+export { default as UserAvatar } from './UserAvatar.svelte';

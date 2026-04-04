@@ -15,6 +15,17 @@ de configurações (Profile, Security, Plan).
 
 ---
 
+## Clarifications
+
+### Session 2026-04-04
+
+- Q: Quando `GET /api/v1/users/me` cria o user via upsert, `display_name` deve ser auto-populado do claim `name` do Firebase token? → A: Sim — auto-popular do claim `name` no `get_or_create`; se ausente, fica `null`
+- Q: Ao remover `/incidents/analytics/`, adicionar redirect 301 em `hooks.ts` ou deixar 404? → A: Deixar 404 — rota antiga simplesmente removida, sem redirect
+- Q: Settings: Tabs (`<Tabs>` de lib/ui), seções empilhadas ou sub-rotas separadas? → A: Tabs usando componente `<Tabs>` de lib/ui (Profile / Security / Plan)
+- Q: `PATCH /api/v1/users/me` com `display_name: null` — limpa o campo ou 422? → A: 422 — tanto `null` quanto string vazia são rejeitados; `display_name` nunca é apagado via PATCH
+
+---
+
 ## Contexto
 
 **Pré-requisitos disponíveis**:
@@ -90,6 +101,9 @@ atualizadas. O diretório antigo é removido.
 A rota `/docs/` exibe um banner "Em construção" (mesmo padrão do dashboard).
 Protegida por auth guard.
 
+### RF-009b: Página Settings — Estrutura
+A rota `/settings/` usa o componente `<Tabs>` de `lib/ui` com 3 abas: **Profile**, **Security**, **Plan**. Sem sub-rotas separadas.
+
 ### RF-010: Página Settings — Perfil
 Campos editáveis via `PATCH /api/v1/users/me`:
 - **Nome completo** (`display_name`) — texto livre
@@ -97,6 +111,8 @@ Campos editáveis via `PATCH /api/v1/users/me`:
 
 Campos read-only:
 - **Email** — vem do Firebase Auth
+
+`display_name` é auto-populado na criação do user a partir do claim `name` do Firebase token (se presente). Se ausente, fica `null` e o avatar usa fallback de email. Após criação, só é atualizado via `PATCH`.
 
 ### RF-011: Página Settings — Segurança
 - **Alterar senha** — chama `updatePassword()` do Firebase SDK client
@@ -247,14 +263,16 @@ Exibição read-only:
 **E-002**: Primeiro acesso — nenhum registro na tabela `users`
 - GET /api/v1/users/me faz upsert: cria registro com `plan=beta` se não existir
 
-**E-003**: PATCH com display_name vazio
-- Backend retorna 422; frontend exibe mensagem de validação
+**E-003**: PATCH com display_name inválido
+- `display_name: ""` (string vazia) → 422
+- `display_name: null` → 422
+- Campo nunca é apagado via PATCH; para "limpar", omitir o campo do body
 
 **E-004**: Alteração de senha com senha atual incorreta
 - Firebase SDK retorna `auth/wrong-password`; frontend exibe "Senha atual incorreta"
 
-**E-005**: Acesso direto a `/analytics/` (URL antiga `/incidents/analytics/`)
-- Rota antiga removida; se necessário, adicionar redirect 301 em `hooks.ts`
+**E-005**: Acesso direto à URL antiga `/incidents/analytics/`
+- Rota antiga removida sem redirect — retorna 404 (SvelteKit default)
 
 ---
 

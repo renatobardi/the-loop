@@ -37,6 +37,8 @@ __all__ = [
     "TeamStats",
     "TimelineEventType",
     "TimelinePoint",
+    "User",
+    "UserPlan",
 ]
 
 
@@ -607,3 +609,31 @@ class AnalyticsPeriod(BaseModel):
     value: Literal["week", "month", "quarter", "custom"]
     start_date: datetime | None = None  # Required when value="custom"
     end_date: datetime | None = None  # Required when value="custom"
+
+
+# ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────
+
+
+class UserPlan(StrEnum):
+    """Subscription plan for a user account."""
+
+    FREE = "free"
+    BETA = "beta"
+    STARTER = "starter"
+    PRO = "pro"
+    ENTERPRISE = "enterprise"
+
+
+class User(BaseModel):
+    """Immutable domain entity representing a registered user."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    firebase_uid: str
+    email: str
+    display_name: str | None = None
+    job_title: str | None = None
+    plan: UserPlan = UserPlan.BETA
+    created_at: datetime
+    updated_at: datetime

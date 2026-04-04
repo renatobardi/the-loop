@@ -20,6 +20,7 @@ from src.api.routes.postmortems import router as postmortems_router
 from src.api.routes.responders import router as responders_router
 from src.api.routes.rules import router as rules_router
 from src.api.routes.timeline import router as timeline_router
+from src.api.routes.users import router as users_router
 from src.config import settings
 
 structlog.configure(
@@ -64,6 +65,7 @@ app.include_router(action_items_router)
 app.include_router(attachments_router)
 app.include_router(postmortems_router)
 app.include_router(rules_router)
+app.include_router(users_router)
 
 
 @app.get("/api/v1/health")

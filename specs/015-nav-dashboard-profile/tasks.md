@@ -2,8 +2,8 @@
 
 ## Phase Overview
 
-**Total**: 83 tasks ativas | **Duração**: ~10 dias
-**Coverage**: Backend (28) + Frontend (37) + Tests/A11y/Docs (18)
+**Total**: ~107 tasks ativas | **Duração**: ~10 dias
+**Coverage**: Backend (31) + Frontend (38) + Tests/A11y/Docs (18) + QA/CI (7) + outros ajustes (clarifications)
 
 ---
 
@@ -41,26 +41,26 @@
 ### Repository
 - [ ] T012 Criar `src/adapters/postgres/user_repository.py`
 - [ ] T013 Implementar `_row_to_domain()` helper
-- [ ] T014 Implementar `get_or_create()` (SELECT + INSERT condicional com uuid5)
-- [ ] T015 Implementar `update()` (UPDATE display_name, job_title, updated_at WHERE id)
+- [ ] T014 Implementar `get_or_create(firebase_uid, email, display_name)` (SELECT + INSERT condicional com uuid5; `display_name` populado do token se presente)
+- [ ] T015 Implementar `update()` (UPDATE com COALESCE — `None` preserva valor atual; só sobrescreve campos não-None; sempre atualiza `updated_at`)
 
 ### Adaptar Auth Dependency
-- [ ] T016 Ajustar `src/adapters/firebase/auth.py` para retornar `firebase_uid` e `email` além do UUID
-- [ ] T017 Criar `get_firebase_token_data` em `src/api/deps.py` retornando `{user_id, firebase_uid, email}`
+- [ ] T016 Ajustar `src/adapters/firebase/auth.py` para retornar `firebase_uid`, `email` e `display_name` (claim `name`) além do UUID
+- [ ] T017 Criar `get_firebase_token_data` em `src/api/deps.py` retornando `{user_id, firebase_uid, email, display_name}`
 - [ ] T018 Garantir que rotas existentes continuam usando `get_authenticated_user` sem alteração
 
 ### Service
 - [ ] T019 Adicionar `UserService` em `src/domain/services.py`
-- [ ] T020 Implementar `get_or_create(firebase_uid, email) -> User`
+- [ ] T020 Implementar `get_or_create(firebase_uid, email, display_name) -> User` (passa `display_name` do token para o repositório)
 - [ ] T021 Implementar `update_profile(user_id, display_name, job_title) -> User`
-- [ ] T022 Validar: `display_name` vazio string levanta `ValueError`
+- [ ] T022 Validar em `update_profile`: `display_name=""` levanta `ValueError`; `None` é permitido (significa "não atualizar" — explicit null já rejeitado a 422 pelo model_validator antes de chegar ao service)
 
 ### API Models
-- [ ] T023 Criar `src/api/models/users.py`: `UserResponse.from_domain()` e `UserUpdateRequest`
+- [ ] T023 Criar `src/api/models/users.py`: `UserResponse.from_domain()` e `UserUpdateRequest` (com `model_validator` rejeitando `display_name=null` explícito e `field_validator` rejeitando `display_name=""`)
 
 ### API Routes
 - [ ] T024 Criar `src/api/routes/users.py`
-- [ ] T025 Implementar `GET /api/v1/users/me` com upsert + `@limiter.limit("60/minute")`
+- [ ] T025 Implementar `GET /api/v1/users/me`: chama `get_or_create(firebase_uid, email, display_name)` passando `display_name` do token + `@limiter.limit("60/minute")`
 - [ ] T026 Implementar `PATCH /api/v1/users/me` com validação + `@limiter.limit("60/minute")`
 - [ ] T027 Adicionar `get_user_service` em `src/api/deps.py`
 - [ ] T028 Registrar router `/users` em `src/main.py`
@@ -68,9 +68,12 @@
 ### API Tests
 - [ ] T029 `GET /api/v1/users/me` → 200 + campos corretos (upsert na primeira call)
 - [ ] T030 `GET /api/v1/users/me` chamado 2x → mesmo `id` retornado (upsert idempotente)
+- [ ] T030b `GET /api/v1/users/me` com `name` claim diferente na 2ª call → `display_name` retorna valor da criação, não sincroniza do token
 - [ ] T031 `GET /api/v1/users/me` sem auth → 401
 - [ ] T032 `PATCH /api/v1/users/me` com `display_name` válido → 200 + atualizado
 - [ ] T033 `PATCH /api/v1/users/me` com `display_name=""` → 422
+- [ ] T033b `PATCH /api/v1/users/me` com `display_name=null` → 422
+- [ ] T033c `GET /api/v1/users/me` 1ª call com Firebase token contendo `name` → `display_name` populado no response
 - [ ] T034 `PATCH /api/v1/users/me` sem auth → 401 [P]
 
 ---
@@ -101,7 +104,7 @@
 - [ ] T048 Todos os ícones: `text-text-muted hover:text-text transition-colors` — zero cor ad-hoc
 
 ### UserAvatar — Componente
-- [ ] T049 Criar `src/lib/ui/UserAvatar.svelte`
+- [ ] T049 Criar `src/lib/ui/UserAvatar.svelte` e adicionar barrel-export em `src/lib/ui/index.ts`
 - [ ] T050 Implementar cálculo de iniciais (`displayName` → primeiras letras; fallback email)
 - [ ] T051 Implementar botão circular com iniciais usando `bg-accent/20 text-accent font-semibold`
 - [ ] T052 Implementar dropdown ao clicar: header (nome + email), "Minha conta" → `/settings/`, "Log out"
@@ -122,8 +125,8 @@
 ### Store & Service de Perfil
 - [ ] T058 Criar `src/lib/types/users.ts` com interfaces `UserProfile`, `UserPatch`
 - [ ] T059 Criar `src/lib/services/users.ts` com `getMe()` e `updateMe(patch)`
-- [ ] T060 Criar `src/lib/stores/profile.ts` com `profile` store + `loadProfile()`
-- [ ] T061 Chamar `loadProfile()` em `UserAvatar.$effect` (após `$user` disponível)
+- [ ] T060 Criar `src/lib/stores/profile.ts` com `profile` store + `loadProfile()` + `clearProfile()`
+- [ ] T061 Em `UserAvatar.$effect`: chamar `loadProfile()` quando `$user` torna-se não-null; chamar `clearProfile()` quando `$user` torna-se null (evita dados stale entre sessões)
 
 ### Redirect Pós-Login
 - [ ] T062 Alterar `src/routes/login/+page.svelte`: redirect para `/dashboard/` após login bem-sucedido
@@ -139,7 +142,7 @@
 
 ### Settings — Estrutura
 - [ ] T068 Criar `src/routes/settings/+page.ts` (`ssr = false`, auth guard)
-- [ ] T069 Criar `src/routes/settings/+page.svelte` com 3 seções usando `<Card>`
+- [ ] T069 Criar `src/routes/settings/+page.svelte` com `<Tabs>` de `lib/ui` — 3 abas: Profile, Security, Plan (sem sub-rotas)
 
 ### Settings — Seção Perfil
 - [ ] T070 Campos: `display_name` (`<Input>` editável), `job_title` (`<Input>` editável), email (read-only)
@@ -153,7 +156,7 @@
 - [ ] T076 Mapear erros Firebase: `auth/wrong-password`, `auth/weak-password`, `auth/requires-recent-login`
 
 ### Settings — Seção Plano
-- [ ] T077 `<Badge>` com `$profile.plan` (design system)
+- [ ] T077 `<Badge>` com `$profile?.plan ?? 'beta'` (null-guard obrigatório — profile pode não ter carregado)
 - [ ] T078 "Membro desde" formatado em pt-BR com `Intl.DateTimeFormat`
 - [ ] T079 CTA "Falar com a equipe" (`<Button variant="secondary">` — mailto placeholder)
 
@@ -172,6 +175,7 @@
 - [ ] T085 Settings Perfil: submit chama `updateMe()` com dados corretos
 - [ ] T086 Settings Segurança: badge muda com `emailVerified`
 - [ ] T087 Settings Plano: exibe plano e data formatada corretamente
+- [ ] T087b Settings Plano: quando `$profile` é null (loading/error), badge exibe fallback `'beta'` sem crash
 
 ### Acessibilidade
 - [ ] T088 Todos os ícones de ação têm `aria-label`
@@ -220,7 +224,7 @@
 
 ## Acceptance Criteria
 
-- [ ] Todos os 101 tasks marcados `[x]`
+- [ ] Todos os ~107 tasks marcados `[x]`
 - [ ] ≥ 80% coverage (backend + frontend)
 - [ ] CI gates verdes: lint, type-check, test, build, Trivy, docs-check
 - [ ] Mobile testado em 375px

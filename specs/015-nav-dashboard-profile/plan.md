@@ -14,7 +14,7 @@
 | 4 | Frontend: Dashboard & Settings | 2 | 19 | /dashboard/, /docs/, /settings/ |
 | 5 | Testes, A11y & Docs | 2 | 18 | Coverage ≥80%, CI verde |
 
-**Total**: ~83 tasks | ~10 dias
+**Total**: ~107 tasks | ~10 dias
 
 ---
 
@@ -68,15 +68,15 @@ class User(BaseModel):
 ```python
 # ports/user_repo.py
 class UserRepoPort(Protocol):
-    async def get_or_create(self, firebase_uid: str, email: str) -> User: ...
+    async def get_or_create(self, firebase_uid: str, email: str, display_name: str | None) -> User: ...
     async def update(self, user_id: UUID, display_name: str | None, job_title: str | None) -> User: ...
 ```
 
 ### Backend — Repository
 
 `adapters/postgres/user_repository.py`:
-- `get_or_create()`: SELECT pelo firebase_uid; se não existir, INSERT com uuid5 + plan=beta
-- `update()`: UPDATE display_name, job_title, updated_at WHERE id = user_id
+- `get_or_create(firebase_uid, email, display_name)`: SELECT pelo firebase_uid; se não existir, INSERT com uuid5 + plan=beta + display_name do token (se presente)
+- `update(user_id, display_name, job_title)`: UPDATE usando COALESCE — `None` preserva o valor atual do campo (não sobrescreve); só atualiza campos não-None
 - `_row_to_domain()`: mapper Row → User
 
 ```python
@@ -92,12 +92,14 @@ user_id = uuid.uuid5(uuid.NAMESPACE_URL, f"firebase:{firebase_uid}")
 class UserService:
     def __init__(self, repo: UserRepoPort): ...
 
-    async def get_or_create(self, firebase_uid: str, email: str) -> User:
-        return await self._repo.get_or_create(firebase_uid, email)
+    async def get_or_create(self, firebase_uid: str, email: str, display_name: str | None) -> User:
+        return await self._repo.get_or_create(firebase_uid, email, display_name)
 
     async def update_profile(
         self, user_id: UUID, display_name: str | None, job_title: str | None
     ) -> User:
+        # None = field omitted (don't update) — already validated at request model level
+        # explicit null → 422 via model_validator before this service is reached
         if display_name is not None and len(display_name.strip()) == 0:
             raise ValueError("display_name cannot be empty string")
         return await self._repo.update(user_id, display_name, job_title)
@@ -109,10 +111,10 @@ O `get_authenticated_user` atual retorna apenas `UUID`. Precisamos também de
 `firebase_uid` e `email` para o upsert do perfil.
 
 **Opção escolhida**: criar dependência auxiliar `get_firebase_token_data` em `api/deps.py`
-que retorna `{"user_id": UUID, "firebase_uid": str, "email": str}`. As rotas existentes
+que retorna `{"user_id": UUID, "firebase_uid": str, "email": str, "display_name": str | None}`. As rotas existentes
 continuam usando `get_authenticated_user` sem alteração — retrocompatível.
 
-`adapters/firebase/auth.py` — ajustar para retornar também `uid` e `email` do token
+`adapters/firebase/auth.py` — ajustar para retornar `uid`, `email` e claim `name` do token
 decodificado além do UUID.
 
 ### Backend — API Models
@@ -133,6 +135,21 @@ class UserResponse(BaseModel):
 class UserUpdateRequest(BaseModel):
     display_name: str | None = None
     job_title: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_null_display_name(cls, data: Any) -> Any:
+        # Distinguishes explicit null (→ 422) from omitted (→ None, don't update)
+        if isinstance(data, dict) and "display_name" in data and data["display_name"] is None:
+            raise ValueError("display_name cannot be null")
+        return data
+
+    @field_validator("display_name")
+    @classmethod
+    def display_name_not_empty(cls, v: str | None) -> str | None:
+        if v is not None and len(v.strip()) == 0:
+            raise ValueError("display_name cannot be empty string")
+        return v
 ```
 
 ### Backend — API Routes
@@ -141,7 +158,7 @@ class UserUpdateRequest(BaseModel):
 
 **GET /api/v1/users/me**
 - Usa `get_firebase_token_data` para obter uid + email + UUID
-- Chama `UserService.get_or_create(firebase_uid, email)` — upsert automático
+- Chama `UserService.get_or_create(firebase_uid, email, display_name)` — upsert automático
 - Retorna `UserResponse`
 - Rate limit: 60/minute
 
@@ -149,7 +166,7 @@ class UserUpdateRequest(BaseModel):
 - Body: `UserUpdateRequest { display_name?, job_title? }`
 - Chama `UserService.update_profile(user_id, display_name, job_title)`
 - Retorna `UserResponse` atualizado
-- 422 se display_name = ""
+- 422 se `display_name = ""` (empty string) ou `display_name = null` (explicit null)
 - Rate limit: 60/minute
 
 ### Backend — Deps
@@ -157,7 +174,7 @@ class UserUpdateRequest(BaseModel):
 ```python
 # api/deps.py (adição)
 async def get_user_service(session: AsyncSession = Depends(get_session)) -> UserService:
-    repo = UserRepository(session)
+    repo = PostgresUserRepository(session)
     return UserService(repo)
 ```
 
@@ -214,7 +231,7 @@ Novo componente `apps/web/src/lib/ui/UserAvatar.svelte`:
   let open = $state(false);
   let avatarEl = $state<HTMLButtonElement | null>(null);
 
-  const initials = $derived(() => {
+  const initials = $derived.by(() => {
     const name = $profile?.display_name ?? $user?.displayName;
     if (name) {
       return name.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
@@ -258,6 +275,10 @@ export async function loadProfile(): Promise<void> {
   const data = await getMe();
   profile.set(data);
 }
+
+export function clearProfile(): void {
+  profile.set(null);
+}
 ```
 
 **`lib/services/users.ts`**:
@@ -267,8 +288,8 @@ export async function getMe(): Promise<UserProfile> { ... }    // GET /api/v1/us
 export async function updateMe(patch: UserPatch): Promise<UserProfile> { ... }  // PATCH
 ```
 
-`loadProfile()` é chamado em `UserAvatar.$effect` na primeira montagem do componente
-(após `$user` disponível), mantendo o store atualizado.
+`loadProfile()` é chamado em `UserAvatar.$effect` quando `$user` torna-se não-null (primeira montagem).
+`clearProfile()` é chamado no mesmo `$effect` quando `$user` torna-se null (logout), evitando dados stale entre sessões.
 
 ### Frontend — Dashboard
 
@@ -289,7 +310,7 @@ Idêntico ao Dashboard — banner "Em construção" com auth guard.
 
 ### Frontend — Settings
 
-`routes/settings/+page.svelte` — 3 seções com `<Card>` do design system:
+`routes/settings/+page.svelte` — 3 abas com `<Tabs>` de `lib/ui` (sem sub-rotas): **Profile**, **Security**, **Plan**.
 
 **Seção Perfil**:
 - `<Input>` para `display_name` e `job_title`
@@ -304,7 +325,7 @@ Idêntico ao Dashboard — banner "Em construção" com auth guard.
 - Erros Firebase mapeados: `auth/wrong-password`, `auth/weak-password`, `auth/requires-recent-login`
 
 **Seção Plano**:
-- `<Badge>` com `$profile.plan` (design system)
+- `<Badge>` com `$profile?.plan ?? 'beta'` (null-guard — profile pode não ter carregado)
 - "Membro desde" formatado: `new Intl.DateTimeFormat('pt-BR').format(created_at)`
 - CTA `<Button variant="secondary">Falar com a equipe</Button>` (mailto placeholder)
 
@@ -315,8 +336,8 @@ Idêntico ao Dashboard — banner "Em construção" com auth guard.
 ### Unit Tests (Backend)
 - `UserPlan` enum values corretos
 - `User` model: frozen, campos obrigatórios, defaults
-- `UserService.update_profile()` rejeita display_name vazio ("")
-- `UserService.get_or_create()` retorna user existente na segunda chamada
+- `UserService.update_profile()` rejeita display_name vazio (`""`) — `None` é permitido (significa "não atualizar")
+- `UserService.get_or_create()` retorna user existente na segunda chamada (display_name não sincronizado do token)
 
 ### API Tests
 - `GET /api/v1/users/me` → 200 + UserResponse (upsert na primeira call)
@@ -324,6 +345,9 @@ Idêntico ao Dashboard — banner "Em construção" com auth guard.
 - `GET /api/v1/users/me` sem auth → 401
 - `PATCH /api/v1/users/me` com display_name válido → 200
 - `PATCH /api/v1/users/me` com display_name="" → 422
+- `PATCH /api/v1/users/me` com display_name=null → 422
+- `GET /api/v1/users/me` 1ª call com `name` claim → display_name populado no response
+- `GET /api/v1/users/me` 2ª call com `name` claim diferente → display_name não atualizado
 - `PATCH /api/v1/users/me` sem auth → 401
 
 ### Frontend Tests (Vitest)
@@ -360,7 +384,7 @@ Idêntico ao Dashboard — banner "Em construção" com auth guard.
 | Profile store desatualizado após PATCH | Baixa | Atualizar store localmente com resposta da API |
 | Dropdown sem click-outside no mobile | Média | Testar em iOS/Android; adicionar backdrop overlay se necessário |
 | Migração falha em produção | Baixa | Testar com Cloud SQL Proxy localmente antes do merge |
-| Links para `/incidents/analytics/` externos | Baixa | Adicionar redirect 301 em `hooks.ts` se necessário |
+| Links para `/incidents/analytics/` externos | Baixa | Rota antiga removida — retorna 404 (decisão intencional, sem redirect) |
 
 ---
 
@@ -371,5 +395,5 @@ Idêntico ao Dashboard — banner "Em construção" com auth guard.
 - [ ] Mobile testado em 375px
 - [ ] WCAG 2.1 AA validado
 - [ ] Migração aplicada em produção sem erro
-- [ ] `/analytics/` acessível; `/incidents/analytics/` retorna 404 ou redirect
+- [ ] `/analytics/` acessível; `/incidents/analytics/` retorna 404 (sem redirect)
 - [ ] PR aprovado por @renatobardi

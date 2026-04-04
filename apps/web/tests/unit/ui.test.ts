@@ -10,7 +10,9 @@ describe('Design System Components', () => {
     expect(ui.Badge).toBeDefined();
     expect(ui.Container).toBeDefined();
     expect(ui.Section).toBeDefined();
-    // Navbar is exported but requires Firebase env vars, tested indirectly via other tests
+    // Navbar/UserAvatar require Firebase env vars, tested indirectly via other tests
     expect(ui.Navbar).toBeDefined();
+    expect(ui.UserAvatar).toBeDefined();
+    expect(ui.Tabs).toBeDefined();
   });
 });

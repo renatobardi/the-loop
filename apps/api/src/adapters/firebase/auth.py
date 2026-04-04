@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any
+from typing import Any, TypedDict
 from uuid import UUID
 
 import firebase_admin  # type: ignore[import-untyped]
@@ -16,6 +16,13 @@ from src.config import settings
 
 _app: firebase_admin.App | None = None
 _bearer_scheme = HTTPBearer()
+
+
+class FirebaseTokenData(TypedDict):
+    user_id: UUID
+    firebase_uid: str
+    email: str
+    display_name: str | None
 
 
 def init_firebase() -> None:
@@ -39,15 +46,31 @@ def verify_token(token: str) -> dict[str, Any]:
         ) from e
 
 
-async def get_current_user(
-    creds: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
-) -> UUID:
-    decoded = verify_token(creds.credentials)
-    uid = decoded.get("uid", "")
+def _uid_to_uuid(uid: str) -> UUID:
+    """Convert Firebase UID to deterministic UUID (uuid5 for non-UUID UIDs)."""
     try:
         return UUID(uid)
     except ValueError:
-        # Firebase UIDs are opaque strings (not valid UUIDs).
-        # Use uuid5 with a stable namespace to generate a deterministic UUID.
-        # This ensures the same Firebase user always gets the same UUID.
         return uuid.uuid5(uuid.NAMESPACE_URL, f"firebase:{uid}")
+
+
+async def get_current_user(
+    creds: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> UUID:
+    """Return deterministic UUID for the authenticated Firebase user."""
+    decoded = verify_token(creds.credentials)
+    return _uid_to_uuid(decoded.get("uid", ""))
+
+
+async def get_firebase_token_data(
+    creds: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> FirebaseTokenData:
+    """Return full token data: user_id, firebase_uid, email, display_name."""
+    decoded = verify_token(creds.credentials)
+    uid: str = decoded.get("uid", "")
+    return FirebaseTokenData(
+        user_id=_uid_to_uuid(uid),
+        firebase_uid=uid,
+        email=decoded.get("email", ""),
+        display_name=decoded.get("name") or None,
+    )

@@ -9,7 +9,7 @@ from uuid import UUID
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.firebase.auth import get_current_user
+from src.adapters.firebase.auth import get_current_user, get_firebase_token_data
 from src.adapters.postgres.action_item_repository import PostgresActionItemRepository
 from src.adapters.postgres.attachment_repository import PostgresAttachmentRepository
 from src.adapters.postgres.postmortem_repository import PostgresPostmortumRepository
@@ -30,7 +30,8 @@ if TYPE_CHECKING:
     from src.adapters.postgres.analytics_repository import PostgresAnalyticsRepository
     from src.adapters.postgres.cache import RuleVersionCache
     from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
-    from src.domain.services import AnalyticsService, RuleVersionService
+    from src.adapters.postgres.user_repository import PostgresUserRepository
+    from src.domain.services import AnalyticsService, RuleVersionService, UserService
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -175,3 +176,26 @@ def get_rule_version_cache() -> "RuleVersionCache":  # noqa: UP037
         init_rule_version_cache()
     assert _rule_version_cache_instance is not None, "Cache initialization failed"
     return _rule_version_cache_instance
+
+
+# ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────
+
+
+def get_user_repository(
+    session: AsyncSession = Depends(get_session),
+) -> "PostgresUserRepository":  # noqa: UP037
+    from src.adapters.postgres.user_repository import PostgresUserRepository
+
+    return PostgresUserRepository(session)
+
+
+def get_user_service(
+    repo: "PostgresUserRepository" = Depends(get_user_repository),  # noqa: UP037
+) -> "UserService":  # noqa: UP037
+    from src.domain.services import UserService
+
+    return UserService(repo)
+
+
+# Re-export get_firebase_token_data for routes that need full token data
+__all__ = ["get_firebase_token_data"]

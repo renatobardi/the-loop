@@ -7,7 +7,6 @@ __all__ = [
     "DuplicateSourceUrlError",
     "IncidentHasActiveRuleError",
     "IncidentMissingPostmortumError",
-    # Incident exceptions
     "IncidentNotFoundError",
     "InvalidVersionFormatError",
     "OptimisticLockError",
@@ -15,10 +14,9 @@ __all__ = [
     "PostmortumLockedError",
     "PostmortumNotFoundError",
     "ResponderNotFoundError",
-    # Phase B exceptions
     "RuleVersionNotFoundError",
-    # Sub-resource exceptions
     "TimelineEventNotFoundError",
+    "UserNotFoundError",
     "VersionAlreadyExistsError",
 ]
 
@@ -140,3 +138,12 @@ class PostmortumLockedError(Exception):
             f"Postmortem {postmortem_id} is locked after incident resolution. "
             f"Create a new incident if you need to add analysis."
         )
+
+
+# ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────
+
+
+class UserNotFoundError(Exception):
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
+        super().__init__(f"User not found: {user_id}")

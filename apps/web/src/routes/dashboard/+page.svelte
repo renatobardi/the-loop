@@ -1,26 +1,148 @@
 <script lang="ts">
 	import { Container, Section } from '$lib/ui';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	const { summary } = data;
+	const isEmpty = $derived(summary.total_scans === 0);
+
+	// Sparkline computation
+	const MAX_WEEKS = 8;
+	const weekData = $derived(summary.scans_by_week.slice(-MAX_WEEKS));
+	const maxFindings = $derived(Math.max(...weekData.map((w) => w.findings), 1));
+
+	// SVG sparkline dimensions
+	const SPARK_W = 400;
+	const SPARK_H = 60;
+	const sparkPoints = $derived(
+		weekData.length < 2
+			? ''
+			: weekData
+					.map((w, i) => {
+						const x = (i / (weekData.length - 1)) * SPARK_W;
+						const y = SPARK_H - (w.findings / maxFindings) * SPARK_H;
+						return `${x},${y}`;
+					})
+					.join(' ')
+	);
 </script>
 
 <Container>
 	<Section>
-		<div class="flex flex-col items-center justify-center py-24 text-center">
-			<svg
-				class="mb-6 h-16 w-16 text-text-muted"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="1.5"
-				aria-hidden="true"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"
-				/>
-			</svg>
-			<h1 class="text-2xl font-bold text-text">Under construction</h1>
-			<p class="mt-2 text-text-muted">The dashboard is coming soon.</p>
+		<div class="py-8">
+			<!-- Header -->
+			<div class="mb-8">
+				<h1 class="text-2xl font-bold text-text">Violations Dashboard</h1>
+				<p class="mt-1 text-sm text-text-muted">Semgrep scan results across your repositories</p>
+			</div>
+
+			{#if data.loadError}
+				<div
+					class="rounded-lg border border-error/40 bg-error/10 px-6 py-5"
+					role="alert"
+					aria-live="assertive"
+				>
+					<p class="font-medium text-error">Failed to load scan data</p>
+					<p class="mt-1 text-sm text-error/80">{data.loadError}</p>
+				</div>
+			{:else if isEmpty}
+				<!-- Empty state -->
+				<div class="flex flex-col items-center justify-center py-24 text-center">
+					<svg
+						class="mb-6 h-16 w-16 text-text-muted"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<h2 class="text-xl font-semibold text-text">No scans yet</h2>
+					<p class="mt-2 max-w-sm text-text-muted">
+						No scan data available. Connect your repositories to start detecting violations.
+					</p>
+					<a
+						href="/settings/"
+						class="mt-6 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
+					>
+						Go to Settings
+					</a>
+				</div>
+			{:else}
+				<!-- Stats cards -->
+				<div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-lg border border-border bg-bg-surface p-6">
+						<p class="text-sm text-text-muted">Total Scans</p>
+						<p class="mt-2 text-3xl font-bold text-text">{summary.total_scans.toLocaleString()}</p>
+					</div>
+					<div class="rounded-lg border border-border bg-bg-surface p-6">
+						<p class="text-sm text-text-muted">Total Findings</p>
+						<p class="mt-2 text-3xl font-bold text-text">
+							{summary.total_findings.toLocaleString()}
+						</p>
+					</div>
+					<div class="rounded-lg border border-border bg-bg-surface p-6">
+						<p class="text-sm text-text-muted">Active Repos</p>
+						<p class="mt-2 text-3xl font-bold text-text">{summary.active_repos.toLocaleString()}</p>
+					</div>
+				</div>
+
+				<!-- Charts row -->
+				<div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<!-- Weekly findings sparkline -->
+					<div class="rounded-lg border border-border bg-bg-surface p-6">
+						<h2 class="mb-4 text-sm font-semibold text-text">Weekly Findings</h2>
+						{#if weekData.length >= 2}
+							<svg
+								viewBox="0 0 {SPARK_W} {SPARK_H}"
+								class="h-16 w-full text-accent"
+								preserveAspectRatio="none"
+								aria-hidden="true"
+							>
+								<polyline points={sparkPoints} fill="none" stroke="currentColor" stroke-width="2" />
+							</svg>
+							<!-- Week labels -->
+							<div class="mt-2 flex justify-between">
+								{#each weekData as w (w.week)}
+									<span class="text-xs text-text-muted">{w.week.replace(/^\d{4}-/, '')}</span>
+								{/each}
+							</div>
+						{:else}
+							<p class="text-sm text-text-muted">Not enough data to display chart.</p>
+						{/if}
+					</div>
+
+					<!-- Top rules -->
+					<div class="rounded-lg border border-border bg-bg-surface p-6">
+						<h2 class="mb-4 text-sm font-semibold text-text">Top Rules</h2>
+						{#if summary.top_rules.length === 0}
+							<p class="text-sm text-text-muted">No rules data available.</p>
+						{:else}
+							<div class="flex flex-col gap-3">
+								{#each summary.top_rules.slice(0, 5) as rule, i (rule.rule_id)}
+									<div class="flex items-center gap-3">
+										<span class="w-4 text-sm text-text-muted">{i + 1}</span>
+										<code class="flex-1 truncate text-xs font-mono text-accent">{rule.rule_id}</code>
+										<div class="h-1.5 w-24 overflow-hidden rounded-full bg-bg">
+											<div
+												class="h-full rounded-full bg-accent"
+												style="width: {(rule.count / (summary.top_rules[0]?.count || 1)) * 100}%"
+											></div>
+										</div>
+										<span class="w-6 text-right text-xs text-text-muted">{rule.count}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		</div>
 	</Section>
 </Container>

@@ -14,8 +14,7 @@ const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://theloop-api-1090621437043.u
 const BASE = `${API_BASE}/api/v1/incidents/analytics`;
 
 async function getAuthToken(): Promise<string> {
-	const auth = getFirebaseAuth();
-	const user = auth.currentUser;
+	const user = getFirebaseAuth().currentUser;
 	if (!user) {
 		window.location.href = '/?auth=required';
 		throw new Error('Unauthenticated');

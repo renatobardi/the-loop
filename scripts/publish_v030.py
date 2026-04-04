@@ -60,18 +60,14 @@ def main() -> None:
     try:
         with urllib.request.urlopen(req) as resp:
             result = json.loads(resp.read())
-            print(f"✅ Published! version={result.get('version')} rules={result.get('rules_count')} status={result.get('status')}")
+            print(f"✅ Published! version={result.get('version')} rules={result.get('rules_count')}")
     except urllib.error.HTTPError as e:
         body = e.read().decode()
         print(f"❌ HTTP {e.code}: {body}")
         sys.exit(1)
 
     print()
-    print("Próximo: ativar a versão")
-    print(f"  curl -X POST {API_BASE}/api/v1/rules/activate \\")
-    print(f"    -H 'Authorization: Bearer {token}' \\")
-    print(f"    -H 'Content-Type: application/json' \\")
-    print(f"    -d '{{\"version\": \"{VERSION}\"}}'")
+    print("✅ Version is now live and active.")
 
 
 if __name__ == "__main__":

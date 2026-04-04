@@ -53,9 +53,10 @@ class RuleVersionRepository:
             rules_json: List of rule definitions
             published_by: UUID of publishing user
             notes: Optional release notes
+            status: Status of the version (default: "active")
 
         Returns:
-            RuleVersion object created with status='draft'
+            RuleVersion object created with the specified status (default='active')
 
         Raises:
             VersionAlreadyExistsError: If version already exists (UNIQUE constraint)

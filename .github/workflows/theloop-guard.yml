@@ -139,19 +139,7 @@ jobs:
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PR_NUMBER_JSON="${PR_NUMBER:-null}"
 
-          FINDINGS_JSON=$(python3 -c "
-import json
-data = json.load(open('/tmp/semgrep-results.json'))
-findings = []
-for r in data.get('results', []):
-    findings.append({
-        'rule_id': r.get('check_id', ''),
-        'file_path': r.get('path', ''),
-        'line_number': r.get('start', {}).get('line', 0),
-        'severity': r.get('extra', {}).get('severity', '')
-    })
-print(json.dumps(findings))
-" 2>/dev/null || echo "[]")
+          FINDINGS_JSON=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(json.dumps([{'rule_id':r.get('check_id',''),'file_path':r.get('path',''),'line_number':r.get('start',{}).get('line',0),'severity':r.get('extra',{}).get('severity','')} for r in d.get('results',[])]))" 2>/dev/null || echo "[]")
 
           curl -s --max-time 3 \
             -X POST https://api.loop.oute.pro/api/v1/scans \
@@ -185,17 +173,9 @@ print(json.dumps(findings))
             exit 0
           fi
 
-          FINDINGS_COUNT=$(python3 -c "
-import json
-d = json.load(open('/tmp/semgrep-results.json'))
-print(len(d.get('results', [])))
-" 2>/dev/null || echo "0")
+          FINDINGS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(len(d.get('results', [])))" 2>/dev/null || echo "0")
 
-          ERRORS_COUNT=$(python3 -c "
-import json
-d = json.load(open('/tmp/semgrep-results.json'))
-print(sum(1 for r in d.get('results', []) if r.get('extra', {}).get('severity', '').upper() == 'ERROR'))
-" 2>/dev/null || echo "0")
+          ERRORS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='ERROR'))" 2>/dev/null || echo "0")
 
           {
             echo "## 🔁 The Loop — Incident Guard"
@@ -222,17 +202,7 @@ print(sum(1 for r in d.get('results', []) if r.get('extra', {}).get('severity', 
               echo "| Severity | Rule | File | Line |"
               echo "|:--------:|------|------|:----:|"
             } >> "$GITHUB_STEP_SUMMARY"
-            python3 -c "
-import json
-data = json.load(open('/tmp/semgrep-results.json'))
-for r in data.get('results', []):
-    sev = r.get('extra', {}).get('severity', '').upper()
-    icon = '🔴 ERROR' if sev == 'ERROR' else '🟡 WARN'
-    rule = r.get('check_id', '?')
-    path = r.get('path', '?')
-    line = r.get('start', {}).get('line', '?')
-    print(f'| {icon} | \`{rule}\` | \`{path}\` | {line} |')
-" >> "$GITHUB_STEP_SUMMARY"
+            python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); [print(f'| {chr(0x1F534)+\" ERROR\" if r.get(\"extra\",{}).get(\"severity\",\"\").upper()==\"ERROR\" else chr(0x1F7E1)+\" WARN\"} | \`{r.get(\"check_id\",\"?\")}\` | \`{r.get(\"path\",\"?\")}\` | {r.get(\"start\",{}).get(\"line\",\"?\")} |') for r in d.get('results',[])]" >> "$GITHUB_STEP_SUMMARY"
             {
               echo ""
               echo "${RULES_COUNT} rules checked · ${FINDINGS_COUNT} findings · scan completed in ${DURATION_S}s"

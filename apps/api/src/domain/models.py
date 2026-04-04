@@ -15,6 +15,7 @@ __all__ = [
     "AnalyticsFilter",
     "AnalyticsPeriod",
     "AnalyticsSummary",
+    "ApiKey",
     "AttachmentExtractionStatus",
     "AttachmentType",
     "Category",
@@ -34,6 +35,8 @@ __all__ = [
     "Rule",
     "RuleVersion",
     "RuleVersionStatus",
+    "Scan",
+    "ScanFinding",
     "Severity",
     "TeamStats",
     "TimelineEventType",
@@ -653,5 +656,59 @@ class User(BaseModel):
     display_name: str | None = None
     job_title: str | None = None
     plan: UserPlan = UserPlan.BETA
+    is_admin: bool = False
     created_at: datetime
     updated_at: datetime
+
+
+# ─── Phase 4: Semgrep Platform — API Keys & Scans ────────────────────────────
+
+
+class ApiKey(BaseModel):
+    """Immutable domain entity representing an API key for scan authentication."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    owner_id: UUID
+    name: str
+    prefix: str  # first 7 chars of raw token, shown in UI
+    last_used_at: datetime | None = None
+    revoked_at: datetime | None = None
+    created_at: datetime
+
+    @property
+    def is_revoked(self) -> bool:
+        return self.revoked_at is not None
+
+
+class ScanFinding(BaseModel):
+    """Immutable domain entity for a single finding from a Semgrep scan."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    scan_id: UUID
+    rule_id: str
+    file_path: str
+    line_number: int
+    severity: str
+    created_at: datetime
+
+
+class Scan(BaseModel):
+    """Immutable domain entity representing a Semgrep scan result."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    api_key_id: UUID
+    repository: str
+    branch: str
+    pr_number: int | None = None
+    rules_version: str
+    findings_count: int
+    errors_count: int
+    warnings_count: int
+    duration_ms: int
+    created_at: datetime

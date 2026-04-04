@@ -2,6 +2,9 @@
 
 __all__ = [
     "ActionItemNotFoundError",
+    "ApiKeyInvalidError",
+    "ApiKeyNotFoundError",
+    "ApiKeyRevokedError",
     "AttachmentNotFoundError",
     "DuplicateResponderError",
     "DuplicateSourceUrlError",
@@ -15,6 +18,7 @@ __all__ = [
     "PostmortumNotFoundError",
     "ResponderNotFoundError",
     "RuleVersionNotFoundError",
+    "ScanNotFoundError",
     "TimelineEventNotFoundError",
     "UserNotFoundError",
     "VersionAlreadyExistsError",
@@ -147,3 +151,29 @@ class UserNotFoundError(Exception):
     def __init__(self, user_id: str) -> None:
         self.user_id = user_id
         super().__init__(f"User not found: {user_id}")
+
+
+# ─── Phase 4: Semgrep Platform — API Keys & Scans ────────────────────────────
+
+
+class ApiKeyNotFoundError(Exception):
+    def __init__(self, key_id: str) -> None:
+        self.key_id = key_id
+        super().__init__(f"API key not found: {key_id}")
+
+
+class ApiKeyRevokedError(Exception):
+    def __init__(self, key_id: str) -> None:
+        self.key_id = key_id
+        super().__init__(f"API key has been revoked: {key_id}")
+
+
+class ApiKeyInvalidError(Exception):
+    def __init__(self) -> None:
+        super().__init__("Invalid API key")
+
+
+class ScanNotFoundError(Exception):
+    def __init__(self, scan_id: str) -> None:
+        self.scan_id = scan_id
+        super().__init__(f"Scan not found: {scan_id}")

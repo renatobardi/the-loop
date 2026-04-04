@@ -206,6 +206,7 @@ class UserRow(Base):
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     job_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     plan: Mapped[str] = mapped_column(String(32), nullable=False, default="beta")
+    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
@@ -237,3 +238,69 @@ class PostmortumRow(Base):
     updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class ApiKeyRow(Base):
+    """SQLAlchemy model for api_keys table (Phase 4 Semgrep platform)."""
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    owner_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    prefix: Mapped[str] = mapped_column(String(10), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class ScanRow(Base):
+    """SQLAlchemy model for scans table (Phase 4 Semgrep platform)."""
+
+    __tablename__ = "scans"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    api_key_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    repository: Mapped[str] = mapped_column(String(255), nullable=False)
+    branch: Mapped[str] = mapped_column(String(255), nullable=False)
+    pr_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rules_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    findings_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    errors_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    warnings_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), index=True
+    )
+
+
+class ScanFindingRow(Base):
+    """SQLAlchemy model for scan_findings table (Phase 4 Semgrep platform)."""
+
+    __tablename__ = "scan_findings"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    scan_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    rule_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    line_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    severity: Mapped[str] = mapped_column(String(10), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )
+
+
+class RuleWhitelistRow(Base):
+    """SQLAlchemy model for rule_whitelists table (Phase 4 Semgrep platform)."""
+
+    __tablename__ = "rule_whitelists"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    api_key_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    rule_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+    )

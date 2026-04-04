@@ -14,11 +14,13 @@ from src.adapters.firebase.auth import init_firebase
 from src.api.middleware import setup_middleware
 from src.api.routes.action_items import router as action_items_router
 from src.api.routes.analytics import router as analytics_router
+from src.api.routes.api_keys import router as api_keys_router
 from src.api.routes.attachments import router as attachments_router
 from src.api.routes.incidents import router as incidents_router
 from src.api.routes.postmortems import router as postmortems_router
 from src.api.routes.responders import router as responders_router
 from src.api.routes.rules import router as rules_router
+from src.api.routes.scans import router as scans_router
 from src.api.routes.timeline import router as timeline_router
 from src.api.routes.users import router as users_router
 from src.config import settings
@@ -66,6 +68,8 @@ app.include_router(attachments_router)
 app.include_router(postmortems_router)
 app.include_router(rules_router)
 app.include_router(users_router)
+app.include_router(api_keys_router)
+app.include_router(scans_router)
 
 
 @app.get("/api/v1/health")

@@ -136,6 +136,59 @@ curl -X POST https://theloop-api.../api/v1/rules/deprecate \
 | 0.2.0 | ACTIVE | 20 (6 Phase A + 14 Phase B) | 2026-04-03 |
 | 0.1.0 | ACTIVE | 6 (Phase A) | 2026-02-01 |
 
+## Analytics Dashboard
+
+The analytics dashboard aggregates incident postmortem data into actionable charts and trends, accessible at `/incidents/analytics/`.
+
+### Features
+
+- **Summary card** — Total / Resolved / Unresolved counts + average resolution time
+- **Category heatmap** — Horizontal bar chart of incidents by root cause (5 categories)
+- **Team heatmap** — Per-team incident counts with top-3 root cause categories
+- **Pattern timeline** — Weekly line chart (5 lines, one per category) over the selected period
+- **Filters** — Period preset (week / month / quarter / custom date range), team, category, status
+- **Loading skeleton** — Pulse skeleton while filters navigate; no blank flash
+- **Empty state** — Clear message when no incidents match the selected filters
+
+### API Endpoints
+
+```bash
+# All endpoints require Firebase auth token
+GET /api/v1/incidents/analytics/summary      # Totals + avg resolution days
+GET /api/v1/incidents/analytics/by-category  # Per-category stats
+GET /api/v1/incidents/analytics/by-team      # Per-team stats + top categories
+GET /api/v1/incidents/analytics/timeline     # Weekly buckets with category breakdown
+```
+
+#### Query Parameters (all endpoints)
+
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `period` | `week` `month` `quarter` `custom` | `month` | Time window |
+| `start_date` | `YYYY-MM-DD` | — | Required when `period=custom` |
+| `end_date` | `YYYY-MM-DD` | — | Required when `period=custom` |
+| `team` | string | — | Filter to a single team |
+| `category` | `code_pattern` `infrastructure` `process_breakdown` `third_party` `unknown` | — | Filter to one root cause |
+| `status` | `all` `resolved` `unresolved` | `all` | Filter by resolution status |
+
+#### Quick Start
+
+```bash
+TOKEN=$(firebase-token)
+
+# Last month summary
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics/summary?period=month"
+
+# Last quarter by team (resolved only)
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics/by-team?period=quarter&status=resolved"
+
+# Custom date range timeline
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics/timeline?period=custom&start_date=2026-01-01&end_date=2026-03-31"
+```
+
 ## Constitution
 
 This project is governed by 13 mandamentos defined in [CONSTITUTION.md](./CONSTITUTION.md). All contributions must comply.

@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import desc, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -136,13 +137,20 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
 
         try:
             await self.session.flush()  # Flush to detect constraint violations
-        except IntegrityError as e:
+        except (IntegrityError, UniqueViolationError) as e:
             await self.session.rollback()
             if "unique constraint" in str(e).lower() or "version" in str(e).lower():
                 raise VersionAlreadyExistsError(version) from e
             raise
 
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except (IntegrityError, UniqueViolationError) as e:
+            await self.session.rollback()
+            if "unique constraint" in str(e).lower() or "version" in str(e).lower():
+                raise VersionAlreadyExistsError(version) from e
+            raise
+
         await self.session.refresh(row)
         return self._row_to_domain(row)
 

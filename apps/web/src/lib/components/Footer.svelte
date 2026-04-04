@@ -16,6 +16,9 @@
       <a href="/constitution/" class="hover:text-text transition-colors">
         Constitution
       </a>
+      <a href="/rules/" class="hover:text-text transition-colors">
+        Rules
+      </a>
       <a href="mailto:loop@oute.pro" class="hover:text-text transition-colors">
         Contact
       </a>

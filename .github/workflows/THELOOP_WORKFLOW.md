@@ -29,7 +29,7 @@ curl -s \
   --max-time 5 \
   --connect-timeout 2 \
   -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
-  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
+  "https://api.loop.oute.pro/api/v1/rules/${VERSION}" \
   -o /tmp/rules.json
 ```
 
@@ -174,11 +174,11 @@ Blocks merge if ERROR-severity findings detected. WARNING findings are advisory 
 **Diagnosis**:
 ```bash
 # Check if API is online
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/health
+curl -s https://api.loop.oute.pro/api/v1/health
 
 # Check response time
 curl -w "Total time: %{time_total}s\n" \
-  https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+  https://api.loop.oute.pro/api/v1/rules/latest \
   -o /dev/null
 ```
 
@@ -368,7 +368,7 @@ docker run returntocorp/semgrep:latest \
 ## Support
 
 - **Workflow Issues**: Check logs in GitHub Actions tab
-- **API Status**: https://theloop-api-1090621437043.us-central1.run.app/api/v1/health
+- **API Status**: https://api.loop.oute.pro/api/v1/health
 - **API Logs**: `gcloud run logs read theloop-api --region=us-central1 --limit=100`
 - **Report Issues**: https://loop.oute.pro/feedback
 - **API Docs**: See `specs/011-phase-b-api-integration/API.md`

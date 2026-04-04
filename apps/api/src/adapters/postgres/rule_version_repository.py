@@ -83,6 +83,21 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         rows = result.scalars().all()
         return [self._row_to_domain(row) for row in rows]
 
+    async def update_rules(
+        self, version: str, rules_json: list[dict[str, Any]]
+    ) -> RuleVersion:
+        """Replace the rules list of an existing version in-place."""
+        stmt = select(RuleVersionRow).where(RuleVersionRow.version == version)
+        result = await self.session.execute(stmt)
+        row = result.scalars().first()
+        if not row:
+            raise RuleVersionNotFoundError(version)
+        row.rules_json = rules_json  # type: ignore[assignment]  # JSONB accepts list
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(row)
+        return self._row_to_domain(row)
+
     async def publish_version(
         self,
         version: str,

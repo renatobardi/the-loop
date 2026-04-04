@@ -329,6 +329,33 @@ secrets, CI jobs). Resultado: backend mergeado mas nunca
 deployado, frontend quebrado em produção através de 4 PRs de
 hotfix consecutivos.
 
+### XIV. Auth Tiers — Modelo de Acesso Universal
+
+Todo endpoint, feature e decisão de produto do The Loop MUST seguir o modelo de três tiers de autenticação:
+
+| Tier | Token | Acesso |
+|------|-------|--------|
+| **Anônimo / Free** | nenhum | comportamento padrão, zero personalização |
+| **API key** (`tlp_...`) | `THELOOP_API_TOKEN` | padrão + whitelist e configurações de projeto |
+| **Firebase** (`eyJ...`) | Firebase JWT | acesso completo + dashboard + settings + admin |
+
+**Regras invioláveis:**
+
+- Uso sem identificação NUNCA recebe features além do comportamento padrão
+- Qualquer configuração, personalização ou ajuste MUST exigir identidade (API key ou Firebase)
+- Ao projetar nova feature: "é personalização?" → exige identidade. "é comportamento padrão global?" → funciona anônimo
+- Nenhum endpoint pode expor dados de um usuário para outro tier
+- Rotas de admin MUST verificar Firebase + `user.is_admin == True`
+
+**Checklist obrigatório em todo spec.md e plan.md:**
+- [ ] Cada endpoint tem tier de auth definido explicitamente
+- [ ] Nenhuma feature de personalização é acessível por tier inferior
+- [ ] Comportamento anônimo é seguro e não expõe dados de usuários identificados
+
+**Origem**: Mandamento adicionado em 2026-04-04 como princípio de produto e arquitetura universal, garantindo modelo de acesso consistente e extensível em todas as fases do produto.
+
+---
+
 ## Aplicação e Verificação
 
 - Este documento MUST existir na raiz do repositório como
@@ -361,4 +388,4 @@ hotfix consecutivos.
 (1) solicitação explícita de @renatobardi, (2) confirmação
 dupla antes do merge.
 
-**Version**: 1.1.0 | **Ratified**: 2026-03-30 | **Last Amended**: 2026-03-31
+**Version**: 1.2.0 | **Ratified**: 2026-03-30 | **Last Amended**: 2026-04-04

@@ -1,14 +1,21 @@
 """API routes for rule versioning — Phase B integration."""
 
 from typing import Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
-from src.adapters.firebase.auth import get_current_user
+from src.adapters.firebase.auth import FirebaseTokenData
 from src.adapters.postgres.cache import RuleVersionCache
-from src.api.deps import get_rule_version_cache, get_rule_version_service
+from src.api.deps import (
+    ApiKeyContext,
+    get_optional_identity,
+    get_rule_version_cache,
+    get_rule_version_service,
+    get_scan_service,
+    require_admin,
+)
 from src.api.middleware import limiter
 from src.api.models.rules import (
     DeprecateRulesRequest,
@@ -25,9 +32,28 @@ from src.domain.exceptions import (
     VersionAlreadyExistsError,
 )
 from src.domain.models import RuleVersion
-from src.domain.services import RuleVersionService
+from src.domain.services import RuleVersionService, ScanService
 
 router = APIRouter(prefix="/api/v1", tags=["rules"])
+
+
+# ─── Admin request/response models ───────────────────────────────────────────
+
+
+class CreateVersionRequest(BaseModel):
+    version: str
+
+
+class CreateVersionResponse(BaseModel):
+    version: str
+    status: str
+
+
+class EditRuleRequest(BaseModel):
+    message: str
+    severity: str
+    pattern: str
+    languages: list[str] = ["python"]
 
 
 def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
@@ -65,6 +91,7 @@ async def _invalidate_rules_cache(
 @limiter.limit("60/minute")
 async def get_latest_rules(
     request: Request,
+    identity: object = Depends(get_optional_identity),
     service: RuleVersionService = Depends(get_rule_version_service),
     cache: RuleVersionCache = Depends(get_rule_version_cache),
 ) -> JSONResponse:
@@ -79,6 +106,12 @@ async def get_latest_rules(
         cached = await cache.get_latest()
         if cached:
             response_data = _rule_version_to_response(cached)
+            # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
+            if isinstance(identity, ApiKeyContext) and identity.whitelist:
+                response_data["rules"] = [
+                    r for r in response_data["rules"] if r["id"] not in identity.whitelist
+                ]
+                response_data["rules_count"] = len(response_data["rules"])
             return JSONResponse(
                 content=response_data,
                 headers={"Cache-Control": "public, max-age=300"},
@@ -93,6 +126,12 @@ async def get_latest_rules(
         await cache.set_latest(rule_version)
 
         response_data = _rule_version_to_response(rule_version)
+        # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
+        if isinstance(identity, ApiKeyContext) and identity.whitelist:
+            response_data["rules"] = [
+                r for r in response_data["rules"] if r["id"] not in identity.whitelist
+            ]
+            response_data["rules_count"] = len(response_data["rules"])
         return JSONResponse(
             content=response_data,
             headers={"Cache-Control": "public, max-age=300"},
@@ -172,6 +211,7 @@ async def list_deprecated_versions(
 async def get_rules_by_version(
     version: str,
     request: Request,
+    identity: object = Depends(get_optional_identity),
     service: RuleVersionService = Depends(get_rule_version_service),
 ) -> RuleVersionResponse:
     """Get a specific rule version by semantic version string.
@@ -188,7 +228,14 @@ async def get_rules_by_version(
         if not rule_version:
             raise HTTPException(status_code=404, detail=f"Version {version} not found")
 
-        return RuleVersionResponse(**_rule_version_to_response(rule_version))
+        rule_version_data = _rule_version_to_response(rule_version)
+        # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
+        if isinstance(identity, ApiKeyContext) and identity.whitelist:
+            rule_version_data["rules"] = [
+                r for r in rule_version_data["rules"] if r["id"] not in identity.whitelist
+            ]
+            rule_version_data["rules_count"] = len(rule_version_data["rules"])
+        return RuleVersionResponse(**rule_version_data)
     except RuleVersionNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Version {version} not found") from e
 
@@ -198,7 +245,7 @@ async def get_rules_by_version(
 async def publish_rules(
     request: Request,
     body: PublishRulesRequest,
-    user_id: UUID = Depends(get_current_user),
+    admin_data: FirebaseTokenData = Depends(require_admin),
     service: RuleVersionService = Depends(get_rule_version_service),
     cache: RuleVersionCache = Depends(get_rule_version_cache),
 ) -> PublishRulesResponse:
@@ -216,11 +263,7 @@ async def publish_rules(
         409: Version already exists
         500: Server error
     """
-    # Check admin auth (TODO: implement proper admin role check)
-    # For now, allow any authenticated user to publish
-    # Future: Check if user.is_admin from Firebase claims
-    if not user_id:
-        raise HTTPException(status_code=403, detail="Admin role required")
+    user_id = admin_data["user_id"]
 
     try:
         # Validate request
@@ -273,7 +316,7 @@ async def publish_rules(
 async def deprecate_rules_version(
     request: Request,
     body: DeprecateRulesRequest,
-    user_id: UUID = Depends(get_current_user),
+    admin_data: FirebaseTokenData = Depends(require_admin),
     service: RuleVersionService = Depends(get_rule_version_service),
     cache: RuleVersionCache = Depends(get_rule_version_cache),
 ) -> DeprecateRulesResponse:
@@ -304,10 +347,6 @@ async def deprecate_rules_version(
         - Sets version.deprecated_at = now()
         - Invalidates /latest cache immediately
     """
-    # Check auth (same pattern as publish)
-    if not user_id:
-        raise HTTPException(status_code=403, detail="Admin role required")
-
     try:
         # Deprecate version
         deprecated_version = await service.deprecate_version(body.version)
@@ -327,3 +366,102 @@ async def deprecate_rules_version(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to deprecate version: {e!s}") from e
+
+
+# ─── Admin-only endpoints (Phases 6 & 7) ─────────────────────────────────────
+
+
+@router.post("/rules/versions", response_model=CreateVersionResponse, status_code=201)
+@limiter.limit("10/minute")
+async def create_rule_version(
+    request: Request,
+    payload: CreateVersionRequest,
+    admin_data: FirebaseTokenData = Depends(require_admin),
+    service: RuleVersionService = Depends(get_rule_version_service),
+) -> CreateVersionResponse:
+    """Create a new draft rule version with empty rules (admin only)."""
+    try:
+        new_version = await service.publish_version(
+            version=payload.version,
+            rules_json=[],
+            published_by=admin_data["user_id"],
+            notes="draft",
+        )
+        return CreateVersionResponse(version=new_version.version, status=new_version.status.value)
+    except InvalidVersionFormatError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid version format: {e}") from e
+    except VersionAlreadyExistsError as e:
+        raise HTTPException(status_code=409, detail=f"Version conflict: {e}") from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create version: {e!s}") from e
+
+
+@router.put("/rules/{version}/rules/{rule_id}", status_code=200)
+@limiter.limit("30/minute")
+async def edit_rule(
+    version: str,
+    rule_id: str,
+    request: Request,
+    payload: EditRuleRequest,
+    admin_data: FirebaseTokenData = Depends(require_admin),
+    service: RuleVersionService = Depends(get_rule_version_service),
+) -> dict[str, str]:
+    """Edit a rule in a version by re-publishing with updated rule data (admin only)."""
+    try:
+        rule_version = await service.get_by_version(version)
+        if not rule_version:
+            raise HTTPException(status_code=404, detail=f"Version {version} not found")
+
+        # Build updated rules list — replace matching rule or raise 404
+        rules_json = []
+        found = False
+        for r in rule_version.rules:
+            if r.id == rule_id:
+                found = True
+                rules_json.append(
+                    {
+                        "id": r.id,
+                        "languages": payload.languages,
+                        "message": payload.message,
+                        "severity": payload.severity,
+                        "metadata": r.metadata,
+                        "patterns": [{"pattern": payload.pattern}],
+                    }
+                )
+            else:
+                rules_json.append(
+                    {
+                        "id": r.id,
+                        "languages": r.languages,
+                        "message": r.message,
+                        "severity": r.severity,
+                        "metadata": r.metadata,
+                        "patterns": r.patterns,
+                    }
+                )
+
+        if not found:
+            raise HTTPException(
+                status_code=404, detail=f"Rule {rule_id} not found in version {version}"
+            )
+
+        await service.update_rules(version, rules_json)
+        return {"message": f"Rule {rule_id} updated in version {version}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to edit rule: {e!s}") from e
+
+
+@router.get("/admin/metrics", status_code=200)
+@limiter.limit("30/minute")
+async def get_admin_metrics(
+    request: Request,
+    admin_data: FirebaseTokenData = Depends(require_admin),
+    scan_service: ScanService = Depends(get_scan_service),
+) -> dict[str, object]:
+    """Global adoption metrics — active repos, scans by week, top languages (admin only)."""
+    try:
+        return await scan_service.get_global_metrics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch metrics: {e!s}") from e

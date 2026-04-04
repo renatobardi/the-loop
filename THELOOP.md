@@ -118,7 +118,7 @@ The workflow fetches rules from the API with intelligent fallback:
 # Fetch latest or pinned version (5s timeout)
 curl -s --max-time 5 \
   -H "Authorization: Bearer $THELOOP_API_TOKEN" \
-  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
+  "https://api.loop.oute.pro/api/v1/rules/${VERSION}" \
   -o /tmp/rules.json
 
 # On timeout/error: fallback to Phase A backup (guaranteed safety)

@@ -9,7 +9,7 @@ from uuid import UUID
 import pytest
 from httpx import ASGITransport, AsyncClient
 from src.adapters.firebase.auth import get_current_user
-from src.api.deps import get_rule_version_cache, get_rule_version_service
+from src.api.deps import get_rule_version_cache, get_rule_version_service, require_admin
 from src.domain.exceptions import (
     InvalidVersionFormatError,
     VersionAlreadyExistsError,
@@ -19,6 +19,12 @@ from src.main import app
 
 _NOW = datetime(2025, 1, 1, tzinfo=UTC)
 _USER = UUID("00000000-0000-0000-0000-000000000001")
+_FAKE_ADMIN_TOKEN = {
+    "user_id": _USER,
+    "firebase_uid": "firebase-admin-uid",
+    "email": "admin@example.com",
+    "display_name": "Admin",
+}
 
 
 def _make_rule(**kwargs: object) -> Rule:
@@ -137,6 +143,7 @@ async def test_publish_rules_success(
     mock_rule_version_cache.invalidate = AsyncMock()
 
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -171,6 +178,7 @@ async def test_publish_rules_version_exists(mock_rule_version_service: AsyncMock
     )
 
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         payload = {
@@ -190,6 +198,7 @@ async def test_publish_rules_invalid_format(mock_rule_version_service: AsyncMock
     )
 
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         payload = {
@@ -205,6 +214,7 @@ async def test_publish_rules_invalid_format(mock_rule_version_service: AsyncMock
 async def test_publish_rules_missing_fields() -> None:
     """Test POST /rules/publish returns 422 for missing required fields."""
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/api/v1/rules/publish", json={"version": "0.1.0"})
     app.dependency_overrides.clear()
@@ -227,6 +237,7 @@ async def test_deprecate_version_success(
     mock_rule_version_cache.invalidate = AsyncMock()
 
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
     app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -249,6 +260,7 @@ async def test_deprecate_version_not_found(mock_rule_version_service: AsyncMock)
     )
 
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.99.0"})
@@ -258,18 +270,19 @@ async def test_deprecate_version_not_found(mock_rule_version_service: AsyncMock)
 
 
 async def test_deprecate_version_missing_auth() -> None:
-    """Test POST /rules/deprecate returns 403 without auth."""
-    app.dependency_overrides[get_current_user] = lambda: None
+    """Test POST /rules/deprecate returns 401 without auth token."""
+    # No overrides — no auth header → 401 from Firebase token verification
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.1.0"})
     app.dependency_overrides.clear()
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 async def test_deprecate_version_invalid_semver() -> None:
     """Test POST /rules/deprecate returns 422 for invalid semver."""
     app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[require_admin] = lambda: _FAKE_ADMIN_TOKEN
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/api/v1/rules/deprecate", json={"version": "invalid"})
     app.dependency_overrides.clear()

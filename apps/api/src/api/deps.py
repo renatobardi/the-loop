@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.firebase.auth import get_current_user, get_firebase_token_data
@@ -19,18 +19,24 @@ from src.adapters.postgres.session import get_async_session
 from src.adapters.postgres.timeline_event_repository import PostgresTimelineEventRepository
 from src.domain.services import (
     ActionItemService,
+    ApiKeyService,
     AttachmentService,
     IncidentService,
     PostmortumService,
     ResponderService,
+    ScanService,
     TimelineEventService,
 )
 
 if TYPE_CHECKING:
+    from src.adapters.firebase.auth import FirebaseTokenData
     from src.adapters.postgres.analytics_repository import PostgresAnalyticsRepository
+    from src.adapters.postgres.api_key_repository import PostgresApiKeyRepository
     from src.adapters.postgres.cache import RuleVersionCache
     from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
+    from src.adapters.postgres.scan_repository import PostgresScanRepository
     from src.adapters.postgres.user_repository import PostgresUserRepository
+    from src.domain.models import ApiKey
     from src.domain.services import AnalyticsService, RuleVersionService, UserService
 
 
@@ -197,5 +203,106 @@ def get_user_service(
     return UserService(repo)
 
 
+# ─── Phase 4: Semgrep Platform — API Keys & Scans ────────────────────────────
+
+
+class ApiKeyContext:
+    """Holds a validated API key and its associated rule whitelist."""
+
+    def __init__(self, api_key: ApiKey, whitelist: list[str]) -> None:
+        self.api_key = api_key
+        self.whitelist = whitelist
+
+
+def get_api_key_repository(
+    session: AsyncSession = Depends(get_session),
+) -> "PostgresApiKeyRepository":  # noqa: UP037
+    from src.adapters.postgres.api_key_repository import PostgresApiKeyRepository
+
+    return PostgresApiKeyRepository(session)
+
+
+def get_api_key_service(
+    repo: "PostgresApiKeyRepository" = Depends(get_api_key_repository),  # noqa: UP037
+) -> ApiKeyService:
+    return ApiKeyService(repo)
+
+
+def get_scan_repository(
+    session: AsyncSession = Depends(get_session),
+) -> "PostgresScanRepository":  # noqa: UP037
+    from src.adapters.postgres.scan_repository import PostgresScanRepository
+
+    return PostgresScanRepository(session)
+
+
+def get_scan_service(
+    repo: "PostgresScanRepository" = Depends(get_scan_repository),  # noqa: UP037
+    api_key_repo: "PostgresApiKeyRepository" = Depends(get_api_key_repository),  # noqa: UP037
+) -> ScanService:
+    return ScanService(repo, api_key_repo)
+
+
+async def get_optional_identity(
+    request: Request,
+    api_key_service: ApiKeyService = Depends(get_api_key_service),
+) -> "FirebaseTokenData | ApiKeyContext | None":  # noqa: UP037
+    """Detect caller identity from Authorization header (non-mandatory).
+
+    Returns:
+        - None if no Authorization header (anonymous)
+        - ApiKeyContext(api_key, whitelist) if Bearer token starts with "tlp_"
+        - FirebaseTokenData if Bearer token is a Firebase JWT ("eyJ..." prefix)
+    """
+    from src.domain.exceptions import ApiKeyInvalidError, ApiKeyRevokedError
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+
+    token = auth_header.removeprefix("Bearer ").strip()
+    if token.startswith("tlp_"):
+        try:
+            api_key = await api_key_service.validate(token)
+            whitelist = await api_key_service.get_whitelist(api_key.id)
+            return ApiKeyContext(api_key=api_key, whitelist=whitelist)
+        except (ApiKeyInvalidError, ApiKeyRevokedError):
+            return None
+
+    if token.startswith("eyJ"):
+        # Firebase JWT — verify and return token data
+        from src.adapters.firebase.auth import FirebaseTokenData, _uid_to_uuid, verify_token
+
+        decoded = verify_token(token)
+        uid: str = decoded.get("uid", "")
+        return FirebaseTokenData(
+            user_id=_uid_to_uuid(uid),
+            firebase_uid=uid,
+            email=decoded.get("email", ""),
+            display_name=decoded.get("name") or None,
+        )
+
+    return None
+
+
+async def require_admin(
+    token_data: FirebaseTokenData = Depends(get_firebase_token_data),
+    user_service: UserService = Depends(get_user_service),
+) -> FirebaseTokenData:
+    """Require Firebase auth + is_admin == True on the user record."""
+
+    user = await user_service.get_or_create(
+        firebase_uid=token_data["firebase_uid"],
+        email=token_data["email"],
+        display_name=token_data["display_name"],
+    )
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required",
+        )
+    return token_data
+
+
 # Re-export get_firebase_token_data for routes that need full token data
-__all__ = ["get_firebase_token_data"]
+__all__ = ["get_firebase_token_data", "get_optional_identity"]

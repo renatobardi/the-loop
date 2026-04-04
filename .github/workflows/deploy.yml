@@ -73,7 +73,7 @@ jobs:
             NODE_ENV=production
             ADDRESS_HEADER=x-forwarded-for
             XFF_DEPTH=2
-            PUBLIC_API_BASE_URL=https://theloop-api-1090621437043.us-central1.run.app
+            PUBLIC_API_BASE_URL=https://api.loop.oute.pro
             PUBLIC_FIREBASE_PROJECT_ID=theloopoute
             PUBLIC_FIREBASE_API_KEY=${{ secrets.PUBLIC_FIREBASE_API_KEY }}
             PUBLIC_FIREBASE_AUTH_DOMAIN=theloopoute.firebaseapp.com

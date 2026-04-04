@@ -1,0 +1,26 @@
+"""Port interface for API key persistence."""
+
+from __future__ import annotations
+
+from typing import Protocol
+from uuid import UUID
+
+from src.domain.models import ApiKey
+
+
+class ApiKeyRepoPort(Protocol):
+    async def create(self, owner_id: UUID, name: str, key_hash: str, prefix: str) -> ApiKey: ...
+
+    async def get_by_hash(self, key_hash: str) -> ApiKey | None: ...
+
+    async def list_by_owner(self, owner_id: UUID) -> list[ApiKey]: ...
+
+    async def revoke(self, key_id: UUID, owner_id: UUID) -> ApiKey: ...
+
+    async def mark_used(self, key_id: UUID) -> None: ...
+
+    async def get_whitelist(self, key_id: UUID) -> list[str]: ...
+
+    async def add_to_whitelist(self, key_id: UUID, rule_id: str) -> None: ...
+
+    async def remove_from_whitelist(self, key_id: UUID, rule_id: str) -> None: ...

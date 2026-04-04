@@ -33,28 +33,27 @@ jobs:
         run: |
           VERSION="${{ vars.THELOOP_RULES_VERSION || 'latest' }}"
 
-          curl -s \
-            --max-time 5 \
-            --connect-timeout 2 \
-            -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
-            "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
-            -o /tmp/rules.json \
-            || true
+          if [ -z "${{ secrets.THELOOP_API_TOKEN }}" ]; then
+            echo "⚠️  THELOOP_API_TOKEN not configured, using fallback rules"
+            echo "fallback=true" >> $GITHUB_OUTPUT
+          else
+            curl -s \
+              --max-time 5 \
+              --connect-timeout 2 \
+              -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
+              "https://api.loop.oute.pro/api/v1/rules/${VERSION}" \
+              -o /tmp/rules.json \
+              || true
 
-          FETCH_EXIT=$?
+            FETCH_EXIT=${PIPESTATUS[0]}
 
-          if [ $FETCH_EXIT -ne 0 ]; then
-            echo "⚠️  API fetch failed (timeout/error), using Phase A backup rules"
-            if [ -f ".semgrep/theloop-rules.yml.bak" ]; then
-              cp .semgrep/theloop-rules.yml.bak /tmp/rules.json
+            if [ ! -f /tmp/rules.json ] || ! python3 -c "import json; json.load(open('/tmp/rules.json'))" 2>/dev/null; then
+              echo "⚠️  API fetch failed or returned invalid JSON, using fallback rules"
               echo "fallback=true" >> $GITHUB_OUTPUT
             else
-              echo "❌ Backup rules file not found"
-              exit 1
+              echo "✅ API fetch successful"
+              echo "fallback=false" >> $GITHUB_OUTPUT
             fi
-          else
-            echo "✅ API fetch successful"
-            echo "fallback=false" >> $GITHUB_OUTPUT
           fi
 
       # T004: Verify backup rules file exists
@@ -69,30 +68,21 @@ jobs:
       # T006: Convert JSON to YAML format
       - name: Convert JSON to YAML
         run: |
-          if [ ! -f "/tmp/rules.json" ]; then
-            echo "❌ Rules JSON file not found"
-            exit 1
-          fi
-
-          # Check if JSON has valid 'rules' key (API response format)
-          HAS_RULES_KEY=$(python3 -c "import json, sys; data=json.load(open('/tmp/rules.json')); print('true' if 'rules' in data else 'false')" 2>/dev/null || echo "false")
-
-          if [ "$HAS_RULES_KEY" == "false" ] || [ "${{ steps.fetch_rules.outputs.fallback }}" == "true" ]; then
-            # Using fallback YAML or API returned invalid JSON
-            echo "⚠️  Using fallback rules (already YAML format or invalid API response)"
-            if [ -f ".semgrep/theloop-rules.yml.bak" ]; then
-              cp .semgrep/theloop-rules.yml.bak .semgrep/theloop-rules.yml
-              echo "✅ Fallback rules loaded"
-            else
-              echo "❌ Fallback rules file not found"
-              exit 1
-            fi
+          if [ "${{ steps.fetch_rules.outputs.fallback }}" == "true" ] || [ ! -f "/tmp/rules.json" ]; then
+            echo "⚠️  Using fallback rules (YAML format)"
+            cp .semgrep/theloop-rules.yml.bak .semgrep/theloop-rules.yml
+            echo "✅ Fallback rules loaded"
           else
-            # Valid API JSON with rules
-            python3 scripts/json_to_semgrep_yaml.py \
-              --input /tmp/rules.json \
-              --output .semgrep/theloop-rules.yml
-            echo "✅ Conversion complete"
+            HAS_RULES_KEY=$(python3 -c "import json; data=json.load(open('/tmp/rules.json')); print('true' if 'rules' in data else 'false')" 2>/dev/null || echo "false")
+            if [ "$HAS_RULES_KEY" == "false" ]; then
+              echo "⚠️  API response has no 'rules' key, using fallback"
+              cp .semgrep/theloop-rules.yml.bak .semgrep/theloop-rules.yml
+            else
+              python3 scripts/json_to_semgrep_yaml.py \
+                --input /tmp/rules.json \
+                --output .semgrep/theloop-rules.yml
+              echo "✅ Conversion complete"
+            fi
           fi
 
       # T007: Validate Semgrep YAML syntax
@@ -102,33 +92,144 @@ jobs:
           semgrep --validate --config .semgrep/theloop-rules.yml
           echo "✅ YAML validation passed"
 
-      # T008: Run Semgrep scan
+      # T008 + T017-T020: Run Semgrep scan with timing and metadata capture
       - name: Run Semgrep scan
         id: semgrep
         continue-on-error: true
         run: |
+          START_TIME=$(date +%s%3N)
+
+          RULES_COUNT=$(python3 -c "import yaml; d=yaml.safe_load(open('.semgrep/theloop-rules.yml')); print(len(d.get('rules', [])))" 2>/dev/null || echo "0")
+          RULES_VERSION=$(python3 -c "import json; print(json.load(open('/tmp/rules.json')).get('version', 'unknown'))" 2>/dev/null || echo "unknown")
+
           semgrep scan \
             --config .semgrep/theloop-rules.yml \
             --json \
             --output /tmp/semgrep-results.json \
             --metrics off \
-            --quiet
+            --quiet \
+            --exclude 'tests/test-data'
           SEMGREP_EXIT=$?
-          echo "semgrep_exit=$SEMGREP_EXIT" >> $GITHUB_OUTPUT
 
-      # T009: Comment PR with findings
+          DURATION_S=$(( ($(date +%s%3N) - START_TIME) / 1000 ))
+
+          echo "semgrep_exit=$SEMGREP_EXIT" >> $GITHUB_OUTPUT
+          echo "duration_s=$DURATION_S" >> $GITHUB_OUTPUT
+          echo "rules_count=$RULES_COUNT" >> $GITHUB_OUTPUT
+          echo "rules_version=$RULES_VERSION" >> $GITHUB_OUTPUT
+
+      # T067-T068: Register scan result with The Loop API
+      - name: Register scan
+        if: always()
+        run: |
+          if [ -z "${{ secrets.THELOOP_API_TOKEN }}" ]; then
+            echo "THELOOP_API_TOKEN not configured, skipping scan registration"
+            exit 0
+          fi
+
+          if [ ! -f "/tmp/semgrep-results.json" ]; then
+            echo "No scan results to register"
+            exit 0
+          fi
+
+          FINDINGS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(len(d.get('results', [])))" 2>/dev/null || echo "0")
+          ERRORS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='ERROR'))" 2>/dev/null || echo "0")
+          WARNINGS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='WARNING'))" 2>/dev/null || echo "0")
+          DURATION_MS=$(( ${{ steps.semgrep.outputs.duration_s || 0 }} * 1000 ))
+          RULES_VERSION="${{ steps.semgrep.outputs.rules_version || 'unknown' }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_NUMBER_JSON="${PR_NUMBER:-null}"
+
+          FINDINGS_JSON=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(json.dumps([{'rule_id':r.get('check_id',''),'file_path':r.get('path',''),'line_number':r.get('start',{}).get('line',0),'severity':r.get('extra',{}).get('severity','')} for r in d.get('results',[])]))" 2>/dev/null || echo "[]")
+
+          curl -s --max-time 3 \
+            -X POST https://api.loop.oute.pro/api/v1/scans \
+            -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"repository\": \"$GITHUB_REPOSITORY\",
+              \"branch\": \"$GITHUB_REF_NAME\",
+              \"pr_number\": $PR_NUMBER_JSON,
+              \"rules_version\": \"$RULES_VERSION\",
+              \"findings_count\": $FINDINGS_COUNT,
+              \"errors_count\": $ERRORS_COUNT,
+              \"warnings_count\": $WARNINGS_COUNT,
+              \"duration_ms\": $DURATION_MS,
+              \"findings\": $FINDINGS_JSON
+            }" || echo "Scan registration failed (non-blocking)"
+
+      # T021-T022: Write Job Summary
+      - name: Write Job Summary
+        if: always()
+        run: |
+          RULES_COUNT="${{ steps.semgrep.outputs.rules_count }}"
+          DURATION_S="${{ steps.semgrep.outputs.duration_s }}"
+
+          if [ ! -f "/tmp/semgrep-results.json" ]; then
+            {
+              echo "## 🔁 The Loop — Incident Guard"
+              echo ""
+              echo "⚠️ Scan did not produce results."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          FINDINGS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(len(d.get('results', [])))" 2>/dev/null || echo "0")
+
+          ERRORS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='ERROR'))" 2>/dev/null || echo "0")
+
+          {
+            echo "## 🔁 The Loop — Incident Guard"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FINDINGS_COUNT" = "0" ]; then
+            {
+              echo "✅ No incident patterns detected. Code is clean."
+              echo ""
+              echo "${RULES_COUNT} rules checked · 0 findings · scan completed in ${DURATION_S}s"
+              echo ""
+              echo "> Browse active rules → loop.oute.pro/rules/latest"
+              echo "> Protect your codebase → loop.oute.pro"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            if [ "$ERRORS_COUNT" -gt "0" ]; then
+              echo "🔴 ${ERRORS_COUNT} critical findings — merge blocked" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "🟡 ${FINDINGS_COUNT} warnings" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            {
+              echo ""
+              echo "| Severity | Rule | File | Line |"
+              echo "|:--------:|------|------|:----:|"
+            } >> "$GITHUB_STEP_SUMMARY"
+            python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); [print(f'| {chr(0x1F534)+\" ERROR\" if r.get(\"extra\",{}).get(\"severity\",\"\").upper()==\"ERROR\" else chr(0x1F7E1)+\" WARN\"} | \`{r.get(\"check_id\",\"?\")}\` | \`{r.get(\"path\",\"?\")}\` | {r.get(\"start\",{}).get(\"line\",\"?\")} |') for r in d.get('results',[])]" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo ""
+              echo "${RULES_COUNT} rules checked · ${FINDINGS_COUNT} findings · scan completed in ${DURATION_S}s"
+              echo ""
+              echo "> Learn what triggered this → loop.oute.pro/rules/latest"
+              echo "> Protect your codebase → loop.oute.pro"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # T009 + T023-T025: Comment PR with findings (description column, metrics, correct link)
       - name: Comment PR with findings
         if: always()
         uses: actions/github-script@v7
+        env:
+          RULES_COUNT: ${{ steps.semgrep.outputs.rules_count }}
+          DURATION_S: ${{ steps.semgrep.outputs.duration_s }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
+            const rulesCount = process.env.RULES_COUNT || '0';
+            const durationS = process.env.DURATION_S || '0';
 
             let body = '';
-            let resultsExist = fs.existsSync('/tmp/semgrep-results.json');
 
-            if (!resultsExist) {
+            if (!fs.existsSync('/tmp/semgrep-results.json')) {
               body = '## 🔁 The Loop — Incident Guard\n\n⚠️ Scan did not produce results.';
             } else {
               const raw = fs.readFileSync('/tmp/semgrep-results.json', 'utf8');
@@ -137,6 +238,7 @@ jobs:
 
               const errors = results.filter(r => r.extra?.severity?.toUpperCase() === 'ERROR');
               const warnings = results.filter(r => r.extra?.severity?.toUpperCase() === 'WARNING');
+              const metrics = `${rulesCount} rules checked · ${results.length} findings · scan completed in ${durationS}s`;
 
               if (results.length === 0) {
                 body = [
@@ -144,40 +246,44 @@ jobs:
                   '',
                   '✅ **No incident patterns detected.** Code is clean.',
                   '',
-                  `> Rules verified | [View rules](.semgrep/theloop-rules.yml)`
+                  `${rulesCount} rules checked · 0 findings · scan completed in ${durationS}s`,
+                  '',
+                  '> Browse active rules → [loop.oute.pro/rules/latest](https://loop.oute.pro/rules/latest)',
+                  '> Protect your codebase → [loop.oute.pro](https://loop.oute.pro)',
                 ].join('\n');
               } else {
                 const statusIcon = errors.length > 0 ? '🔴' : '🟡';
                 const statusText = errors.length > 0
-                  ? `${errors.length} critical error(s) — merge blocked`
-                  : `${warnings.length} warning(s)`;
+                  ? `${errors.length} critical finding${errors.length > 1 ? 's' : ''} — merge blocked`
+                  : `${warnings.length} warning${warnings.length > 1 ? 's' : ''}`;
 
-                body = [
+                const lines = [
                   '## 🔁 The Loop — Incident Guard',
                   '',
                   `${statusIcon} **${statusText}**`,
                   '',
-                  '| Severity | Rule | File | Line | Incident |',
-                  '|:---:|:---|:---|:---:|:---:|'
-                ].join('\n');
+                  '| Severity | Rule | File | Line | Description |',
+                  '|:--------:|:-----|:-----|:----:|:------------|',
+                ];
 
                 for (const r of results) {
                   const sev = r.extra?.severity?.toUpperCase() === 'ERROR' ? '🔴 ERROR' : '🟡 WARN';
                   const rule = r.check_id || '?';
                   const file = r.path || '?';
-                  const line = r.start?.line || '?';
-                  const meta = r.extra?.metadata || {};
-                  const incidentId = meta.incident_id || '?';
-                  const incidentUrl = meta.loop_url || '#';
-                  const incidentLink = incidentUrl !== '#' ? `[${incidentId}](${incidentUrl})` : incidentId;
-                  body += `\n| ${sev} | \`${rule}\` | \`${file}\` | ${line} | ${incidentLink} |`;
+                  const line = r.start?.line ?? '?';
+                  const desc = (r.extra?.message || '').replace(/\|/g, '\\|').slice(0, 80);
+                  lines.push(`| ${sev} | \`${rule}\` | \`${file}\` | ${line} | ${desc} |`);
                 }
 
-                body += '\n\n---\n> [The Loop](https://loop.oute.pro) | Incident Prevention';
+                lines.push('');
+                lines.push(metrics);
+                lines.push('');
+                lines.push('> Learn what triggered this → [loop.oute.pro/rules/latest](https://loop.oute.pro/rules/latest)');
+                lines.push('> Protect your codebase → [loop.oute.pro](https://loop.oute.pro)');
+                body = lines.join('\n');
               }
             }
 
-            // Find and update existing comment or create new one
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -205,10 +311,15 @@ jobs:
               });
             }
 
-      # Fail on critical errors
+      # Fail only on ERROR-severity findings (WARNINGs are advisory)
       - name: Fail on critical findings
-        if: steps.semgrep.outputs.semgrep_exit != '0' && steps.semgrep.outputs.semgrep_exit != ''
+        if: always()
         run: |
-          echo "❌ Critical findings detected (exit code: ${{ steps.semgrep.outputs.semgrep_exit }})"
-          echo "Merge blocked — resolve ERROR severity findings to proceed"
-          exit 1
+          if [ ! -f "/tmp/semgrep-results.json" ]; then exit 0; fi
+          ERRORS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='ERROR'))" 2>/dev/null || echo "0")
+          if [ "$ERRORS_COUNT" -gt "0" ]; then
+            echo "❌ ${ERRORS_COUNT} critical finding(s) — merge blocked"
+            echo "Resolve ERROR severity findings to proceed"
+            exit 1
+          fi
+          echo "✅ No critical findings"

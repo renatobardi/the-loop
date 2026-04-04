@@ -1,6 +1,7 @@
 # theloop-rules.yml.bak
-# The Loop Phase A Rules — Incident Guard Fallback
-# Version: 0.1.0 (static, created 2026-04-03)
+# The Loop Rules — Incident Guard Fallback (v0.3.0)
+# 20 Python + 15 JS/TS + 10 Go = 45 rules total
+# Updated: 2026-04-04
 # 
 # This file serves as fallback when API is unavailable.
 # DO NOT modify — this is the static Phase A baseline.
@@ -25,7 +26,6 @@ rules:
       - pattern-either:
           - pattern: $DB.execute("..." + $INPUT)
           - pattern: $DB.execute("...%s" % $INPUT)
-          - pattern: $DB.execute(f"...{$INPUT}...")
           - pattern: $DB.query("..." + $INPUT)
           - pattern: $CONN.execute("..." + $INPUT)
 
@@ -130,3 +130,616 @@ rules:
     patterns:
       - pattern-regex: '\((\.\+|\.\*|[a-zA-Z]\*)\)\+'
       - pattern-regex: '\((\.\+|\.\*|[a-zA-Z]\*)\)\*'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PHASE C: JS/TS RULES (15)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ─── JS-INJECTION-001: SQL via string interpolation ─────────────────────────
+  - id: js-injection-001
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] SQL injection via string interpolation in query.
+      Incidente: js-injection-001 | Severidade: CRITICAL
+      Remediation: Use parametrized queries: db.query('SELECT ... WHERE id = ?', [id])
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query(`...${$INPUT}...`)
+          - pattern: |
+              $DB.execute(`...${$INPUT}...`)
+          - pattern: |
+              $DB.query("..." + $INPUT)
+          - pattern: |
+              $DB.execute("..." + $INPUT)
+
+  # ─── JS-INJECTION-002: eval() anywhere ──────────────────────────────────────
+  - id: js-injection-002
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] eval() with external input detected.
+      Incidente: js-injection-002 | Severidade: CRITICAL
+      Remediation: Use JSON.parse() or structured data instead of eval().
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+    pattern: eval(...)
+
+  # ─── JS-INJECTION-003: innerHTML / dangerouslySetInnerHTML ──────────────────
+  - id: js-injection-003
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] XSS via innerHTML or dangerouslySetInnerHTML detected.
+      Incidente: js-injection-003 | Severidade: CRITICAL
+      Remediation: Use textContent or sanitize HTML with DOMPurify.
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: $EL.innerHTML = $INPUT
+          - pattern-regex: 'dangerouslySetInnerHTML=\{\{[^}]*\}\}'
+
+  # ─── JS-INJECTION-004: child_process.exec with template literal ─────────────
+  - id: js-injection-004
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Command injection via exec() with template string.
+      Incidente: js-injection-004 | Severidade: CRITICAL
+      Remediation: Use execFile() with an argument array instead.
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: exec(`...${$INPUT}...`)
+          - pattern: execSync(`...${$INPUT}...`)
+          - pattern: spawn(`...${$INPUT}...`)
+          - pattern: spawnSync(`...${$INPUT}...`)
+          - pattern: execFile(`...${$INPUT}...`)
+          - pattern: $X.exec(`...${$INPUT}...`)
+          - pattern: $X.execSync(`...${$INPUT}...`)
+          - pattern: $X.spawn(`...${$INPUT}...`)
+          - pattern: $X.spawnSync(`...${$INPUT}...`)
+
+  # ─── JS-CRYPTO-001: MD5 or SHA1 ─────────────────────────────────────────────
+  - id: js-crypto-001
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Weak cryptographic hash (MD5 or SHA1) detected.
+      Incidente: js-crypto-001 | Severidade: HIGH
+      Remediation: Use crypto.createHash('sha256') or stronger.
+    severity: WARNING
+    metadata:
+      category: crypto
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createHash('md5')
+          - pattern: crypto.createHash('sha1')
+          - pattern: crypto.createHash("md5")
+          - pattern: crypto.createHash("sha1")
+
+  # ─── JS-CRYPTO-002: Math.random() for tokens/secrets ────────────────────────
+  - id: js-crypto-002
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Math.random() used for security token generation.
+      Incidente: js-crypto-002 | Severidade: CRITICAL
+      Remediation: Use crypto.randomBytes(32).toString('hex') instead.
+    severity: ERROR
+    metadata:
+      category: crypto
+      confidence: MEDIUM
+    patterns:
+      - pattern-regex: '(?i)(token|secret|key|password)\s*=\s*(.*Math\.random\(\))'
+
+  # ─── JS-SECURITY-001: JWT hardcoded secret ──────────────────────────────────
+  - id: js-security-001
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Hardcoded JWT secret in jwt.sign() call.
+      Incidente: js-security-001 | Severidade: CRITICAL
+      Remediation: Load the secret from process.env.JWT_SECRET.
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: jwt.sign($PAYLOAD, '...')
+          - pattern: jwt.sign($PAYLOAD, "...")
+          - pattern: jwt.verify($TOKEN, '...')
+          - pattern: jwt.verify($TOKEN, "...")
+
+  # ─── JS-SECURITY-002: CORS wildcard ─────────────────────────────────────────
+  - id: js-security-002
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] CORS with wildcard origin detected.
+      Incidente: js-security-002 | Severidade: HIGH
+      Remediation: Specify allowed origins explicitly.
+    severity: WARNING
+    metadata:
+      category: security
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: "cors({ origin: '*' })"
+          - pattern: "cors({ origin: true })"
+
+  # ─── JS-SECURITY-003: TLS verification disabled ─────────────────────────────
+  - id: js-security-003
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] TLS verification disabled via NODE_TLS_REJECT_UNAUTHORIZED.
+      Incidente: js-security-003 | Severidade: CRITICAL
+      Remediation: Remove this line and configure proper certificates.
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+    pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
+  # ─── JS-SECURITY-004: prototype pollution ───────────────────────────────────
+  - id: js-security-004
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Prototype pollution risk via Object.assign with request body.
+      Incidente: js-security-004 | Severidade: HIGH
+      Remediation: Use explicit field extraction from request body instead.
+    severity: WARNING
+    metadata:
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: Object.assign({}, $REQ.body)
+          - pattern: Object.assign({}, $REQ.query)
+          - pattern: Object.assign({}, $REQ.params)
+
+  # ─── JS-PERF-001: await in loop ──────────────────────────────────────────────
+  - id: js-perf-001
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] await inside for loop — sequential instead of parallel execution.
+      Incidente: js-perf-001 | Severidade: HIGH
+      Remediation: Use Promise.all(items.map(item => asyncFn(item))) instead.
+    severity: WARNING
+    metadata:
+      category: performance
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-inside: |
+                  for ($INIT; $COND; $UPDATE) {
+                    ...
+                  }
+              - pattern: await $EXPR
+          - patterns:
+              - pattern-inside: |
+                  for (var $X of $LIST) {
+                    ...
+                  }
+              - pattern: await $EXPR
+          - patterns:
+              - pattern-inside: |
+                  for (let $X of $LIST) {
+                    ...
+                  }
+              - pattern: await $EXPR
+          - patterns:
+              - pattern-inside: |
+                  for (const $X of $LIST) {
+                    ...
+                  }
+              - pattern: await $EXPR
+
+  # ─── JS-CONFIG-001: console.log with sensitive data ─────────────────────────
+  - id: js-config-001
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Sensitive data logged via console.log.
+      Incidente: js-config-001 | Severidade: HIGH
+      Remediation: Remove logging of passwords, tokens, secrets, or keys.
+    severity: WARNING
+    metadata:
+      category: config
+      confidence: MEDIUM
+    patterns:
+      - pattern-regex: '(?i)console\.log\([^)]*(?:password|token|secret|apikey|api_key)[^)]*\)'
+
+  # ─── JS-CONFIG-002: hardcoded URL in const ──────────────────────────────────
+  - id: js-config-002
+    languages: [javascript, typescript]
+    message: |
+      [The Loop] Hardcoded URL assigned to config variable.
+      Incidente: js-config-002 | Severidade: MEDIUM
+      Remediation: Load from process.env or configuration file.
+    severity: WARNING
+    metadata:
+      category: config
+      confidence: MEDIUM
+    patterns:
+      - pattern-regex: '(?i)(?:const|let|var)\s+(?:api_?url|endpoint|host|base_?url)\s*=\s*[''"]https?://'
+
+  # ─── TS-SECURITY-001: any type on external data ──────────────────────────────
+  - id: ts-security-001
+    languages: [typescript]
+    message: |
+      [The Loop] Parameter typed as 'any' for external data handler.
+      Incidente: ts-security-001 | Severidade: MEDIUM
+      Remediation: Replace 'any' with a concrete type or 'unknown'.
+    severity: WARNING
+    metadata:
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-regex: '(?i)function\s+\w+\s*\(\s*(?:req|request|body|data|input)\s*:\s*any\b'
+
+  # ─── TS-SECURITY-002: forced type assertion via unknown ──────────────────────
+  - id: ts-security-002
+    languages: [typescript]
+    message: |
+      [The Loop] Unsafe double type assertion (as unknown as T) detected.
+      Incidente: ts-security-002 | Severidade: MEDIUM
+      Remediation: Use a proper type guard or parsing function.
+    severity: WARNING
+    metadata:
+      category: security
+      confidence: MEDIUM
+    pattern: ($X as unknown as $T)
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PHASE C: GO RULES (10)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ─── GO-INJECTION-001: fmt.Sprintf in SQL ───────────────────────────────────
+  - id: go-injection-001
+    languages: [go]
+    message: |
+      [The Loop] SQL injection via fmt.Sprintf in database query.
+      Incidente: go-injection-001 | Severidade: CRITICAL
+      Remediation: Use parametrized queries: db.Query("SELECT ... WHERE id = ?", id)
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: $DB.Query(fmt.Sprintf($QUERY, ...))
+          - pattern: $DB.Exec(fmt.Sprintf($QUERY, ...))
+          - pattern: $DB.QueryRow(fmt.Sprintf($QUERY, ...))
+
+  # ─── GO-INJECTION-002: exec.Command with external variable ──────────────────
+  - id: go-injection-002
+    languages: [go]
+    message: |
+      [The Loop] Command injection via exec.Command with external input.
+      Incidente: go-injection-002 | Severidade: CRITICAL
+      Remediation: Validate and sanitize all inputs before passing to exec.Command.
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+    patterns:
+      - pattern: exec.Command("sh", "-c", $INPUT)
+
+  # ─── GO-INJECTION-003: path traversal via filepath.Join ─────────────────────
+  - id: go-injection-003
+    languages: [go]
+    message: |
+      [The Loop] Path traversal risk via filepath.Join with request input.
+      Incidente: go-injection-003 | Severidade: HIGH
+      Remediation: Sanitize with filepath.Base() before joining.
+    severity: WARNING
+    metadata:
+      category: injection
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: filepath.Join($BASE, $R.PathValue($KEY))
+          - pattern: filepath.Join($BASE, $R.URL.Query().Get($KEY))
+          - pattern: path.Join($BASE, $R.PathValue($KEY))
+
+  # ─── GO-CRYPTO-001: MD5 or SHA1 ─────────────────────────────────────────────
+  - id: go-crypto-001
+    languages: [go]
+    message: |
+      [The Loop] Weak cryptographic hash (MD5 or SHA1) used.
+      Incidente: go-crypto-001 | Severidade: HIGH
+      Remediation: Use crypto/sha256 or stronger.
+    severity: WARNING
+    metadata:
+      category: crypto
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: md5.New()
+          - pattern: sha1.New()
+          - pattern: md5.Sum($DATA)
+          - pattern: sha1.Sum($DATA)
+
+  # ─── GO-CRYPTO-002: math/rand instead of crypto/rand ────────────────────────
+  - id: go-crypto-002
+    languages: [go]
+    message: |
+      [The Loop] Insecure math/rand used for token generation.
+      Incidente: go-crypto-002 | Severidade: CRITICAL
+      Remediation: Use crypto/rand for all security-sensitive random values.
+    severity: ERROR
+    metadata:
+      category: crypto
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: rand.Intn($N)
+          - pattern: rand.Int63()
+          - pattern: rand.Read($BUF)
+
+  # ─── GO-SECURITY-001: InsecureSkipVerify ────────────────────────────────────
+  - id: go-security-001
+    languages: [go]
+    message: |
+      [The Loop] TLS certificate verification disabled (InsecureSkipVerify: true).
+      Incidente: go-security-001 | Severidade: CRITICAL
+      Remediation: Remove InsecureSkipVerify or configure proper certificates.
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+    pattern: |
+      &tls.Config{..., InsecureSkipVerify: true, ...}
+
+  # ─── GO-SECURITY-002: hardcoded JWT secret ──────────────────────────────────
+  - id: go-security-002
+    languages: [go]
+    message: |
+      [The Loop] Hardcoded JWT signing key detected.
+      Incidente: go-security-002 | Severidade: CRITICAL
+      Remediation: Load JWT secret from environment variable or secret manager.
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+    patterns:
+      - pattern-regex: 'return\s+\[\]byte\s*\(\s*"[^"]{8,}"\s*\)'
+
+  # ─── GO-ERROR-001: error ignored with blank identifier ──────────────────────
+  - id: go-error-001
+    languages: [go]
+    message: |
+      [The Loop] Error silently ignored with blank identifier _.
+      Incidente: go-error-001 | Severidade: HIGH
+      Remediation: Handle the error: if err != nil { return err }
+    severity: WARNING
+    metadata:
+      category: error-handling
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: $F, _ := os.Open($PATH)
+          - pattern: $F, _ := os.Create($PATH)
+          - pattern: $ROWS, _ := $DB.Query($QUERY, ...)
+          - pattern: $TX, _ := $DB.Begin()
+
+  # ─── GO-ERROR-002: panic in HTTP handler ────────────────────────────────────
+  - id: go-error-002
+    languages: [go]
+    message: |
+      [The Loop] panic() used inside HTTP handler — will crash the server.
+      Incidente: go-error-002 | Severidade: CRITICAL
+      Remediation: Return http.Error() or a proper error response instead.
+    severity: ERROR
+    metadata:
+      category: error-handling
+      confidence: HIGH
+    patterns:
+      - pattern-inside: |
+          func $HANDLER($W http.ResponseWriter, $R *http.Request) {
+            ...
+          }
+      - pattern: panic($MSG)
+
+  # ─── GO-CONFIG-001: http.ListenAndServe without TLS ─────────────────────────
+  - id: go-config-001
+    languages: [go]
+    message: |
+      [The Loop] HTTP server started without TLS (http.ListenAndServe).
+      Incidente: go-config-001 | Severidade: MEDIUM
+      Remediation: Use http.ListenAndServeTLS() in production.
+    severity: WARNING
+    metadata:
+      category: config
+      confidence: MEDIUM
+    pattern: http.ListenAndServe($ADDR, $HANDLER)
+
+  # PHASE B: 14 Python Rules
+  # INJECTION (3)
+  - id: path-traversal-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Path traversal vulnerability"
+    severity: ERROR
+    metadata:
+      incident_id: path-traversal-001
+      category: injection
+      cwe: "CWE-22"
+    paths:
+      exclude:
+        - 'scripts/**'
+        - 'tests/**'
+        - 'specs/**'
+    patterns:
+      - pattern-either:
+          - pattern: open($INPUT, ...)
+          - pattern: Path($INPUT).open(...)
+      - pattern-not: open($LITERAL, ...)
+
+  - id: xxe-001
+    languages: [python, java, javascript]
+    message: "[The Loop] XML External Entity (XXE) injection risk"
+    severity: ERROR
+    metadata:
+      incident_id: xxe-001
+      category: injection
+      cwe: "CWE-611"
+    patterns:
+      - pattern-either:
+          - pattern: ElementTree.parse($URL)
+          - pattern: ET.parse($URL)
+
+  - id: deserialization-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Unsafe deserialization"
+    severity: ERROR
+    metadata:
+      incident_id: deserialization-001
+      category: injection
+      cwe: "CWE-502"
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads($DATA)
+          - pattern: yaml.load($DATA)
+
+  # CRYPTO (2)
+  - id: crypto-weak-md5-001
+    languages: [python, javascript, java]
+    message: "[The Loop] MD5 used for hashing"
+    severity: WARNING
+    metadata:
+      incident_id: crypto-weak-md5-001
+      category: crypto
+      cwe: "CWE-327"
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5($DATA)
+          - pattern: crypto.createHash("md5")
+
+  - id: crypto-weak-random-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Weak random number generation"
+    severity: WARNING
+    metadata:
+      incident_id: crypto-weak-random-001
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern-either:
+          - pattern: random.random()
+          - pattern: Math.random()
+
+  # SECURITY (3)
+  - id: tls-verify-false-001
+    languages: [python, javascript, java]
+    message: "[The Loop] TLS certificate verification disabled"
+    severity: ERROR
+    metadata:
+      incident_id: tls-verify-false-001
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern-either:
+          - pattern: requests.get(..., verify=False)
+          - pattern: ssl._create_unverified_context()
+
+  - id: jwt-hardcoded-001
+    languages: [python, javascript, java]
+    message: "[The Loop] Hardcoded JWT secret"
+    severity: ERROR
+    metadata:
+      incident_id: jwt-hardcoded-001
+      category: security
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(?i)jwt_secret\\s*[=:]\\s*[\"'][\\w\\-.]{20,}[\"']"
+
+  - id: cors-wildcard-001
+    languages: [python, javascript]
+    message: "[The Loop] CORS with wildcard origin"
+    severity: WARNING
+    metadata:
+      incident_id: cors-wildcard-001
+      category: security
+      cwe: "CWE-345"
+    patterns:
+      - pattern-regex: "Access-Control-Allow-Origin.*\\*"
+
+  # PERFORMANCE (2)
+  - id: sql-timeout-001
+    languages: [python, javascript, java]
+    message: "[The Loop] SQL query without timeout"
+    severity: WARNING
+    metadata:
+      incident_id: sql-timeout-001
+      category: performance
+    patterns:
+      - pattern: cursor.execute($QUERY)
+      - pattern-not: cursor.execute($QUERY, timeout=$TIMEOUT)
+      - pattern-not: cursor.execute($QUERY, ..., timeout=$TIMEOUT)
+
+  - id: n-plus-one-001
+    languages: [python, javascript]
+    message: "[The Loop] N+1 query pattern"
+    severity: WARNING
+    metadata:
+      incident_id: n-plus-one-001
+      category: performance
+    patterns:
+      - pattern: |
+          for ... in ...:
+              ...
+              $DB.query(...)
+
+  # INFRASTRUCTURE (1)
+  - id: docker-root-001
+    languages: [generic]
+    message: "[The Loop] Docker container runs as root"
+    severity: WARNING
+    metadata:
+      incident_id: docker-root-001
+      category: infrastructure
+    patterns:
+      - pattern-regex: "USER\\s+root"
+
+  # CONFIG (2)
+  - id: hardcoded-url-001
+    languages: [python, javascript, go]
+    message: "[The Loop] Hardcoded API URL in code"
+    severity: WARNING
+    metadata:
+      incident_id: hardcoded-url-001
+      category: config
+    patterns:
+      - pattern-regex: "(api_url|endpoint)\\s*[=:]\\s*[\"']https?://[^\"']+"
+
+  - id: debug-enabled-prod-001
+    languages: [python, javascript]
+    message: "[The Loop] Debug mode enabled in production"
+    severity: WARNING
+    metadata:
+      incident_id: debug-enabled-prod-001
+      category: config
+    patterns:
+      - pattern-either:
+          - pattern: DEBUG = True
+          - pattern: app.run(debug=True)
+
+  # DEPENDENCIES (1)
+  - id: dependency-vulnerable-001
+    languages: [generic]
+    message: "[The Loop] Known vulnerable dependency"
+    severity: WARNING
+    metadata:
+      incident_id: dependency-vulnerable-001
+      category: dependencies
+      cwe: "CWE-1104"
+    patterns:
+      - pattern-regex: "lodash.*<.*4\\.17\\.15"

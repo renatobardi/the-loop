@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.firebase.auth import get_current_user, get_firebase_token_data
@@ -27,6 +27,7 @@ from src.domain.services import (
 )
 
 if TYPE_CHECKING:
+    from src.adapters.firebase.auth import FirebaseTokenData
     from src.adapters.postgres.analytics_repository import PostgresAnalyticsRepository
     from src.adapters.postgres.cache import RuleVersionCache
     from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
@@ -197,5 +198,51 @@ def get_user_service(
     return UserService(repo)
 
 
+# ─── Spec-016: Optional Identity (Phase 4 will flesh out API key validation) ──
+
+
+class ApiKeyIdentity:
+    """Placeholder for API key identity — fully implemented in Phase 4."""
+
+    def __init__(self, key_prefix: str) -> None:
+        self.key_prefix = key_prefix
+        self.whitelist: list[str] = []  # populated from DB in Phase 4
+
+
+async def get_optional_identity(
+    request: Request,
+) -> "FirebaseTokenData | ApiKeyIdentity | None":  # noqa: UP037
+    """Detect caller identity from Authorization header (non-mandatory).
+
+    Returns:
+        - None if no Authorization header (anonymous)
+        - ApiKeyIdentity if Bearer token starts with "tlp_" (Phase 4 validates in DB)
+        - FirebaseTokenData if Bearer token is a Firebase JWT ("eyJ..." prefix)
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+
+    token = auth_header.removeprefix("Bearer ").strip()
+    if token.startswith("tlp_"):
+        # API key detected — Phase 4 will validate against api_keys table and load whitelist
+        return ApiKeyIdentity(key_prefix=token[:7])
+
+    if token.startswith("eyJ"):
+        # Firebase JWT — verify and return token data
+        from src.adapters.firebase.auth import FirebaseTokenData, _uid_to_uuid, verify_token
+
+        decoded = verify_token(token)
+        uid: str = decoded.get("uid", "")
+        return FirebaseTokenData(
+            user_id=_uid_to_uuid(uid),
+            firebase_uid=uid,
+            email=decoded.get("email", ""),
+            display_name=decoded.get("name") or None,
+        )
+
+    return None
+
+
 # Re-export get_firebase_token_data for routes that need full token data
-__all__ = ["get_firebase_token_data"]
+__all__ = ["get_firebase_token_data", "get_optional_identity"]

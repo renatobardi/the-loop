@@ -386,6 +386,7 @@ async def create_rule_version(
             rules_json=[],
             published_by=admin_data["user_id"],
             notes="draft",
+            status="draft",
         )
         return CreateVersionResponse(version=new_version.version, status=new_version.status.value)
     except InvalidVersionFormatError as e:

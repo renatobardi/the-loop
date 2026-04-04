@@ -134,7 +134,7 @@ class TestRuleVersionService:
 
         assert result == sample_rule_version
         service._repo.publish_version.assert_called_once_with(
-            "0.1.0", rules_json, str(user_id), "Release notes"
+            "0.1.0", rules_json, str(user_id), "Release notes", status="active"
         )
 
     async def test_publish_version_duplicate(self, service: RuleVersionService) -> None:

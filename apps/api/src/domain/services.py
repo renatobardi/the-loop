@@ -489,6 +489,7 @@ class RuleVersionService:
         rules_json: list[dict[str, Any]],
         published_by: UUID,
         notes: str | None = None,
+        status: str = "active",
     ) -> RuleVersion:
         """Publish a new rule version.
 
@@ -497,15 +498,15 @@ class RuleVersionService:
             rules_json: List of rule definitions
             published_by: UUID of publishing user
             notes: Optional release notes
-
-        Returns:
-            RuleVersion object with status='draft'
+            status: 'active' (default, immediately served) or 'draft' (editing only)
 
         Raises:
             VersionAlreadyExistsError: If version already exists
             InvalidVersionFormatError: If version doesn't match semver pattern
         """
-        return await self._repo.publish_version(version, rules_json, str(published_by), notes)
+        return await self._repo.publish_version(
+            version, rules_json, str(published_by), notes, status=status
+        )
 
     async def deprecate_version(self, version: str) -> RuleVersion:
         """Mark a rule version as deprecated.

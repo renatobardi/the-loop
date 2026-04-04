@@ -58,7 +58,7 @@ async function request<T>(path: string, options: globalThis.RequestInit = {}): P
 	if (!response.ok) {
 		const body = await response.json().catch(() => ({ detail: 'Unknown error' }));
 		const detail = typeof body.detail === 'string' ? body.detail : body.detail?.detail || 'Error';
-		throw new Error(detail);
+		throw new Error(`${response.status}: ${detail}`);
 	}
 
 	return response.json() as Promise<T>;

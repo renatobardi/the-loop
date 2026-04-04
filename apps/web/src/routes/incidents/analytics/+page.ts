@@ -6,7 +6,11 @@ import {
 } from '$lib/services/analytics';
 import type { AnalyticsFilter, Period, StatusFilter, RootCauseCategory } from '$lib/types/analytics';
 
-export async function load({ url }) {
+export async function load({ url, parent }) {
+	// Wait for the layout's waitForAuth() to complete before making any API calls.
+	// Layout and page loads run concurrently in SvelteKit — without this, auth.currentUser
+	// may be null when analytics.ts runs, even if the user is authenticated.
+	await parent();
 	const period = (url.searchParams.get('period') || 'month') as Period;
 	const team = url.searchParams.get('team') || null;
 	const category = (url.searchParams.get('category') || null) as RootCauseCategory | null;

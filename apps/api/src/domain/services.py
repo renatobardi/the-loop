@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -759,17 +759,14 @@ class AnalyticsService:
                       end = min(today, end_of_quarter)
         - "custom"  → period.start_date to period.end_date (caller validated)
         """
-        now = datetime.now(UTC).replace(tzinfo=None)
+        now = datetime.now(UTC)
         today = now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         if period.value == "week":
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            from datetime import timedelta
-            start = start - timedelta(days=7)
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=7)
             return start, today
 
         if period.value == "month":
-            from datetime import timedelta
             start = (now - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
             return start, today
 
@@ -779,8 +776,10 @@ class AnalyticsService:
             quarter_start_month = ((month - 1) // 3) * 3 + 1
             quarter_end_month = quarter_start_month + 2
             last_day = calendar.monthrange(now.year, quarter_end_month)[1]
-            quarter_end = datetime(now.year, quarter_end_month, last_day, 23, 59, 59, 999999)
-            start = datetime(now.year, quarter_start_month, 1, 0, 0, 0, 0)
+            quarter_end = datetime(
+                now.year, quarter_end_month, last_day, 23, 59, 59, 999999, tzinfo=UTC
+            )
+            start = datetime(now.year, quarter_start_month, 1, 0, 0, 0, 0, tzinfo=UTC)
             end = min(today, quarter_end)
             return start, end
 
@@ -788,9 +787,7 @@ class AnalyticsService:
         # start_date/end_date validated at API layer (T049)
         assert period.start_date is not None
         assert period.end_date is not None
-        start = period.start_date.replace(tzinfo=None)
-        end = period.end_date.replace(tzinfo=None)
-        return start, end
+        return period.start_date, period.end_date
 
     def _normalize_stats(self, stats: list[CategoryStats]) -> list[CategoryStats]:
         """Ensure percentages sum to 100 (correct floating-point rounding drift)."""

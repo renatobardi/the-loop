@@ -2,38 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
-from pydantic import BaseModel, field_validator
-
-
-class AnalyticsFilterRequest(BaseModel):
-    """Query parameters shared by all analytics endpoints."""
-
-    period: str = "month"
-    team: str | None = None
-    category: str | None = None
-    status: str = "all"
-    start_date: datetime | None = None  # Required when period="custom"
-    end_date: datetime | None = None  # Required when period="custom"
-
-    @field_validator("period")
-    @classmethod
-    def validate_period(cls, v: str) -> str:
-        allowed = {"week", "month", "quarter", "custom"}
-        if v not in allowed:
-            msg = f"period must be one of {sorted(allowed)}"
-            raise ValueError(msg)
-        return v
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, v: str) -> str:
-        allowed = {"resolved", "unresolved", "all"}
-        if v not in allowed:
-            msg = f"status must be one of {sorted(allowed)}"
-            raise ValueError(msg)
-        return v
+from pydantic import BaseModel
 
 
 class SummaryResponse(BaseModel):

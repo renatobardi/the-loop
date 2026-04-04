@@ -47,14 +47,12 @@
 	// Monthly labels: one tick per ~4 weeks
 	const monthLabels = $derived(
 		points
-			.filter((_, i) => i % 4 === 0)
-			.map((p) => {
-				const d = new Date(p.week);
-				return {
-					label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-					x: cx(points.indexOf(p))
-				};
-			})
+			.map((p, i) => ({ p, i }))
+			.filter(({ i }) => i % 4 === 0)
+			.map(({ p, i }) => ({
+				label: new Date(p.week).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+				x: cx(i)
+			}))
 	);
 
 	function formatCategory(cat: string): string {

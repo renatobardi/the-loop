@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { navigating } from '$app/stores';
+	import { navigating } from '$app/state';
 	import DashboardGrid from '$lib/components/analytics/DashboardGrid.svelte';
 	import type { AnalyticsFilter } from '$lib/types/analytics';
 
@@ -54,7 +54,7 @@
 			byTeamAll={data.byTeamAll}
 			timeline={data.timeline}
 			filters={data.filters}
-			loading={$navigating !== null}
+			loading={navigating !== null}
 			onFiltersChange={handleFiltersChange}
 		/>
 	{/if}

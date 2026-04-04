@@ -120,6 +120,12 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         if not version or not _is_semver(version):
             raise InvalidVersionFormatError(version)
 
+        # Check if version already exists before attempting insert
+        stmt = select(RuleVersionRow).where(RuleVersionRow.version == version)
+        result = await self.session.execute(stmt)
+        if result.scalars().first():
+            raise VersionAlreadyExistsError(version)
+
         # Serialize rules_json list to JSONB
         rules_json_str = json.dumps(rules_json)
 
@@ -138,14 +144,11 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         try:
             await self.session.flush()  # Flush to detect constraint violations
             await self.session.commit()
-        except (IntegrityError, UniqueViolationError) as e:
-            await self.session.rollback()
-            if "unique constraint" in str(e).lower() or "version" in str(e).lower():
-                raise VersionAlreadyExistsError(version) from e
-            raise
         except Exception as e:
             await self.session.rollback()
-            if "unique constraint" in str(e).lower() or "version" in str(e).lower():
+            error_str = str(e).lower()
+            # Fallback: check error message for constraint violation
+            if "unique constraint" in error_str or "version" in error_str:
                 raise VersionAlreadyExistsError(version) from e
             raise
 

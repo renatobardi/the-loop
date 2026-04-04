@@ -504,7 +504,9 @@ class RuleVersionService:
             VersionAlreadyExistsError: If version already exists
             InvalidVersionFormatError: If version doesn't match semver pattern
         """
-        return await self._repo.publish_version(version, rules_json, str(published_by), notes, status=status)
+        return await self._repo.publish_version(
+            version, rules_json, str(published_by), notes, status=status
+        )
 
     async def deprecate_version(self, version: str) -> RuleVersion:
         """Mark a rule version as deprecated.

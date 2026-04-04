@@ -18,7 +18,7 @@ steps:
         --max-time 5 \
         --connect-timeout 2 \
         -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
-        "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
+        "https://api.loop.oute.pro/api/v1/rules/${VERSION}" \
         -o /tmp/rules.json
       
       if [ $? -ne 0 ]; then
@@ -581,7 +581,7 @@ def load_json_safely(filepath: str) -> dict:
 **Root Cause**: API endpoint unreachable or slow (>5s)
 
 **Fix**:
-1. Check API health: `curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/health`
+1. Check API health: `curl https://api.loop.oute.pro/api/v1/health`
 2. Check logs: `gcloud run logs read theloop-api --region=us-central1 --limit=50`
 3. If API is down, fallback will automatically use .bak
 

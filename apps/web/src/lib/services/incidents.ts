@@ -22,7 +22,7 @@ import { getFirebaseAuth } from '$lib/firebase';
 import { env } from '$env/dynamic/public';
 
 // Production API base; override with PUBLIC_API_BASE_URL in Cloud Run env_vars if needed.
-const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://theloop-api-1090621437043.us-central1.run.app';
+const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://api.loop.oute.pro';
 const BASE = `${API_BASE}/api/v1/incidents`;
 
 async function getAuthToken(): Promise<string> {

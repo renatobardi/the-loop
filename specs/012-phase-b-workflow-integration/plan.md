@@ -238,7 +238,7 @@ jobs:
             --max-time 5 \
             --connect-timeout 2 \
             -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
-            "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
+            "https://api.loop.oute.pro/api/v1/rules/${VERSION}" \
             -o /tmp/rules.json
           
           if [ $? -ne 0 ]; then

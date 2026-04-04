@@ -207,7 +207,7 @@ If a rule version causes issues:
 
 - **Issues**: Report at https://loop.oute.pro/feedback
 - **Documentation**: https://loop.oute.pro/docs
-- **API**: `https://theloop-api-1090621437043.us-central1.run.app/api/v1`
+- **API**: `https://api.loop.oute.pro/api/v1`
 
 ---
 

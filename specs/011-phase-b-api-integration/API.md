@@ -1,6 +1,6 @@
 # Phase B API — Rules Versioning (Complete Reference)
 
-**Base URL**: `https://theloop-api-1090621437043.us-central1.run.app/api/v1`  
+**Base URL**: `https://api.loop.oute.pro/api/v1`  
 **Version**: 0.2.0 (Phase B production-ready)  
 **Rate Limits**: See per-endpoint documentation
 
@@ -64,7 +64,7 @@ Content-Type: application/json
 
 **Example**:
 ```bash
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest | jq .version
+curl -s https://api.loop.oute.pro/api/v1/rules/latest | jq .version
 # Output: "0.2.0"
 ```
 
@@ -95,11 +95,11 @@ Fetch a **specific rule version** by semantic version (any status: active, draft
 **Example**:
 ```bash
 # Fetch v0.1.0
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/0.1.0 | jq .status
+curl -s https://api.loop.oute.pro/api/v1/rules/0.1.0 | jq .status
 # Output: "active"
 
 # Fetch deprecated v0.1.0 (still returns 200)
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/0.1.0 | jq .deprecated_at
+curl -s https://api.loop.oute.pro/api/v1/rules/0.1.0 | jq .deprecated_at
 # Output: "2026-04-05T10:00:00Z"
 ```
 
@@ -144,7 +144,7 @@ List **all rule versions** in reverse creation order (newest first). Includes al
 
 **Example**:
 ```bash
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/versions | jq '.versions | length'
+curl -s https://api.loop.oute.pro/api/v1/rules/versions | jq '.versions | length'
 # Output: 2
 ```
 
@@ -182,7 +182,7 @@ List **only deprecated rule versions** (useful for rollback decisions).
 
 **Example**:
 ```bash
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/deprecated | jq '.versions[0].version'
+curl -s https://api.loop.oute.pro/api/v1/rules/deprecated | jq '.versions[0].version'
 # Output: "0.1.0"
 ```
 
@@ -400,7 +400,7 @@ curl -H "Authorization: Bearer $TOKEN" https://api.../api/v1/rules/publish
 #!/bin/bash
 
 # Publish v0.2.0 with Phase B rules
-curl -X POST https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/publish \
+curl -X POST https://api.loop.oute.pro/api/v1/rules/publish \
   -H "Authorization: Bearer $FIREBASE_TOKEN" \
   -H "Content-Type: application/json" \
   -d @payload.json
@@ -417,7 +417,7 @@ curl -X POST https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/
 
 ```bash
 # Discover issue in v0.2.0
-curl -X POST https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/deprecate \
+curl -X POST https://api.loop.oute.pro/api/v1/rules/deprecate \
   -H "Authorization: Bearer $FIREBASE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"version": "0.2.0"}'
@@ -433,7 +433,7 @@ curl -X POST https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/
     curl -s \
       --max-time 5 \
       --connect-timeout 2 \
-      https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+      https://api.loop.oute.pro/api/v1/rules/latest \
       -o /tmp/rules.json
     
     # On error, use Phase A backup
@@ -474,6 +474,6 @@ curl -X POST https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/
 
 ## Support
 
-**API Status**: https://theloop-api-1090621437043.us-central1.run.app/api/v1/health  
+**API Status**: https://api.loop.oute.pro/api/v1/health  
 **Logs**: `gcloud run logs read theloop-api --region=us-central1 --limit=100`  
 **Issues**: Report via https://loop.oute.pro/feedback

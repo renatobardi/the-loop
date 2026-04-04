@@ -72,7 +72,7 @@ steps:
       curl -s \
         --max-time 5 \
         --connect-timeout 2 \
-        "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
+        "https://api.loop.oute.pro/api/v1/rules/${VERSION}" \
         -o /tmp/rules.json
       
       if [ $? -ne 0 ]; then
@@ -402,6 +402,6 @@ A: Phase B API fetch assumes GitHub Actions. For other CI/CD systems (GitLab, Bi
 
 ## Support
 
-- **API Status**: https://theloop-api-1090621437043.us-central1.run.app/api/v1/health
+- **API Status**: https://api.loop.oute.pro/api/v1/health
 - **API Docs**: [API.md](./API.md)
 - **Issues**: Report via https://loop.oute.pro/feedback

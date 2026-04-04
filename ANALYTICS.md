@@ -116,7 +116,7 @@ All four charts are powered by dedicated endpoints that can also be queried dire
 
 ```bash
 TOKEN="<firebase-id-token>"
-BASE="https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics"
+BASE="https://api.loop.oute.pro/api/v1/incidents/analytics"
 
 curl -H "Authorization: Bearer $TOKEN" "$BASE/summary?period=quarter"
 curl -H "Authorization: Bearer $TOKEN" "$BASE/by-category?period=month&status=resolved"

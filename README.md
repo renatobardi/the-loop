@@ -108,12 +108,12 @@ POST   /api/v1/rules/deprecate             # Deprecate a version
 
 ```bash
 # Fetch latest rules
-curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+curl https://api.loop.oute.pro/api/v1/rules/latest \
   | jq '.version'
 # Output: "0.2.0"
 
 # List all versions
-curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/versions \
+curl https://api.loop.oute.pro/api/v1/rules/versions \
   | jq '.versions[] | {version, status, created_at}'
 
 # Deprecate a version (admin only)
@@ -178,15 +178,15 @@ TOKEN=$(firebase-token)
 
 # Last month summary
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics/summary?period=month"
+  "https://api.loop.oute.pro/api/v1/incidents/analytics/summary?period=month"
 
 # Last quarter by team (resolved only)
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics/by-team?period=quarter&status=resolved"
+  "https://api.loop.oute.pro/api/v1/incidents/analytics/by-team?period=quarter&status=resolved"
 
 # Custom date range timeline
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://theloop-api-1090621437043.us-central1.run.app/api/v1/incidents/analytics/timeline?period=custom&start_date=2026-01-01&end_date=2026-03-31"
+  "https://api.loop.oute.pro/api/v1/incidents/analytics/timeline?period=custom&start_date=2026-01-01&end_date=2026-03-31"
 ```
 
 ## Constitution
@@ -196,5 +196,5 @@ This project is governed by 13 mandamentos defined in [CONSTITUTION.md](./CONSTI
 ## Links
 
 - **Landing page**: https://loop.oute.pro
-- **API**: https://theloop-api-1090621437043.us-central1.run.app
+- **API**: https://api.loop.oute.pro
 - **Contact**: loop@oute.pro

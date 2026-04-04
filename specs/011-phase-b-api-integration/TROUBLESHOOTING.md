@@ -20,16 +20,16 @@
 
 ```bash
 # Check if API is online
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/health
+curl -s https://api.loop.oute.pro/api/v1/health
 # Expected: 200 OK with {"status": "healthy"}
 
 # Check rules endpoint directly
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+curl -s https://api.loop.oute.pro/api/v1/rules/latest \
   | jq . | head -20
 
 # Check response time
 curl -w "Time: %{time_total}s\n" \
-  https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+  https://api.loop.oute.pro/api/v1/rules/latest \
   -o /dev/null
 # Should be <1 second
 ```
@@ -58,7 +58,7 @@ curl -w "Time: %{time_total}s\n" \
 
 ```bash
 # Check what the API returned
-curl -s https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+curl -s https://api.loop.oute.pro/api/v1/rules/latest \
   -o /tmp/response.json
 
 file /tmp/response.json  # Shows "JSON data" or "HTML document"
@@ -71,7 +71,7 @@ cat /tmp/response.json | head -5  # Inspect first 5 lines
 1. **API returned HTML error page**:
    ```bash
    # Check API health
-   curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/health
+   curl https://api.loop.oute.pro/api/v1/health
    
    # If API is down, fallback should kick in automatically
    # If still failing, ensure .semgrep/theloop-rules.yml.bak exists
@@ -168,7 +168,7 @@ grep "^  - id:" .semgrep/theloop-rules.yml | wc -l
 
 ```bash
 # List all available versions
-curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/versions \
+curl https://api.loop.oute.pro/api/v1/rules/versions \
   | jq '.versions[].version'
 # Output should include your target version
 
@@ -181,11 +181,11 @@ echo $THELOOP_RULES_VERSION
 1. **Version typo**:
    ```bash
    # Verify correct version exists
-   curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/0.1.0
+   curl https://api.loop.oute.pro/api/v1/rules/0.1.0
    # Should return 200 OK
    
    # If not found, use /latest
-   curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest
+   curl https://api.loop.oute.pro/api/v1/rules/latest
    ```
 
 2. **Fix THELOOP_RULES_VERSION**:
@@ -196,7 +196,7 @@ echo $THELOOP_RULES_VERSION
 
 3. **Check for deprecated versions**:
    ```bash
-   curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/deprecated \
+   curl https://api.loop.oute.pro/api/v1/rules/deprecated \
      | jq '.versions[].version'
    
    # If your pinned version is deprecated, you may want to upgrade
@@ -219,11 +219,11 @@ echo $THELOOP_RULES_VERSION
 
 ```bash
 # Check what /latest returns now
-curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+curl https://api.loop.oute.pro/api/v1/rules/latest \
   | jq .version
 
 # Check all versions
-curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/versions \
+curl https://api.loop.oute.pro/api/v1/rules/versions \
   | jq '.versions[] | {version, status}'
 ```
 
@@ -405,7 +405,7 @@ All future PRs use Phase A rules until you re-enable Phase B.
 
 ```bash
 # Save API response
-curl https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/latest \
+curl https://api.loop.oute.pro/api/v1/rules/latest \
   -o /tmp/api-response.json
 
 # Convert locally
@@ -437,7 +437,7 @@ mv .semgrep/theloop-rules.yml.bak.bak .semgrep/theloop-rules.yml.bak
 
 ## Getting Help
 
-- **API Status**: https://theloop-api-1090621437043.us-central1.run.app/api/v1/health
+- **API Status**: https://api.loop.oute.pro/api/v1/health
 - **API Logs**: `gcloud run logs read theloop-api --region=us-central1 --limit=100`
 - **Report Issues**: https://loop.oute.pro/feedback
 - **API Docs**: [API.md](./API.md)

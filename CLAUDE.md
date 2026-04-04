@@ -222,7 +222,7 @@ Adding a new waitlist source (e.g., a new CTA button) requires updating `VALID_S
 - **No `.env` in repo** — all secrets via GCP Secret Manager / GitHub Actions secrets
 - **Firestore/Firebase project:** `theloopoute`
 - **Cloud SQL instance:** `theloopoute:southamerica-east1:theloop-db` (PostgreSQL 16 + pgvector + pg_trgm)
-- **API Cloud Run URL:** `https://theloop-api-1090621437043.us-central1.run.app`
+- **API Cloud Run URL:** `https://api.loop.oute.pro`
 
 ## Deployment
 

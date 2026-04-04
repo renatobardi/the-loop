@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { navigating } from '$app/stores';
 	import DashboardGrid from '$lib/components/analytics/DashboardGrid.svelte';
 	import type { AnalyticsFilter } from '$lib/types/analytics';
 
@@ -29,11 +30,18 @@
 	</div>
 
 	{#if data.loadError}
-		<div class="rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-			Failed to load analytics: {data.loadError}
+		<!-- T107: Styled error state with retry -->
+		<div
+			class="rounded-lg border border-error/40 bg-error/10 px-6 py-5"
+			role="alert"
+			aria-live="assertive"
+		>
+			<p class="font-medium text-error">Failed to load analytics</p>
+			<p class="mt-1 text-sm text-error/80">{data.loadError}</p>
 			<button
-				class="ml-3 underline hover:no-underline"
+				class="mt-3 rounded border border-error/40 px-3 py-1.5 text-sm text-error hover:bg-error/10 focus:outline-none focus:ring-2 focus:ring-error"
 				onclick={() => goto('/incidents/analytics/', { invalidateAll: true })}
+				aria-label="Retry loading analytics"
 			>
 				Retry
 			</button>
@@ -46,6 +54,7 @@
 			byTeamAll={data.byTeamAll}
 			timeline={data.timeline}
 			filters={data.filters}
+			loading={$navigating !== null}
 			onFiltersChange={handleFiltersChange}
 		/>
 	{/if}

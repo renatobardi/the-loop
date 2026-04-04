@@ -1,12 +1,8 @@
 <script lang="ts">
 	import type { AnalyticsSummary } from '$lib/types/analytics';
+	import { formatDays } from '$lib/utils/analytics';
 
 	let { summary }: { summary: AnalyticsSummary } = $props();
-
-	function formatDays(days: number | null): string {
-		if (days === null) return 'N/A';
-		return `${days.toFixed(1)}d`;
-	}
 </script>
 
 <div class="rounded-lg border border-border bg-bg-surface p-6">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { CategoryStats } from '$lib/types/analytics';
+	import { barColor, formatCategory } from '$lib/utils/analytics';
 
 	let { stats }: { stats: CategoryStats[] } = $props();
 
@@ -15,21 +16,23 @@
 	const maxCount = $derived(Math.max(...stats.map((s) => s.count), 1));
 	const svgHeight = $derived(stats.length * (BAR_HEIGHT + BAR_GAP) + BAR_GAP);
 
-	function barColor(avgSeverity: number): string {
-		// 1.0 = error (red), 0.5 = warning (yellow)
-		return avgSeverity >= 0.9 ? 'var(--color-error, #ef4444)' : 'var(--color-warning, #f59e0b)';
-	}
-
-	function formatCategory(cat: string): string {
-		return cat.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-	}
-
-	function handleMouseOver(e: MouseEvent, item: CategoryStats) {
+function handleMouseOver(e: MouseEvent, item: CategoryStats) {
 		const rect = (e.currentTarget as SVGElement).closest('svg')!.getBoundingClientRect();
 		tooltip = { x: e.clientX - rect.left, y: e.clientY - rect.top, item };
 	}
 
 	function handleMouseOut() {
+		tooltip = null;
+	}
+
+	function handleFocus(e: FocusEvent, item: CategoryStats) {
+		const el = e.currentTarget as SVGElement;
+		const rect = el.closest('svg')!.getBoundingClientRect();
+		const selfRect = el.getBoundingClientRect();
+		tooltip = { x: selfRect.left - rect.left + selfRect.width / 2, y: selfRect.top - rect.top, item };
+	}
+
+	function handleBlur() {
 		tooltip = null;
 	}
 </script>
@@ -71,10 +74,13 @@
 						rx="4"
 						fill={barColor(item.avg_severity)}
 						opacity="0.85"
-						role="graphics-symbol"
-						aria-label={`${item.category}: ${item.count} incidents (${item.percentage.toFixed(1)}%)`}
+						role="button"
+						tabindex="0"
+						aria-label={`${item.category}: ${item.count} incidents (${item.percentage.toFixed(1)}%), avg severity ${item.avg_severity >= 0.9 ? 'error' : 'warning'}`}
 						onmouseover={(e) => handleMouseOver(e, item)}
 						onmouseout={handleMouseOut}
+						onfocus={(e) => handleFocus(e, item)}
+						onblur={handleBlur}
 						style="cursor: pointer"
 					/>
 					<!-- Count -->

@@ -40,7 +40,7 @@ async def test_publish_version_success(db_session: AsyncSession) -> None:
     )
 
     assert result.version == "0.1.0"
-    assert result.status == RuleVersionStatus.DRAFT
+    assert result.status == RuleVersionStatus.ACTIVE
     assert len(result.rules) == 1
     assert result.rules[0].id == "test-rule-001"
 

@@ -22,7 +22,12 @@ def _make_session_factory() -> async_sessionmaker[AsyncSession]:
 
 @pytest.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Real DB session, fully rolled back after each test for isolation."""
+    """Real DB session for integration tests.
+
+    The rollback on teardown handles isolation for tests that only flush (no commit).
+    Tests whose repository methods call commit() must use an explicit TRUNCATE fixture
+    (autouse=True) to clean up their tables — rollback cannot undo committed data.
+    """
     factory = _make_session_factory()
     async with factory() as session:
         yield session

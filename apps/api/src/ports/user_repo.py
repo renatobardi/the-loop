@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from src.domain.models import User
+from src.domain.models import User, _UnsetSentinel
 
 
 class UserRepoPort(Protocol):
@@ -14,5 +14,8 @@ class UserRepoPort(Protocol):
     ) -> User: ...
 
     async def update(
-        self, user_id: UUID, display_name: str | None, job_title: str | None
+        self,
+        user_id: UUID,
+        display_name: str | None,
+        job_title: str | None | _UnsetSentinel,
     ) -> User: ...

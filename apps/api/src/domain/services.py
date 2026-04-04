@@ -37,6 +37,7 @@ from src.domain.models import (
     Severity,
     TimelineEventType,
     User,
+    _UnsetSentinel,
 )
 from src.ports.action_item_repo import ActionItemRepoPort
 from src.ports.attachment_repo import AttachmentRepoPort
@@ -824,12 +825,16 @@ class UserService:
         return await self._repo.get_or_create(firebase_uid, email, display_name)
 
     async def update_profile(
-        self, user_id: UUID, display_name: str | None, job_title: str | None
+        self,
+        user_id: UUID,
+        display_name: str | None,
+        job_title: str | None | _UnsetSentinel,
     ) -> User:
-        """Update user profile fields. None = don't update that field.
+        """Update user profile fields.
 
-        Raises ValueError if display_name is an empty string (explicit null is
-        rejected at the API layer before reaching this service).
+        display_name: None = don't update; str = update to value.
+        job_title: UNSET = don't update; None = clear to null; str = update to value.
+        Raises ValueError if display_name is an empty string.
         Raises UserNotFoundError if no user with user_id exists.
         """
         if display_name is not None and len(display_name.strip()) == 0:

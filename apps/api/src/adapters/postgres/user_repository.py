@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.postgres.models import UserRow
 from src.domain.exceptions import UserNotFoundError
-from src.domain.models import User, UserPlan
+from src.domain.models import User, UserPlan, _UnsetSentinel
 
 
 def _row_to_domain(row: UserRow) -> User:
@@ -66,16 +66,23 @@ class PostgresUserRepository:
         return _row_to_domain(row)
 
     async def update(
-        self, user_id: UUID, display_name: str | None, job_title: str | None
+        self,
+        user_id: UUID,
+        display_name: str | None,
+        job_title: str | None | _UnsetSentinel,
     ) -> User:
-        """Update user profile fields. None values preserve existing data (COALESCE)."""
+        """Update user profile fields.
+
+        display_name: None = don't update; str = update to value.
+        job_title: UNSET = don't update; None = clear to null; str = update to value.
+        """
         row = await self._session.get(UserRow, user_id)
         if row is None:
             raise UserNotFoundError(str(user_id))
 
         if display_name is not None:
             row.display_name = display_name
-        if job_title is not None:
+        if not isinstance(job_title, _UnsetSentinel):
             row.job_title = job_title
         row.updated_at = datetime.now(UTC)
 

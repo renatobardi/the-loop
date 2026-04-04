@@ -138,7 +138,7 @@ curl -X POST https://theloop-api.../api/v1/rules/deprecate \
 
 ## Analytics Dashboard
 
-The analytics dashboard aggregates incident postmortem data into actionable charts and trends, accessible at `/incidents/analytics/`.
+The analytics dashboard aggregates incident postmortem data into actionable charts and trends, accessible at `/analytics/`.
 
 ### Features
 

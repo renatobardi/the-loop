@@ -79,7 +79,7 @@
           onclick={() => open = false}
           class="block px-4 py-2 text-sm text-text-muted hover:text-text hover:bg-bg-surface transition-colors"
         >
-          Minha conta
+          My account
         </a>
         <button
           role="menuitem"

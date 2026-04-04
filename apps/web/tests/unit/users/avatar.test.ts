@@ -56,8 +56,8 @@ describe('memberSince formatting', () => {
 	// T087: member since formatted in pt-BR
 	it('formats ISO date in pt-BR long format', () => {
 		const date = '2026-01-15T12:00:00Z';
-		const formatted = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(date));
-		expect(formatted).toMatch(/janeiro|jan/i);
+		const formatted = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(new Date(date));
+		expect(formatted).toMatch(/january|jan/i);
 		expect(formatted).toMatch(/2026/);
 	});
 

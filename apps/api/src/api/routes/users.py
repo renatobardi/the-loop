@@ -8,6 +8,7 @@ from src.api.deps import get_user_service
 from src.api.middleware import limiter
 from src.api.models.users import UserResponse, UserUpdateRequest
 from src.domain.exceptions import UserNotFoundError
+from src.domain.models import UNSET
 from src.domain.services import UserService
 
 router = APIRouter(prefix="/api/v1", tags=["users"])
@@ -53,11 +54,12 @@ async def patch_me(
 
     Omitting a field leaves it unchanged. Sending null for display_name returns 422.
     """
+    job_title = body.job_title if "job_title" in body.model_fields_set else UNSET
     try:
         user = await user_service.update_profile(
             user_id=token_data["user_id"],
             display_name=body.display_name,
-            job_title=body.job_title,
+            job_title=job_title,
         )
     except ValueError as e:
         raise HTTPException(

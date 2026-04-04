@@ -10,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 __all__ = [
+    "UNSET",
     "ActionItemStatus",
     "AnalyticsFilter",
     "AnalyticsPeriod",
@@ -612,6 +613,23 @@ class AnalyticsPeriod(BaseModel):
 
 
 # ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────
+
+
+class _UnsetSentinel:
+    """Sentinel for distinguishing 'field omitted' from 'explicit None' in partial updates."""
+
+    _instance: "_UnsetSentinel | None" = None
+
+    def __new__(cls) -> "_UnsetSentinel":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "UNSET"
+
+
+UNSET = _UnsetSentinel()
 
 
 class UserPlan(StrEnum):

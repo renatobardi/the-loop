@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.adapters.firebase.auth import init_firebase
 from src.api.middleware import setup_middleware
 from src.api.routes.action_items import router as action_items_router
+from src.api.routes.analytics import router as analytics_router
 from src.api.routes.attachments import router as attachments_router
 from src.api.routes.incidents import router as incidents_router
 from src.api.routes.postmortems import router as postmortems_router
@@ -56,6 +57,7 @@ app.add_middleware(
 
 setup_middleware(app)
 app.include_router(incidents_router)
+app.include_router(analytics_router)
 app.include_router(timeline_router)
 app.include_router(responders_router)
 app.include_router(action_items_router)

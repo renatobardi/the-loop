@@ -4,16 +4,20 @@ import re
 from datetime import date as _Date
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 __all__ = [
     "ActionItemStatus",
+    "AnalyticsFilter",
+    "AnalyticsPeriod",
+    "AnalyticsSummary",
     "AttachmentExtractionStatus",
     "AttachmentType",
     "Category",
+    "CategoryStats",
     "DetectionMethod",
     "Incident",
     "IncidentActionItem",
@@ -30,7 +34,9 @@ __all__ = [
     "RuleVersion",
     "RuleVersionStatus",
     "Severity",
+    "TeamStats",
     "TimelineEventType",
+    "TimelinePoint",
 ]
 
 
@@ -534,3 +540,70 @@ class Postmortem(BaseModel):
             msg = "Description must not exceed 2000 characters"
             raise ValueError(msg)
         return v
+
+
+# ─── Phase C.2: Incident Analytics ───────────────────────────────────────────
+
+
+class CategoryStats(BaseModel):
+    """Aggregated incident statistics for a single root cause category."""
+
+    model_config = ConfigDict(frozen=True)
+
+    category: RootCauseCategory
+    count: int
+    percentage: float  # 0-100
+    avg_severity: float  # 0.5 (warning) or 1.0 (error)
+    avg_resolution_days: float | None = None  # None when filtered to unresolved-only
+
+
+class TeamStats(BaseModel):
+    """Aggregated incident statistics for a single team."""
+
+    model_config = ConfigDict(frozen=True)
+
+    team: str
+    count: int
+    top_categories: list[RootCauseCategory]  # Top 3 per RF-003
+    avg_resolution_days: float | None = None  # None when filtered to unresolved-only
+
+
+class TimelinePoint(BaseModel):
+    """Weekly incident count with per-category breakdown."""
+
+    model_config = ConfigDict(frozen=True)
+
+    week: datetime
+    count: int
+    by_category: dict[RootCauseCategory, int]  # Always all 5 keys (0 for absent)
+
+
+class AnalyticsSummary(BaseModel):
+    """Top-level incident count summary for the selected period."""
+
+    model_config = ConfigDict(frozen=True)
+
+    total: int
+    resolved: int
+    unresolved: int
+    avg_resolution_days: float | None = None  # None when filtered to unresolved-only
+
+
+class AnalyticsFilter(BaseModel):
+    """Filters applied to all analytics queries."""
+
+    model_config = ConfigDict(frozen=True)
+
+    team: str | None = None
+    category: RootCauseCategory | None = None
+    status: Literal["resolved", "unresolved", "all"] = "all"
+
+
+class AnalyticsPeriod(BaseModel):
+    """Time period selector for analytics queries."""
+
+    model_config = ConfigDict(frozen=True)
+
+    value: Literal["week", "month", "quarter", "custom"]
+    start_date: datetime | None = None  # Required when value="custom"
+    end_date: datetime | None = None  # Required when value="custom"

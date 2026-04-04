@@ -1,7 +1,8 @@
-"""IncidentService — orchestrates domain logic, delegates to repository port."""
+"""Domain services — IncidentService, AnalyticsService, and sub-resource services."""
 
 from __future__ import annotations
 
+import time
 from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID, uuid4
@@ -655,3 +656,154 @@ class PostmortumService:
     async def list_all(self) -> list[Postmortem]:
         """List all postmortems for analytics and reporting."""
         return await self._repo.list_all()
+
+
+# ─── Phase C.2: Analytics Service ────────────────────────────────────────────
+
+import calendar  # noqa: E402
+
+import structlog as _structlog  # noqa: E402
+
+from src.domain.models import (  # noqa: E402
+    AnalyticsFilter,
+    AnalyticsPeriod,
+    AnalyticsSummary,
+    CategoryStats,
+    TeamStats,
+    TimelinePoint,
+)
+from src.ports.analytics import AnalyticsRepoPort  # noqa: E402
+
+_analytics_logger = _structlog.get_logger(__name__)
+
+
+class AnalyticsService:
+    """Orchestrates analytics queries with period parsing and normalization."""
+
+    def __init__(self, repo: AnalyticsRepoPort) -> None:
+        self._repo = repo
+
+    async def get_summary(
+        self, period: AnalyticsPeriod, filters: AnalyticsFilter
+    ) -> AnalyticsSummary:
+        """Return total/resolved/unresolved counts and avg resolution days."""
+        t0 = time.monotonic()
+        start, end = self._parse_period(period)
+        result = await self._repo.get_summary(start, end, filters)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _analytics_logger.info(
+            "analytics.service",
+            method="get_summary",
+            elapsed_ms=round(elapsed_ms, 1),
+            analytics_dashboard_load_time_ms=round(elapsed_ms, 1),
+            analytics_query_result_count=1,
+        )
+        return result
+
+    async def get_by_category(
+        self, period: AnalyticsPeriod, filters: AnalyticsFilter
+    ) -> list[CategoryStats]:
+        """Return incident stats grouped by category, sorted by count DESC."""
+        t0 = time.monotonic()
+        start, end = self._parse_period(period)
+        stats = await self._repo.get_by_category(start, end, filters)
+        stats = self._normalize_stats(stats)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _analytics_logger.info(
+            "analytics.service",
+            method="get_by_category",
+            elapsed_ms=round(elapsed_ms, 1),
+            analytics_query_result_count=len(stats),
+        )
+        return stats
+
+    async def get_by_team(
+        self, period: AnalyticsPeriod, filters: AnalyticsFilter
+    ) -> list[TeamStats]:
+        """Return incident stats grouped by team, sorted by count DESC."""
+        t0 = time.monotonic()
+        start, end = self._parse_period(period)
+        result = await self._repo.get_by_team(start, end, filters)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _analytics_logger.info(
+            "analytics.service",
+            method="get_by_team",
+            elapsed_ms=round(elapsed_ms, 1),
+            analytics_query_result_count=len(result),
+        )
+        return result
+
+    async def get_timeline(
+        self, period: AnalyticsPeriod, filters: AnalyticsFilter
+    ) -> list[TimelinePoint]:
+        """Return weekly timeline points for the period (minimum 52 weeks)."""
+        t0 = time.monotonic()
+        start, end = self._parse_period(period)
+        result = await self._repo.get_timeline(start, end, filters)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _analytics_logger.info(
+            "analytics.service",
+            method="get_timeline",
+            elapsed_ms=round(elapsed_ms, 1),
+            analytics_query_result_count=len(result),
+        )
+        return result
+
+    def _parse_period(self, period: AnalyticsPeriod) -> tuple[datetime, datetime]:
+        """Convert AnalyticsPeriod to (start, end) datetime range (UTC-naive).
+
+        - "week"    → last 7 days
+        - "month"   → last 30 days
+        - "quarter" → start of current calendar quarter to today (quarter-to-date)
+                      Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec
+                      end = min(today, end_of_quarter)
+        - "custom"  → period.start_date to period.end_date (caller validated)
+        """
+        now = datetime.now(UTC).replace(tzinfo=None)
+        today = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        if period.value == "week":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            from datetime import timedelta
+            start = start - timedelta(days=7)
+            return start, today
+
+        if period.value == "month":
+            from datetime import timedelta
+            start = (now - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
+            return start, today
+
+        if period.value == "quarter":
+            month = now.month
+            # Q1=1-3, Q2=4-6, Q3=7-9, Q4=10-12
+            quarter_start_month = ((month - 1) // 3) * 3 + 1
+            quarter_end_month = quarter_start_month + 2
+            last_day = calendar.monthrange(now.year, quarter_end_month)[1]
+            quarter_end = datetime(now.year, quarter_end_month, last_day, 23, 59, 59, 999999)
+            start = datetime(now.year, quarter_start_month, 1, 0, 0, 0, 0)
+            end = min(today, quarter_end)
+            return start, end
+
+        # "custom"
+        # start_date/end_date validated at API layer (T049)
+        assert period.start_date is not None
+        assert period.end_date is not None
+        start = period.start_date.replace(tzinfo=None)
+        end = period.end_date.replace(tzinfo=None)
+        return start, end
+
+    def _normalize_stats(self, stats: list[CategoryStats]) -> list[CategoryStats]:
+        """Ensure percentages sum to 100 (correct floating-point rounding drift)."""
+        if not stats:
+            return stats
+        total_pct = sum(s.percentage for s in stats)
+        if total_pct == 0:
+            return stats
+        # Re-normalize so sum equals exactly 100
+        factor = 100.0 / total_pct
+        normalized = []
+        for s in stats:
+            normalized.append(
+                s.model_copy(update={"percentage": round(s.percentage * factor, 2)})
+            )
+        return normalized

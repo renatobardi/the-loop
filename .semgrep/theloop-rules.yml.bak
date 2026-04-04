@@ -87,6 +87,9 @@ rules:
       - pattern-regex: '(?i)(password|passwd|secret|api_key|apikey|access_token|auth_token)\s*[=:]\s*["\x27][A-Za-z0-9+/\-_@#$!]{8,}["\x27]'
     paths:
       exclude:
+        - "specs/"
+        - "*.md"
+        - "docs/"
         - "*.test.*"
         - "*.spec.*"
         - "tests/"

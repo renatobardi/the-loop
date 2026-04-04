@@ -38,7 +38,8 @@ jobs:
             --connect-timeout 2 \
             -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
             "https://theloop-api-1090621437043.us-central1.run.app/api/v1/rules/${VERSION}" \
-            -o /tmp/rules.json
+            -o /tmp/rules.json \
+            || true
 
           FETCH_EXIT=$?
 

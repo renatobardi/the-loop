@@ -11,6 +11,11 @@
     { label: 'Incidents', href: '/incidents/' },
   ];
 
+  const authLinks = [
+    { label: 'Analytics', href: '/incidents/analytics/' },
+    { label: 'Constitution', href: '/constitution/' },
+  ];
+
   function closeOnResize() {
     if (window.innerWidth >= 768) {
       open = false;
@@ -38,6 +43,11 @@
         </a>
       {/each}
       {#if $user}
+        {#each authLinks as link (link.href)}
+          <a href={link.href} class="text-sm text-text-muted hover:text-text transition-colors">
+            {link.label}
+          </a>
+        {/each}
         <button
           onclick={handleLogout}
           class="text-sm text-text-muted hover:text-text transition-colors"
@@ -78,6 +88,15 @@
         </a>
       {/each}
       {#if $user}
+        {#each authLinks as link (link.href)}
+          <a
+            href={link.href}
+            onclick={() => open = false}
+            class="text-sm text-text-muted hover:text-text transition-colors py-2"
+          >
+            {link.label}
+          </a>
+        {/each}
         <button
           onclick={async () => {
             open = false;

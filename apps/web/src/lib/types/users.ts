@@ -4,6 +4,7 @@ export interface UserProfile {
 	display_name: string | null;
 	job_title: string | null;
 	plan: string;
+	is_admin?: boolean;
 	created_at: string;
 }
 

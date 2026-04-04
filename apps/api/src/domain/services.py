@@ -939,3 +939,6 @@ class ScanService:
 
     async def get_summary(self, owner_id: UUID) -> dict[str, object]:
         return await self._repo.get_summary(owner_id)
+
+    async def get_global_metrics(self) -> dict[str, object]:
+        return await self._repo.get_global_metrics()

@@ -18,6 +18,7 @@ class UserResponse(BaseModel):
     display_name: str | None
     job_title: str | None
     plan: str
+    is_admin: bool = False
     created_at: datetime
 
     @classmethod
@@ -28,6 +29,7 @@ class UserResponse(BaseModel):
             display_name=user.display_name,
             job_title=user.job_title,
             plan=user.plan.value,
+            is_admin=user.is_admin,
             created_at=user.created_at,
         )
 

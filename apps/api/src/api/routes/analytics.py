@@ -31,7 +31,7 @@ def _build_period(
     end_date: str | None,
 ) -> AnalyticsPeriod:
     """Parse period + optional date range into AnalyticsPeriod. Raises 400 on invalid input."""
-    from datetime import datetime
+    from datetime import UTC, datetime
 
     allowed = {"week", "month", "quarter", "custom"}
     if period not in allowed:
@@ -46,8 +46,15 @@ def _build_period(
                 detail="period=custom requires both start_date and end_date (YYYY-MM-DD)",
             )
         try:
-            sd = datetime.fromisoformat(start_date)
-            ed = datetime.fromisoformat(end_date)
+            # Parse date-only strings (YYYY-MM-DD) and anchor to start/end of day in UTC.
+            # fromisoformat("2026-04-04") produces midnight (00:00:00) — without end-of-day
+            # anchoring, same-day postmortems are excluded by the `< :end` condition.
+            sd = datetime.fromisoformat(start_date).replace(
+                hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC
+            )
+            ed = datetime.fromisoformat(end_date).replace(
+                hour=23, minute=59, second=59, microsecond=999999, tzinfo=UTC
+            )
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

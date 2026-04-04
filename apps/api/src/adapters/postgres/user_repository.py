@@ -23,6 +23,7 @@ def _row_to_domain(row: UserRow) -> User:
         display_name=row.display_name,
         job_title=row.job_title,
         plan=UserPlan(row.plan),
+        is_admin=row.is_admin,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )

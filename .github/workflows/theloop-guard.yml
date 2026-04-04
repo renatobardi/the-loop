@@ -117,6 +117,58 @@ jobs:
           echo "rules_count=$RULES_COUNT" >> $GITHUB_OUTPUT
           echo "rules_version=$RULES_VERSION" >> $GITHUB_OUTPUT
 
+      # T067-T068: Register scan result with The Loop API
+      - name: Register scan
+        if: always()
+        run: |
+          if [ -z "${{ secrets.THELOOP_API_TOKEN }}" ]; then
+            echo "THELOOP_API_TOKEN not configured, skipping scan registration"
+            exit 0
+          fi
+
+          if [ ! -f "/tmp/semgrep-results.json" ]; then
+            echo "No scan results to register"
+            exit 0
+          fi
+
+          FINDINGS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(len(d.get('results', [])))" 2>/dev/null || echo "0")
+          ERRORS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='ERROR'))" 2>/dev/null || echo "0")
+          WARNINGS_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/semgrep-results.json')); print(sum(1 for r in d.get('results',[]) if r.get('extra',{}).get('severity','').upper()=='WARNING'))" 2>/dev/null || echo "0")
+          DURATION_MS=$(( ${{ steps.semgrep.outputs.duration_s || 0 }} * 1000 ))
+          RULES_VERSION="${{ steps.semgrep.outputs.rules_version || 'unknown' }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_NUMBER_JSON="${PR_NUMBER:-null}"
+
+          FINDINGS_JSON=$(python3 -c "
+import json
+data = json.load(open('/tmp/semgrep-results.json'))
+findings = []
+for r in data.get('results', []):
+    findings.append({
+        'rule_id': r.get('check_id', ''),
+        'file_path': r.get('path', ''),
+        'line_number': r.get('start', {}).get('line', 0),
+        'severity': r.get('extra', {}).get('severity', '')
+    })
+print(json.dumps(findings))
+" 2>/dev/null || echo "[]")
+
+          curl -s --max-time 3 \
+            -X POST https://api.loop.oute.pro/api/v1/scans \
+            -H "Authorization: Bearer ${{ secrets.THELOOP_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"repository\": \"$GITHUB_REPOSITORY\",
+              \"branch\": \"$GITHUB_REF_NAME\",
+              \"pr_number\": $PR_NUMBER_JSON,
+              \"rules_version\": \"$RULES_VERSION\",
+              \"findings_count\": $FINDINGS_COUNT,
+              \"errors_count\": $ERRORS_COUNT,
+              \"warnings_count\": $WARNINGS_COUNT,
+              \"duration_ms\": $DURATION_MS,
+              \"findings\": $FINDINGS_JSON
+            }" || echo "Scan registration failed (non-blocking)"
+
       # T021-T022: Write Job Summary
       - name: Write Job Summary
         if: always()

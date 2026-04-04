@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import secrets
 import time
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -9,6 +11,8 @@ from uuid import UUID, uuid4
 
 from src.domain.exceptions import (
     ActionItemNotFoundError,
+    ApiKeyInvalidError,
+    ApiKeyRevokedError,
     IncidentHasActiveRuleError,
     IncidentMissingPostmortumError,
     IncidentNotFoundError,
@@ -19,6 +23,7 @@ from src.domain.exceptions import (
 from src.domain.models import (
     ActionItemPriority,
     ActionItemStatus,
+    ApiKey,
     AttachmentExtractionStatus,
     AttachmentType,
     Category,
@@ -34,17 +39,20 @@ from src.domain.models import (
     ResponderRole,
     RootCauseCategory,
     RuleVersion,
+    Scan,
     Severity,
     TimelineEventType,
     User,
     _UnsetSentinel,
 )
 from src.ports.action_item_repo import ActionItemRepoPort
+from src.ports.api_key_repo import ApiKeyRepoPort
 from src.ports.attachment_repo import AttachmentRepoPort
 from src.ports.incident_repo import IncidentRepoPort
 from src.ports.postmortem_repo import PostmortumRepoPort
 from src.ports.responder_repo import ResponderRepoPort
 from src.ports.rule_version_repo import RuleVersionRepository
+from src.ports.scan_repo import ScanRepoPort
 from src.ports.timeline_event_repo import TimelineEventRepoPort
 from src.ports.user_repo import UserRepoPort
 
@@ -840,3 +848,94 @@ class UserService:
         if display_name is not None and len(display_name.strip()) == 0:
             raise ValueError("display_name cannot be empty string")
         return await self._repo.update(user_id, display_name, job_title)
+
+
+# ─── Phase 4: Semgrep Platform — API Keys & Scans ────────────────────────────
+
+
+class ApiKeyService:
+    """Service layer for API key management."""
+
+    def __init__(self, repo: ApiKeyRepoPort) -> None:
+        self._repo = repo
+
+    def _generate_token(self) -> str:
+        """Generate a unique API key token: tlp_ + 32 random hex chars."""
+        return f"tlp_{secrets.token_hex(32)}"
+
+    def _hash_token(self, token: str) -> str:
+        return hashlib.sha256(token.encode()).hexdigest()
+
+    async def create(self, owner_id: UUID, name: str) -> tuple[str, ApiKey]:
+        """Create API key. Returns (raw_token, ApiKey). raw_token shown ONCE."""
+        token = self._generate_token()
+        key_hash = self._hash_token(token)
+        prefix = token[:7]  # "tlp_abc"
+        api_key = await self._repo.create(owner_id, name, key_hash, prefix)
+        return token, api_key
+
+    async def list_by_user(self, owner_id: UUID) -> list[ApiKey]:
+        return await self._repo.list_by_owner(owner_id)
+
+    async def revoke(self, key_id: UUID, owner_id: UUID) -> ApiKey:
+        return await self._repo.revoke(key_id, owner_id)
+
+    async def validate(self, raw_token: str) -> ApiKey:
+        """Validate raw token. Raises ApiKeyInvalidError or ApiKeyRevokedError."""
+        key_hash = self._hash_token(raw_token)
+        key = await self._repo.get_by_hash(key_hash)
+        if key is None:
+            raise ApiKeyInvalidError()
+        if key.is_revoked:
+            raise ApiKeyRevokedError(str(key.id))
+        await self._repo.mark_used(key.id)
+        return key
+
+    async def get_whitelist(self, key_id: UUID) -> list[str]:
+        return await self._repo.get_whitelist(key_id)
+
+    async def add_to_whitelist(self, key_id: UUID, rule_id: str) -> None:
+        await self._repo.add_to_whitelist(key_id, rule_id)
+
+    async def remove_from_whitelist(self, key_id: UUID, rule_id: str) -> None:
+        await self._repo.remove_from_whitelist(key_id, rule_id)
+
+
+class ScanService:
+    """Service layer for scan registration and reporting."""
+
+    def __init__(self, repo: ScanRepoPort, api_key_repo: ApiKeyRepoPort) -> None:
+        self._repo = repo
+        self._api_key_repo = api_key_repo
+
+    async def register(
+        self,
+        api_key: ApiKey,
+        repository: str,
+        branch: str,
+        pr_number: int | None,
+        rules_version: str,
+        findings_count: int,
+        errors_count: int,
+        warnings_count: int,
+        duration_ms: int,
+        findings: list[dict[str, str | int]],
+    ) -> Scan:
+        return await self._repo.create_with_findings(
+            api_key_id=api_key.id,
+            repository=repository,
+            branch=branch,
+            pr_number=pr_number,
+            rules_version=rules_version,
+            findings_count=findings_count,
+            errors_count=errors_count,
+            warnings_count=warnings_count,
+            duration_ms=duration_ms,
+            findings=findings,
+        )
+
+    async def list_by_user(self, owner_id: UUID) -> list[Scan]:
+        return await self._repo.list_by_owner(owner_id)
+
+    async def get_summary(self, owner_id: UUID) -> dict[str, object]:
+        return await self._repo.get_summary(owner_id)

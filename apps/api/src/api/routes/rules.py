@@ -8,7 +8,12 @@ from fastapi.responses import JSONResponse
 
 from src.adapters.firebase.auth import get_current_user
 from src.adapters.postgres.cache import RuleVersionCache
-from src.api.deps import get_optional_identity, get_rule_version_cache, get_rule_version_service
+from src.api.deps import (
+    ApiKeyContext,
+    get_optional_identity,
+    get_rule_version_cache,
+    get_rule_version_service,
+)
 from src.api.middleware import limiter
 from src.api.models.rules import (
     DeprecateRulesRequest,
@@ -81,7 +86,7 @@ async def get_latest_rules(
         if cached:
             response_data = _rule_version_to_response(cached)
             # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
-            if hasattr(identity, "whitelist") and identity.whitelist:
+            if isinstance(identity, ApiKeyContext) and identity.whitelist:
                 response_data["rules"] = [
                     r for r in response_data["rules"] if r["id"] not in identity.whitelist
                 ]
@@ -101,7 +106,7 @@ async def get_latest_rules(
 
         response_data = _rule_version_to_response(rule_version)
         # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
-        if hasattr(identity, "whitelist") and identity.whitelist:
+        if isinstance(identity, ApiKeyContext) and identity.whitelist:
             response_data["rules"] = [
                 r for r in response_data["rules"] if r["id"] not in identity.whitelist
             ]
@@ -204,7 +209,7 @@ async def get_rules_by_version(
 
         rule_version_data = _rule_version_to_response(rule_version)
         # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
-        if hasattr(identity, "whitelist") and identity.whitelist:
+        if isinstance(identity, ApiKeyContext) and identity.whitelist:
             rule_version_data["rules"] = [
                 r for r in rule_version_data["rules"] if r["id"] not in identity.whitelist
             ]

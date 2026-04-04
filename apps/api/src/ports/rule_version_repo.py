@@ -44,6 +44,7 @@ class RuleVersionRepository:
         rules_json: list[dict[str, Any]],
         published_by: str,
         notes: str | None = None,
+        status: str = "active",
     ) -> RuleVersion:
         """Publish a new rule version.
 

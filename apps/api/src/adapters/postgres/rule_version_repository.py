@@ -104,8 +104,12 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         rules_json: list[dict[str, Any]],
         published_by: str,
         notes: str | None = None,
+        status: str = "active",
     ) -> RuleVersion:
         """Publish a new rule version.
+
+        Args:
+            status: Initial status — 'active' for immediate serving, 'draft' for editing.
 
         Raises:
             VersionAlreadyExistsError: If version already exists
@@ -124,7 +128,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         row = RuleVersionRow(
             version=version,
             rules_json=rules_json_str,
-            status="draft",
+            status=status,
             published_by=published_by_uuid,
             notes=notes,
         )

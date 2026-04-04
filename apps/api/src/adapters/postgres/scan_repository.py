@@ -157,3 +157,70 @@ class PostgresScanRepository:
             "scans_by_week": scans_by_week,
             "top_rules": top_rules,
         }
+
+    async def get_global_metrics(self) -> dict[str, object]:
+        """Admin-only: global scan metrics across all users."""
+        from datetime import timedelta
+
+        # Active repos: distinct owner_id with scans in last 30 days
+        thirty_days_ago = datetime.now(UTC) - timedelta(days=30)
+        active_repos_stmt = (
+            select(func.count(func.distinct(ApiKeyRow.owner_id)))
+            .join(ScanRow, ScanRow.api_key_id == ApiKeyRow.id)
+            .where(ScanRow.created_at >= thirty_days_ago)
+        )
+        active_repos_result = await self._session.execute(active_repos_stmt)
+        active_repos = active_repos_result.scalar_one() or 0
+
+        # Scans by week (global, last 200)
+        scans_by_week_stmt = (
+            select(ScanRow)
+            .order_by(ScanRow.created_at.desc())
+            .limit(200)
+        )
+        scans_result = await self._session.execute(scans_by_week_stmt)
+        scans_rows = scans_result.scalars().all()
+
+        week_map: dict[str, dict[str, int]] = {}
+        for row in scans_rows:
+            iso = row.created_at.isocalendar()
+            week_key = f"{iso.year}-W{iso.week:02d}"
+            if week_key not in week_map:
+                week_map[week_key] = {"count": 0, "findings": 0}
+            week_map[week_key]["count"] += 1
+            week_map[week_key]["findings"] += row.findings_count
+
+        scans_by_week: list[dict[str, object]] = [
+            {"week": week, "count": data["count"], "findings": data["findings"]}
+            for week, data in sorted(week_map.items())
+        ]
+
+        # Top languages from rule_id prefix
+        top_rules_stmt = (
+            select(ScanFindingRow.rule_id, func.count(ScanFindingRow.id).label("cnt"))
+            .group_by(ScanFindingRow.rule_id)
+            .order_by(func.count(ScanFindingRow.id).desc())
+            .limit(100)
+        )
+        top_rules_result = await self._session.execute(top_rules_stmt)
+        lang_map: dict[str, int] = {}
+        for rule_id_val, cnt_val in top_rules_result.all():
+            rule_id: str = str(rule_id_val or "")
+            if rule_id.startswith("js-") or rule_id.startswith("ts-"):
+                lang = "JS/TS"
+            elif rule_id.startswith("go-"):
+                lang = "Go"
+            else:
+                lang = "Python"
+            lang_map[lang] = lang_map.get(lang, 0) + int(cnt_val)
+
+        top_languages: list[dict[str, object]] = [
+            {"language": lang, "count": count}
+            for lang, count in sorted(lang_map.items(), key=lambda x: x[1], reverse=True)
+        ]
+
+        return {
+            "active_repos": int(active_repos),
+            "scans_by_week": scans_by_week,
+            "top_languages": top_languages,
+        }

@@ -23,6 +23,7 @@ SELECT
             FROM postmortems p2
             LEFT JOIN incidents i2 ON p2.incident_id = i2.id
             WHERE p2.created_at >= :start AND p2.created_at < :end
+              AND (i2.deleted_at IS NULL)
               AND (
                   :status = 'all'
                   OR (:status = 'resolved' AND i2.resolved_at IS NOT NULL)
@@ -42,6 +43,7 @@ SELECT
 FROM postmortems p
 LEFT JOIN incidents i ON p.incident_id = i.id
 WHERE p.created_at >= :start AND p.created_at < :end
+  AND (i.deleted_at IS NULL)
   AND (:team IS NULL OR p.team_responsible = :team)
   AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
@@ -67,6 +69,7 @@ SELECT
 FROM postmortems p
 LEFT JOIN incidents i ON p.incident_id = i.id
 WHERE p.created_at >= :start AND p.created_at < :end
+  AND (i.deleted_at IS NULL)
   AND (:team IS NULL OR p.team_responsible = :team)
   AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
@@ -97,15 +100,18 @@ FROM postmortems p
 LEFT JOIN incidents i ON p.incident_id = i.id
 LEFT JOIN (
     SELECT
-        team_responsible,
-        root_cause_category,
+        pm.team_responsible,
+        pm.root_cause_category,
         COUNT(*) AS cnt
-    FROM postmortems
-    WHERE created_at >= :start AND created_at < :end
-    GROUP BY team_responsible, root_cause_category
+    FROM postmortems pm
+    LEFT JOIN incidents inc ON pm.incident_id = inc.id
+    WHERE pm.created_at >= :start AND pm.created_at < :end
+      AND (inc.deleted_at IS NULL)
+    GROUP BY pm.team_responsible, pm.root_cause_category
 ) cat_count ON p.team_responsible = cat_count.team_responsible
           AND p.root_cause_category = cat_count.root_cause_category
 WHERE p.created_at >= :start AND p.created_at < :end
+  AND (i.deleted_at IS NULL)
   AND (:team IS NULL OR p.team_responsible = :team)
   AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
@@ -134,16 +140,19 @@ FROM postmortems p
 LEFT JOIN incidents i ON p.incident_id = i.id
 LEFT JOIN (
     SELECT
-        DATE_TRUNC('week', created_at) AS week,
-        root_cause_category,
+        DATE_TRUNC('week', pm.created_at) AS week,
+        pm.root_cause_category,
         COUNT(*) AS cnt
-    FROM postmortems
-    WHERE created_at >= :start AND created_at < :end
-    GROUP BY DATE_TRUNC('week', created_at), root_cause_category
+    FROM postmortems pm
+    LEFT JOIN incidents inc ON pm.incident_id = inc.id
+    WHERE pm.created_at >= :start AND pm.created_at < :end
+      AND (inc.deleted_at IS NULL)
+    GROUP BY DATE_TRUNC('week', pm.created_at), pm.root_cause_category
 ) breakdown
     ON DATE_TRUNC('week', p.created_at) = breakdown.week
    AND p.root_cause_category = breakdown.root_cause_category
 WHERE p.created_at >= :start AND p.created_at < :end
+  AND (i.deleted_at IS NULL)
   AND (
       :status = 'all'
       OR (:status = 'resolved' AND i.resolved_at IS NOT NULL)

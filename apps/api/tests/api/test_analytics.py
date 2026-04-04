@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import UUID
 
@@ -281,3 +282,27 @@ async def test_start_after_end_returns_400(mock_analytics_service: AsyncMock) ->
 
     assert response.status_code == 400
     assert "start_date" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_custom_period_anchors_to_utc_day_boundaries(
+    mock_analytics_service: AsyncMock,
+) -> None:
+    """Custom period: start_date anchors to 00:00:00 UTC, end_date to 23:59:59.999999 UTC.
+
+    Regression for: end_date=2026-04-04 parsed as midnight (00:00:00) excluded same-day
+    postmortems, causing analytics to show 0 results for data created that day.
+    """
+    mock_analytics_service.get_summary = AsyncMock(return_value=_make_summary())
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        await ac.get(
+            f"{_BASE}/summary?period=custom&start_date=2025-01-01&end_date=2025-01-31"
+        )
+    app.dependency_overrides.clear()
+
+    period_arg = mock_analytics_service.get_summary.call_args[0][0]
+    assert period_arg.start_date == datetime(2025, 1, 1, 0, 0, 0, 0, tzinfo=UTC)
+    assert period_arg.end_date == datetime(2025, 1, 31, 23, 59, 59, 999999, tzinfo=UTC)

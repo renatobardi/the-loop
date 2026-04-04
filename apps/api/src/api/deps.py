@@ -27,9 +27,10 @@ from src.domain.services import (
 )
 
 if TYPE_CHECKING:
+    from src.adapters.postgres.analytics_repository import PostgresAnalyticsRepository
     from src.adapters.postgres.cache import RuleVersionCache
     from src.adapters.postgres.rule_version_repository import PostgresRuleVersionRepository
-    from src.domain.services import RuleVersionService
+    from src.domain.services import AnalyticsService, RuleVersionService
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -133,6 +134,25 @@ def get_rule_version_service(
     from src.domain.services import RuleVersionService
 
     return RuleVersionService(repo)
+
+
+# ─── Phase C.2: Analytics ────────────────────────────────────────────────────
+
+
+def get_analytics_repository(
+    session: AsyncSession = Depends(get_session),
+) -> "PostgresAnalyticsRepository":  # noqa: UP037
+    from src.adapters.postgres.analytics_repository import PostgresAnalyticsRepository
+
+    return PostgresAnalyticsRepository(session)
+
+
+def get_analytics_service(
+    repo: "PostgresAnalyticsRepository" = Depends(get_analytics_repository),  # noqa: UP037
+) -> "AnalyticsService":  # noqa: UP037
+    from src.domain.services import AnalyticsService
+
+    return AnalyticsService(repo)
 
 
 # Global cache singleton (initialized once at startup)

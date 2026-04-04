@@ -3,7 +3,7 @@
 **Criado**: 2026-04-04  
 **Branch**: `feat/spec-014-analytics`  
 **Fase**: Phase C.2 — Incident Analytics & Observability  
-**Status**: Planning
+**Status**: Ready for Implementation
 
 ---
 
@@ -12,7 +12,7 @@
 Fornecer visibilidade sobre padrões de incidentes através de um dashboard interativo que mostra:
 - Distribuição de incidentes por categoria, severidade e time
 - Timeline de quando padrões começam a aparecer
-- Efetividade das regras Semgrep (quantas detecções, quantas bloqueadas)
+- Efetividade das regras Semgrep _(deferred — RF-005/Spec-015)_
 - Hotspots de vulnerabilidade por time
 
 Objetivo principal: **Identificar padrões sistêmicos e equipes com maior vulnerabilidade**.
@@ -42,9 +42,9 @@ Objetivo principal: **Identificar padrões sistêmicos e equipes com maior vulne
 ## Requisitos Funcionais
 
 ### RF-001: Dashboard Principal
-- Page `/incidents/analytics` com 4 seções principais
+- Page `/incidents/analytics/` com 5 seções principais (RF-002, RF-003, RF-004, RF-006, RF-007)
 - Período selecionável: Última semana, Mês, Trimestre, Custom (date picker)
-- Auto-refresh a cada 5 min (WebSocket opcional — Spec-C.X)
+- Auto-refresh: ❌ out of scope — deferred to Spec-C.X (WebSocket/real-time). MVP requires manual reload or filter re-apply.
 
 ### RF-002: Heatmap por Categoria
 Card mostrando distribuição de incidentes por root_cause_category:
@@ -66,23 +66,26 @@ Card mostrando distribuição por team_responsible:
 Gráfico de série temporal mostrando:
 - Eixo X: Semanas/Meses (últimos 12 meses)
 - Eixo Y: Contagem de incidentes
-- Linha por categoria (6 cores diferentes)
+- Linha por categoria (5 cores — uma por valor de RootCauseCategory)
 - Hover mostra data e contagem
 
-### RF-005: Rule Effectiveness
-Card mostrando para cada regra Semgrep:
-- Nome da regra
-- Quantas PRs bloqueou (semana/mês)
-- Quantas detecções gerou
-- Taxa de "accepted merge" (foi feito override?)
-- Status: ativo, deprecado, novo
+### RF-005: Rule Effectiveness _(deferred — Spec-015)_
+
+> **Out of scope for MVP.** This card requires `rule_block` events in the `timeline_events` table, which no existing spec defines. Deferred to Spec-015 (Webhook Integrations), which will introduce CI-level event tracking via the `theloop-guard.yml` workflow.
 
 ### RF-006: Filtros Globais
 - Período: Week, Month, Quarter, Custom
-- Team: Dropdown multi-select (todas as teams na BD)
-- Categoria: Dropdown multi-select
+- Team: Dropdown single-select (todas as teams na BD) — multi-select deferred to Spec-C.X
+- Categoria: Dropdown single-select — multi-select deferred to Spec-C.X
 - Status incidente: Resolved, Unresolved, All
 - Apply/Reset buttons
+
+### RF-007: Summary Card
+Card de resumo no topo do dashboard mostrando:
+- Total de incidentes no período
+- Incidentes resolvidos
+- Incidentes não resolvidos
+- Média de dias para resolução
 
 ---
 
@@ -91,7 +94,7 @@ Card mostrando para cada regra Semgrep:
 ### Funcionalidade
 - [x] Dashboard carrega em <2s (mesmo com 1000 incidentes)
 - [x] Filtros funcionam sem hard refresh (SPA behavior)
-- [x] Todas 5 seções renderizam dados corretos
+- [x] Todas 5 seções renderizam dados corretos (RF-002, RF-003, RF-004, RF-006, RF-007)
 - [x] Períodos customizados funcionam (date picker)
 
 ### Qualidade de Código
@@ -108,7 +111,7 @@ Card mostrando para cada regra Semgrep:
 ### UX
 - [x] Responsive design (mobile-first, funciona em tablet)
 - [x] Accessibility: WCAG 2.1 AA (alt text, color contrast)
-- [x] Carregamento incremental: Cards aparecem conforme prontos (não wait all)
+- [x] Carregamento: Cards mostram skeleton enquanto Promise.all resolve; todos os cards carregam juntos (incremental por card via loading skeleton — não SSR streaming)
 
 ---
 
@@ -121,7 +124,7 @@ Card mostrando para cada regra Semgrep:
 
 **Aceitação**:
 - Vejo 5 categorias principais ordenadas por frequência
-- Vejo top 5 times com mais incidentes
+- Vejo times com mais incidentes ordenados por frequência
 - Posso filtrar por período
 
 ### US-002: Tech Lead quer entender padrões do seu time
@@ -131,18 +134,12 @@ Card mostrando para cada regra Semgrep:
 
 **Aceitação**:
 - Filtro "Team" mostra todas 10+ teams
-- Ao selecionar, dashboard atualiza em tempo real
+- Ao selecionar e clicar Apply, dashboard atualiza (re-fetch via URL param change)
 - Vejo categorias mais comuns no meu time
 
-### US-003: Security quer medir efetividade das regras
-**Como** Security Engineer  
-**Quero** ver quantas regras Semgrep bloquearam PRs  
-**Para** decidir se regras estão bem calibradas
+### US-003: Security quer medir efetividade das regras _(deferred — Spec-015)_
 
-**Aceitação**:
-- Vejo tabela: Regra | Bloqueios (semana) | Taxa aceitos
-- Regras novas ficam destacadas
-- Regras deprecadas ficam cinzas
+> Deferred with RF-005. Requires `rule_block` event tracking infrastructure.
 
 ### US-004: DevOps quer acompanhar tendências
 **Como** DevOps Lead  
@@ -151,61 +148,20 @@ Card mostrando para cada regra Semgrep:
 
 **Aceitação**:
 - Gráfico de série temporal com 12 meses
-- Posso ver por categoria (6 linhas coloridas)
+- Posso ver por categoria (5 linhas coloridas — uma por categoria)
 - Tooltip mostra data e contagem
 
 ---
 
 ## Arquitetura (Alto Nível)
 
-### Frontend (SvelteKit)
-```
-src/routes/incidents/analytics/
-  +page.svelte          # Master component
-  +page.ts             # Data loading (load function)
-  
-src/lib/components/analytics/
-  DashboardGrid.svelte       # Layout (2x2 + 1 wide)
-  CategoryHeatmap.svelte     # RF-002
-  TeamHeatmap.svelte         # RF-003
-  PatternTimeline.svelte     # RF-004
-  RuleEffectiveness.svelte   # RF-005
-  AnalyticsFilters.svelte    # RF-006
-```
+> Detalhe completo em `plan.md`. Resumo aqui para referência rápida.
 
-### Backend (FastAPI)
-```
-src/api/routes/analytics.py
-  GET /api/v1/incidents/analytics/summary
-    → {total, by_category, by_team}
-    
-  GET /api/v1/incidents/analytics/by-category
-    → [{category, count, avg_severity, percentage}]
-    
-  GET /api/v1/incidents/analytics/by-team
-    → [{team, count, top_categories, avg_resolution_days}]
-    
-  GET /api/v1/incidents/analytics/timeline
-    → [{week, count, by_category: {code_pattern: 5, ...}}]
-    
-  GET /api/v1/rules/effectiveness
-    → [{rule_id, blocks_week, blocks_month, override_rate}]
-
-src/domain/services.py
-  AnalyticsService:
-    - compute_category_stats(period, filters)
-    - compute_team_stats(period, filters)
-    - compute_timeline(period, filters)
-    
-src/adapters/postgres/analytics_queries.py
-  Raw SQL queries (GROUP BY, aggregate functions)
-  Indexes on created_at, root_cause_category, team_responsible
-```
-
-### Data Layer
-- Raw SQL aggregates (no ORM overhead for analytics)
-- Indexes: `(created_at, root_cause_category)`, `(team_responsible, created_at)`
-- Query results cached (5-min TTL) via Redis (deferred to Spec-C.X)
+**Frontend**: `src/routes/incidents/analytics/+page.svelte` + `+page.ts` (universal load)  
+**Components**: `src/lib/components/analytics/` — DashboardGrid, CategoryHeatmap, TeamHeatmap, PatternTimeline, AnalyticsFilters, SummaryCard  
+**Backend**: `src/api/routes/analytics.py` — 4 endpoints (summary, by-category, by-team, timeline)  
+**Service**: `src/domain/services.py` — AnalyticsService  
+**Repository**: `src/adapters/postgres/analytics_repository.py` — raw SQL via `analytics_queries.py`
 
 ---
 
@@ -220,6 +176,7 @@ src/adapters/postgres/analytics_queries.py
 
 ## Out of Scope
 
+- ❌ Rule Effectiveness card (RF-005) — requires `rule_block` events, deferred to Spec-015
 - ❌ Webhooks / notificações (Spec-015)
 - ❌ Admin UI para criar/editar analytics rules (Spec-C.X)
 - ❌ Export (CSV, PDF) — Spec-D
@@ -235,12 +192,13 @@ src/adapters/postgres/analytics_queries.py
 - Sugerir expandir período
 
 **E-002**: Team tem incidentes mas sem postmortem (draft)
-- Incluir na contagem mas marcar como "análise pendente"
+- Incluir na contagem normalmente
+- Badge "análise pendente" deferred — requer `postmortem.status` nas queries, fora do escopo MVP
 - Não quebrar agregações
 
-**E-003**: Regra deprecada no meio do período selecionado
-- Mostrar em cinza na tabela
-- Separar bloqueios "pré-deprecação" dos "pós-deprecação"
+**E-003**: Regra deprecada no meio do período selecionado _(deferred — Spec-015 with RF-005)_
+
+> Requires RF-005 rule effectiveness card. Deferred.
 
 **E-004**: Múltiplos filtros selecionados (team=backend AND category=injection AND period=month)
 - Queries devem usar AND lógico
@@ -251,8 +209,8 @@ src/adapters/postgres/analytics_queries.py
 ## Próximos Passos
 
 1. ✅ Aprovação de spec (você)
-2. → Criar plan.md (arquitetura detalhada, schema, queries SQL)
-3. → Criar tasks.md (75-100 tasks, 2-3 semanas)
-4. → Especkit.analyze (validar consistências)
+2. ✅ Criar plan.md (arquitetura detalhada, schema, queries SQL)
+3. ✅ Criar tasks.md (139 tasks, 13 dias)
+4. ✅ Especkit.analyze (validar consistências)
 5. → Implementação (2-3 sprints de 5 dias cada)
 

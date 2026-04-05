@@ -21,7 +21,7 @@ def upgrade() -> None:
     """Add 15 C# rules to v0.4.0, bringing total from 60 to 75 rules."""
     connection = op.get_bind()
 
-    # Idempotency guard
+    # Idempotency guard: check if migration 017 already ran (v0.4.0 has >= 75 rules)
     existing_check = connection.execute(
         sa.text("SELECT id, rules_json FROM rule_versions WHERE version = :version"),
         {"version": "0.4.0"},
@@ -35,12 +35,22 @@ def upgrade() -> None:
             else existing_row[1]
         )
 
-        if isinstance(existing_rules, list) and len(existing_rules) >= 75:
-            return  # Already patched
+        # Check migration completion state
+        rule_count = len(existing_rules) if isinstance(existing_rules, list) else 0
 
-        raise RuntimeError(
-            f"Version v0.4.0 exists with {len(existing_rules)} rules; expected 75 after C# phase."
-        )
+        if rule_count >= 75:
+            return  # Already patched — migration 017 completed
+
+        # Valid intermediate states from prior migrations
+        if rule_count in (45, 60):
+            pass  # Expected; continue to append C# rules
+        else:
+            # Unexpected state
+            raise RuntimeError(
+                f"Version v0.4.0 exists with {rule_count} rules; "
+                f"expected 45 (migration 015), 60 (migration 016), or 75+ (migration 017 completed). "
+                "Database state is inconsistent. Manual review required."
+            )
 
     # Hardcoded C# rules (Phase 3)
     CSHARP_RULES = [

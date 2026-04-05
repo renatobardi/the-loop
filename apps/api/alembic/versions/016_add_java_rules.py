@@ -21,7 +21,7 @@ def upgrade() -> None:
     """Add 15 Java rules to v0.4.0, bringing total from 45 to 60 rules."""
     connection = op.get_bind()
 
-    # Idempotency guard: check if rules already exist for v0.4.0
+    # Idempotency guard: check if migration 016 already ran (v0.4.0 has >= 60 rules)
     existing_check = connection.execute(
         sa.text("SELECT id, rules_json FROM rule_versions WHERE version = :version"),
         {"version": "0.4.0"},
@@ -35,15 +35,21 @@ def upgrade() -> None:
             else existing_row[1]
         )
 
-        # If already at full count (60), skip safely
+        # If already at full count (60+), skip safely
         if isinstance(existing_rules, list) and len(existing_rules) >= 60:
-            return  # Already patched
+            return  # Already patched — migration 016 completed
 
-        # Corruption detected
-        raise RuntimeError(
-            f"Version v0.4.0 exists with {len(existing_rules)} rules; expected 60 after Java phase. "
-            "Possible data corruption. Manual review required."
-        )
+        # If we have between 45-59 rules, migration 015 ran but 016 didn't complete yet
+        # Continue to merge and update
+        if isinstance(existing_rules, list) and len(existing_rules) == 45:
+            pass  # Expected state from migration 015; continue to append Java rules
+        else:
+            # Unexpected state
+            raise RuntimeError(
+                f"Version v0.4.0 exists with {len(existing_rules) if isinstance(existing_rules, list) else 0} rules; "
+                f"expected 45 (from migration 015) or 60+ (already patched). "
+                "Database state is inconsistent. Manual review required."
+            )
 
     # Hardcoded Java rules (Phase 2)
     JAVA_RULES = [

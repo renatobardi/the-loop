@@ -1,8 +1,14 @@
 <script lang="ts">
-	import type { CategoryStats } from '$lib/types/analytics';
+	import type { CategoryStats, RootCauseCategory } from '$lib/types/analytics';
 	import { barColor, formatCategory } from '$lib/utils/analytics';
 
-	let { stats }: { stats: CategoryStats[] } = $props();
+	let {
+		stats,
+		onDrillDown
+	}: {
+		stats: CategoryStats[];
+		onDrillDown?: (_: RootCauseCategory) => void; // eslint-disable-line no-unused-vars
+	} = $props();
 
 	const BAR_HEIGHT = 32;
 	const BAR_GAP = 12;
@@ -76,12 +82,14 @@ function handleMouseOver(e: MouseEvent, item: CategoryStats) {
 						opacity="0.85"
 						role="button"
 						tabindex="0"
-						aria-label={`${item.category}: ${item.count} incidents (${item.percentage.toFixed(1)}%), avg severity ${item.avg_severity >= 0.9 ? 'error' : 'warning'}`}
+						aria-label={`${item.category}: ${item.count} incidents (${item.percentage.toFixed(1)}%), avg severity ${item.avg_severity >= 0.9 ? 'error' : 'warning'}${onDrillDown ? ' — click to filter' : ''}`}
 						onmouseover={(e) => handleMouseOver(e, item)}
 						onmouseout={handleMouseOut}
 						onfocus={(e) => handleFocus(e, item)}
 						onblur={handleBlur}
-						style="cursor: pointer"
+						onclick={() => onDrillDown?.(item.category)}
+						onkeydown={(e) => e.key === 'Enter' && onDrillDown?.(item.category)}
+						style="cursor: {onDrillDown ? 'pointer' : 'default'}"
 					/>
 					<!-- Count -->
 					<text

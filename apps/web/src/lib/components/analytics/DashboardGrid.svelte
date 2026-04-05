@@ -1,9 +1,19 @@
 <script lang="ts">
-	import type { AnalyticsSummary, CategoryStats, TeamStats, TimelinePoint, AnalyticsFilter } from '$lib/types/analytics';
+	import type {
+		AnalyticsFilter,
+		AnalyticsSummary,
+		CategoryStats,
+		RuleEffectivenessStats,
+		SeverityTrendPoint,
+		TeamStats,
+		TimelinePoint
+	} from '$lib/types/analytics';
 	import SummaryCard from './SummaryCard.svelte';
 	import CategoryHeatmap from './CategoryHeatmap.svelte';
 	import TeamHeatmap from './TeamHeatmap.svelte';
 	import PatternTimeline from './PatternTimeline.svelte';
+	import SeverityTrendChart from './SeverityTrendChart.svelte';
+	import RuleEffectivenessCard from './RuleEffectivenessCard.svelte';
 	import AnalyticsFilters from './AnalyticsFilters.svelte';
 
 	let {
@@ -12,6 +22,8 @@
 		byTeam,
 		byTeamAll,
 		timeline,
+		severityTrend = [],
+		topRules = [],
 		filters,
 		loading = false,
 		onFiltersChange
@@ -21,12 +33,22 @@
 		byTeam: TeamStats[];
 		byTeamAll: TeamStats[];
 		timeline: TimelinePoint[];
+		severityTrend?: SeverityTrendPoint[];
+		topRules?: RuleEffectivenessStats[];
 		filters: AnalyticsFilter;
 		loading?: boolean;
 		onFiltersChange: (_: AnalyticsFilter) => void; // eslint-disable-line no-unused-vars
 	} = $props();
 
 	const isEmpty = $derived(!loading && summary.total === 0);
+
+	function drillDownCategory(category: import('$lib/types/analytics').RootCauseCategory) {
+		onFiltersChange({ ...filters, category });
+	}
+
+	function drillDownTeam(team: string) {
+		onFiltersChange({ ...filters, teams: [team] });
+	}
 </script>
 
 <div class="space-y-6">
@@ -85,14 +107,20 @@
 		</div>
 
 	{:else}
-		<!-- Summary (full-width) -->
-		<SummaryCard {summary} />
+		<!-- Summary (full-width, 8 KPIs) -->
+		<SummaryCard {summary} {byCategory} {byTeam} {severityTrend} />
 
 		<!-- 2-col grid for heatmaps -->
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-			<CategoryHeatmap stats={byCategory} />
-			<TeamHeatmap stats={byTeam} />
+			<CategoryHeatmap stats={byCategory} onDrillDown={drillDownCategory} />
+			<TeamHeatmap stats={byTeam} onDrillDown={drillDownTeam} />
 		</div>
+
+		<!-- Rule effectiveness (full-width, after heatmaps) -->
+		<RuleEffectivenessCard data={topRules} />
+
+		<!-- Severity trend (full-width) -->
+		<SeverityTrendChart data={severityTrend} />
 
 		<!-- Timeline (full-width) -->
 		<PatternTimeline points={timeline} />

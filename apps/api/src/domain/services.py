@@ -6,7 +6,7 @@ import hashlib
 import secrets
 import time
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from src.domain.exceptions import (
@@ -693,11 +693,14 @@ import calendar  # noqa: E402
 
 import structlog as _structlog  # noqa: E402
 
+from src.adapters.postgres.analytics_cache import AnalyticsCache  # noqa: E402
 from src.domain.models import (  # noqa: E402
     AnalyticsFilter,
     AnalyticsPeriod,
     AnalyticsSummary,
     CategoryStats,
+    RuleEffectivenessStats,
+    SeverityTrendPoint,
     TeamStats,
     TimelinePoint,
 )
@@ -707,10 +710,31 @@ _analytics_logger = _structlog.get_logger(__name__)
 
 
 class AnalyticsService:
-    """Orchestrates analytics queries with period parsing and normalization."""
+    """Orchestrates analytics queries with period parsing, normalization, and caching."""
 
-    def __init__(self, repo: AnalyticsRepoPort) -> None:
+    def __init__(self, repo: AnalyticsRepoPort, cache: AnalyticsCache | None = None) -> None:
         self._repo = repo
+        self._cache = cache
+
+    def _cache_get(self, method: str, params: dict[str, Any]) -> Any | None:
+        if self._cache is None:
+            return None
+        return self._cache.get(AnalyticsCache.make_key(method, params))
+
+    def _cache_set(self, method: str, params: dict[str, Any], value: Any) -> None:
+        if self._cache is not None:
+            self._cache.set(AnalyticsCache.make_key(method, params), value)
+
+    def _cache_key(
+        self, method: str, filters: AnalyticsFilter, start: Any, end: Any, **extra: Any
+    ) -> dict[str, Any]:
+        return {
+            "method": method,
+            **filters.model_dump(),
+            "start": str(start),
+            "end": str(end),
+            **extra,
+        }
 
     async def get_summary(
         self, period: AnalyticsPeriod, filters: AnalyticsFilter
@@ -718,7 +742,11 @@ class AnalyticsService:
         """Return total/resolved/unresolved counts and avg resolution days."""
         t0 = time.monotonic()
         start, end = self._parse_period(period)
+        ck = self._cache_key("summary", filters, start, end)
+        if (cached := self._cache_get("summary", ck)) is not None:
+            return cast(AnalyticsSummary, cached)
         result = await self._repo.get_summary(start, end, filters)
+        self._cache_set("summary", ck, result)
         elapsed_ms = (time.monotonic() - t0) * 1000
         _analytics_logger.info(
             "analytics.service",
@@ -735,8 +763,12 @@ class AnalyticsService:
         """Return incident stats grouped by category, sorted by count DESC."""
         t0 = time.monotonic()
         start, end = self._parse_period(period)
+        ck = self._cache_key("by_category", filters, start, end)
+        if (cached := self._cache_get("by_category", ck)) is not None:
+            return cast(list[CategoryStats], cached)
         stats = await self._repo.get_by_category(start, end, filters)
         stats = self._normalize_stats(stats)
+        self._cache_set("by_category", ck, stats)
         elapsed_ms = (time.monotonic() - t0) * 1000
         _analytics_logger.info(
             "analytics.service",
@@ -752,7 +784,11 @@ class AnalyticsService:
         """Return incident stats grouped by team, sorted by count DESC."""
         t0 = time.monotonic()
         start, end = self._parse_period(period)
+        ck = self._cache_key("by_team", filters, start, end)
+        if (cached := self._cache_get("by_team", ck)) is not None:
+            return cast(list[TeamStats], cached)
         result = await self._repo.get_by_team(start, end, filters)
+        self._cache_set("by_team", ck, result)
         elapsed_ms = (time.monotonic() - t0) * 1000
         _analytics_logger.info(
             "analytics.service",
@@ -768,11 +804,55 @@ class AnalyticsService:
         """Return weekly timeline points for the period (minimum 52 weeks)."""
         t0 = time.monotonic()
         start, end = self._parse_period(period)
+        ck = self._cache_key("timeline", filters, start, end)
+        if (cached := self._cache_get("timeline", ck)) is not None:
+            return cast(list[TimelinePoint], cached)
         result = await self._repo.get_timeline(start, end, filters)
+        self._cache_set("timeline", ck, result)
         elapsed_ms = (time.monotonic() - t0) * 1000
         _analytics_logger.info(
             "analytics.service",
             method="get_timeline",
+            elapsed_ms=round(elapsed_ms, 1),
+            analytics_query_result_count=len(result),
+        )
+        return result
+
+    async def get_severity_trend(
+        self, period: AnalyticsPeriod, filters: AnalyticsFilter
+    ) -> list[SeverityTrendPoint]:
+        """Return weekly ERROR vs WARNING counts."""
+        t0 = time.monotonic()
+        start, end = self._parse_period(period)
+        ck = self._cache_key("severity_trend", filters, start, end)
+        if (cached := self._cache_get("severity_trend", ck)) is not None:
+            return cast(list[SeverityTrendPoint], cached)
+        result = await self._repo.get_severity_trend(start, end, filters)
+        self._cache_set("severity_trend", ck, result)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _analytics_logger.info(
+            "analytics.service",
+            method="get_severity_trend",
+            elapsed_ms=round(elapsed_ms, 1),
+            analytics_query_result_count=len(result),
+        )
+        return result
+
+    async def get_top_rules(
+        self, period: AnalyticsPeriod, filters: AnalyticsFilter, top_n: int = 5
+    ) -> list[RuleEffectivenessStats]:
+        """Return top N rules by incident count."""
+        t0 = time.monotonic()
+        start, end = self._parse_period(period)
+        ck = self._cache_key("top_rules", filters, start, end, top_n=top_n)
+        if (cached := self._cache_get("top_rules", ck)) is not None:
+            return cast(list[RuleEffectivenessStats], cached)
+        result = await self._repo.get_top_rules(start, end, filters, top_n)
+        self._cache_set("top_rules", ck, result)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _analytics_logger.info(
+            "analytics.service",
+            method="get_top_rules",
             elapsed_ms=round(elapsed_ms, 1),
             analytics_query_result_count=len(result),
         )

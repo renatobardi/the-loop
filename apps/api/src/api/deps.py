@@ -30,6 +30,7 @@ from src.domain.services import (
 
 if TYPE_CHECKING:
     from src.adapters.firebase.auth import FirebaseTokenData
+    from src.adapters.postgres.analytics_cache import AnalyticsCache
     from src.adapters.postgres.analytics_repository import PostgresAnalyticsRepository
     from src.adapters.postgres.api_key_repository import PostgresApiKeyRepository
     from src.adapters.postgres.cache import RuleVersionCache
@@ -154,12 +155,26 @@ def get_analytics_repository(
     return PostgresAnalyticsRepository(session)
 
 
+# Analytics cache singleton — 5-minute TTL, shared across all requests
+_analytics_cache_instance: "AnalyticsCache | None" = None  # noqa: UP037
+
+
+def get_analytics_cache() -> "AnalyticsCache":  # noqa: UP037
+    from src.adapters.postgres.analytics_cache import AnalyticsCache
+
+    global _analytics_cache_instance
+    if _analytics_cache_instance is None:
+        _analytics_cache_instance = AnalyticsCache()
+    return _analytics_cache_instance
+
+
 def get_analytics_service(
     repo: "PostgresAnalyticsRepository" = Depends(get_analytics_repository),  # noqa: UP037
+    cache: "AnalyticsCache" = Depends(get_analytics_cache),  # noqa: UP037
 ) -> "AnalyticsService":  # noqa: UP037
     from src.domain.services import AnalyticsService
 
-    return AnalyticsService(repo)
+    return AnalyticsService(repo, cache)
 
 
 # Global cache singleton (initialized once at startup)

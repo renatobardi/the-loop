@@ -11,7 +11,7 @@ export type RootCauseCategory =
 
 export interface AnalyticsFilter {
 	period: Period;
-	team?: string | null;
+	teams?: string[]; // Multi-select: ?team=a&team=b; empty = no filter
 	category?: RootCauseCategory | null;
 	status: StatusFilter;
 	start_date?: string | null; // YYYY-MM-DD (required if period=custom)
@@ -44,4 +44,16 @@ export interface TimelinePoint {
 	week: string; // ISO date string YYYY-MM-DD
 	count: number;
 	by_category: Record<RootCauseCategory, number>; // Always all 5 keys
+}
+
+export interface SeverityTrendPoint {
+	week: string; // ISO date string YYYY-MM-DD
+	error_count: number;
+	warning_count: number;
+}
+
+export interface RuleEffectivenessStats {
+	rule_id: string;
+	incident_count: number;
+	avg_severity: number; // 0.5 (warning) or 1.0 (error)
 }

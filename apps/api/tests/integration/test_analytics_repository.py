@@ -32,7 +32,8 @@ def _filter(
     category: RootCauseCategory | None = None,
     status: str = "all",
 ) -> AnalyticsFilter:
-    return AnalyticsFilter(team=team, category=category, status=status)  # type: ignore[arg-type]
+    teams = [team] if team else []
+    return AnalyticsFilter(teams=teams, category=category, status=status)
 
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────

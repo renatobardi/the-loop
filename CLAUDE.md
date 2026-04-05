@@ -94,7 +94,8 @@ For CI tests, a temporary test database is created with the same setup.
 ### Frontend (`apps/web/src/`)
 
 - **`routes/`** — File-based routing with plain paths. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes use plain paths (`/`, `/incidents/`, `/analytics/`, `/constitution/`).
-- **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`. Nested `analytics/` sub-route renders the analytics dashboard.
+- **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`.
+- **`routes/analytics/`** — Product analytics dashboard. `+page.ts` calls all 6 analytics endpoints in parallel (`Promise.all`), returns `summary`, `timeline`, `byCategory`, `byTeam`, `severityTrend`, `topRules` to the page component.
 - **`routes/constitution/`** — Public page rendering the 13 mandamentos (ConstitutionHero + MandatesGrid + TransparencySection components).
 - **`routes/login/` and `routes/signup/`** — Firebase email/password auth pages. SSR disabled (client-side only) to avoid server-side Firebase Auth SDK usage.
 - **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink, Tabs). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
@@ -103,9 +104,10 @@ For CI tests, a temporary test database is created with the same setup.
   - Details, Operational, Postmortem (core incident fields)
   - Timeline, Responders, Action Items, Attachments (sub-resources with lazy loading)
 - **`lib/components/incidents/tabs/`** — Individual tab components. Each implements lazy loading pattern (see "Lazy-Loading Tab Pattern" section).
+- **`lib/components/analytics/`** — Analytics dashboard components: `DashboardGrid.svelte` (layout + data distribution), `SummaryCard.svelte` (8 KPI cards in 2×4 grid), `CategoryHeatmap.svelte`, `AnalyticsFilters.svelte`, `MultiSelectDropdown.svelte` (accessible multi-select with click-outside dismiss; props: `id`, `label`, `options`, `selected[]`, `placeholder`, `onchange`).
 - **`lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
 - **`lib/services/incidents.ts`** — API client for incident CRUD + sub-resources (timeline, responders, action items, attachments). Attaches Firebase Auth token to requests.
-- **`lib/services/analytics.ts`** — API client for analytics endpoints (`/api/v1/incidents/analytics/*`). Returns `SummaryResponse`, `TimelinePoint[]`, `CategoryStats[]`, `TeamStats[]`. Supports `AnalyticsFilter` (period, custom date range, team, severity).
+- **`lib/services/analytics.ts`** — API client for analytics endpoints (`/api/v1/incidents/analytics/*`). Returns `SummaryResponse`, `TimelinePoint[]`, `CategoryStats[]`, `TeamStats[]`, `SeverityTrendPoint[]`, `RuleEffectiveness[]`. Supports `AnalyticsFilter` (period, custom date range, team, category, severity).
 - **`lib/stores/auth.ts`** — Svelte store wrapping Firebase `onAuthStateChanged`; exports a `user` store used across authenticated routes.
 
 #### Import Path Aliases
@@ -123,7 +125,7 @@ Always use these aliases. Never use relative imports (`../../../lib`). This keep
 - **`adapters/postgres/`** — SQLAlchemy ORM row models (`*Row`) + repository implementations. Row models use `Mapped[T]` + `mapped_column()`. Enum values stored as `.value` in DB and reconstructed via `EnumType(row.column)` in the repo.
 - **`adapters/firebase/auth.py`** — Firebase token verification. Non-UUID Firebase UIDs are deterministically mapped to UUID5 via `uuid5(NAMESPACE_URL, f"firebase:{uid}")`.
 - **`api/`** — FastAPI routes, middleware, dependencies. `middleware.py` implements request ID injection (X-Request-ID header) and slowapi rate limiting. Structured logging via structlog.
-- **`api/deps.py`** — Stacked `Depends()` chain: session → repository → service → authenticated user. Each route receives only its specific service. Auth tiers: `ApiKeyIdentity` (API key auth for scanner workflow), `get_optional_identity` (public endpoints that accept either Firebase or API key). New routes: `/api/v1/api-keys` (CRUD for API keys), `/api/v1/scans` (scan history ingestion and retrieval).
+- **`api/deps.py`** — Stacked `Depends()` chain: session → repository → service → authenticated user. Each route receives only its specific service. Auth tiers: `ApiKeyIdentity` (API key auth for scanner workflow), `get_optional_identity` (public endpoints that accept either Firebase or API key). New routes: `/api/v1/api-keys` (CRUD for API keys), `/api/v1/scans` (scan history ingestion and retrieval). Analytics: `get_analytics_cache()` injects a singleton `AnalyticsCache` instance; `get_analytics_service()` receives both the repo and cache.
 - **`config.py`** — Configuration. **`main.py`** — App entrypoint with `GET /api/v1/health` check.
 - **`domain/models.py`** — includes `ApiKey` and `Scan` domain models (Spec-016).
 
@@ -172,6 +174,10 @@ All sub-resources (timeline events, responders, action items, attachments) follo
 7. **Route** (`api/routes/*.py`) — `*CreateRequest`/`*UpdateRequest`/`*Response` Pydantic models; `Response.from_domain()` classmethod; `_get_incident_or_404()` helper validates parent before each operation; `@limiter.limit("60/minute")` on every endpoint
 
 List endpoints return `{"items": [...], "total": N}` (no cursor/page for sub-resources). The incidents table uses soft deletes (`deleted_at`); sub-resource tables do not. Incident updates use optimistic locking via a `version` field (`OptimisticLockError` if mismatch).
+
+#### Analytics Cache Pattern (Spec-019)
+
+`AnalyticsCache` (`adapters/postgres/analytics_cache.py`) is an in-memory dict with 5-minute TTL, keyed by sorted parameter tuple. All 6 analytics service methods (`get_summary`, `get_by_category`, `get_by_team`, `get_timeline`, `get_severity_trend`, `get_top_rules`) wrap their repo calls with cache logic. Injected via `get_analytics_cache()` in `api/deps.py`, following the same pattern as `rule_version_cache_instance`.
 
 #### Postmortem Sub-Resource (Spec-013)
 
@@ -244,9 +250,12 @@ $effect(() => {
 
 - **Backgrounds**: `bg-bg`, `bg-bg-surface`, `bg-bg-elevated`
 - **Text colors**: `text-text`, `text-text-muted`
-- **Semantic colors**: `text-accent`, `bg-accent`, `text-error`, `bg-error`, `text-success`, `bg-success`
+- **Semantic colors**: `text-accent`, `bg-accent`, `text-error`, `bg-error`, `text-success`, `bg-success`, `text-warning`, `bg-warning`
+- **Chart palette**: `bg-chart-blue`, `bg-chart-purple`, `bg-chart-error`, `bg-chart-warning`, `bg-chart-green`
 - **Utility**: `border-border` (for borders), `shadow-glow` (accent-colored glow)
 - **Font**: Geist via CDN, with size scale defined as CSS variables (`--font-size-xs` through `--font-size-7xl`)
+
+Badge variants: `default`, `accent`, `success`, `error`, `warning`.
 
 All visual styling must use these tokens — no ad-hoc color/spacing values. Use opacity modifiers (`/20`, `/50`) for tinted backgrounds.
 
@@ -351,7 +360,7 @@ Working on a spec:
 
 ## Current Sprint (Spec-019)
 
-Product Analytics Dashboard is ready for implementation. Branch: `feat/019-product-analytics`. Review `specs/019-product-analytics/spec.md`, `plan.md`, and `tasks.md` before starting. All 56 tasks are defined and dependency-ordered; no blockers.
+Product Analytics Dashboard — in progress on `feat/019-product-analytics`. Phase 1 (T002–T026) is underway: SQL bug fixes for team/category filters, `AnalyticsCache`, new `SeverityTrendPoint`/`RuleEffectivenessStats` models, 2 new API endpoints, and frontend redesign. See `specs/019-product-analytics/tasks.md` for full task list.
 
 ### Phase Status (as of April 2026)
 
@@ -366,7 +375,7 @@ Product Analytics Dashboard is ready for implementation. Branch: `feat/019-produ
 | Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
 | Spec-018 | ✅ Complete | Consolidated into Spec-017 |
-| Spec-019 | 📋 Ready | Product Analytics Dashboard (56 tasks, zero issues) |
+| Spec-019 | 🚀 In Progress | Product Analytics Dashboard (56 tasks, 7 phases, branch feat/019-product-analytics) |
 
 ## Governance (CONSTITUTION.md)
 

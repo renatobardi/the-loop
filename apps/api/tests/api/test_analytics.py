@@ -14,6 +14,8 @@ from src.domain.models import (
     AnalyticsSummary,
     CategoryStats,
     RootCauseCategory,
+    RuleEffectivenessStats,
+    SeverityTrendPoint,
     TeamStats,
     TimelinePoint,
 )
@@ -253,6 +255,129 @@ async def test_empty_results_returns_200(mock_analytics_service: AsyncMock) -> N
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+# ─── Spec-019: severity-trend + top-rules endpoints ──────────────────────────
+
+
+def _make_severity_trend() -> list[SeverityTrendPoint]:
+    return [
+        SeverityTrendPoint(week=datetime(2025, 1, 6, tzinfo=UTC), error_count=3, warning_count=2),
+        SeverityTrendPoint(week=datetime(2025, 1, 13, tzinfo=UTC), error_count=1, warning_count=4),
+    ]
+
+
+def _make_top_rules() -> list[RuleEffectivenessStats]:
+    return [
+        RuleEffectivenessStats(rule_id="no-sql-injection", incident_count=5, avg_severity=1.0),
+        RuleEffectivenessStats(rule_id="no-eval", incident_count=3, avg_severity=0.5),
+    ]
+
+
+async def test_get_severity_trend_ok(mock_analytics_service: AsyncMock) -> None:
+    """GET /analytics/severity-trend returns weekly ERROR/WARNING counts."""
+    mock_analytics_service.get_severity_trend = AsyncMock(return_value=_make_severity_trend())
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/severity-trend?period=month")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["error_count"] == 3
+    assert data[0]["warning_count"] == 2
+    assert "week" in data[0]
+
+
+async def test_get_severity_trend_empty(mock_analytics_service: AsyncMock) -> None:
+    """GET /analytics/severity-trend with no data → 200 with empty list."""
+    mock_analytics_service.get_severity_trend = AsyncMock(return_value=[])
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/severity-trend")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+async def test_get_top_rules_ok(mock_analytics_service: AsyncMock) -> None:
+    """GET /analytics/top-rules returns rules ranked by incident count."""
+    mock_analytics_service.get_top_rules = AsyncMock(return_value=_make_top_rules())
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/top-rules?period=month&top_n=5")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["rule_id"] == "no-sql-injection"
+    assert data[0]["incident_count"] == 5
+    assert data[0]["avg_severity"] == 1.0
+
+
+async def test_get_top_rules_top_n_validation(mock_analytics_service: AsyncMock) -> None:
+    """GET /analytics/top-rules with top_n=0 → 422 (ge=1 constraint)."""
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/top-rules?top_n=0")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+
+
+async def test_get_top_rules_requires_auth() -> None:
+    """GET /analytics/top-rules without token → 401/403."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/top-rules")
+
+    assert response.status_code in {401, 403}
+
+
+# ─── Spec-019: SQL bug fix coverage ──────────────────────────────────────────
+
+
+async def test_timeline_accepts_team_filter(mock_analytics_service: AsyncMock) -> None:
+    """GET /analytics/timeline passes team filter to service (FR-001 fix)."""
+    mock_analytics_service.get_timeline = AsyncMock(return_value=_make_timeline())
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/timeline?team=backend&category=code_pattern")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    call_args = mock_analytics_service.get_timeline.call_args
+    af = call_args[0][1]  # AnalyticsFilter is second positional arg
+    assert af.teams == ["backend"]
+    assert af.category is not None
+
+
+async def test_by_team_accepts_status_filter(mock_analytics_service: AsyncMock) -> None:
+    """GET /analytics/by-team passes status filter to service (FR-002 fix)."""
+    mock_analytics_service.get_by_team = AsyncMock(return_value=_make_team_stats())
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(f"{_BASE}/by-team?status=resolved&team=backend")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    call_args = mock_analytics_service.get_by_team.call_args
+    af = call_args[0][1]
+    assert af.status == "resolved"
+    assert af.teams == ["backend"]
 
 
 async def test_custom_date_range_ok(mock_analytics_service: AsyncMock) -> None:

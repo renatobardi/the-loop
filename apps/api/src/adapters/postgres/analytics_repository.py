@@ -7,21 +7,25 @@ from datetime import datetime
 from typing import cast
 
 import structlog
-from sqlalchemy import String, bindparam, text
+from sqlalchemy import ARRAY, String, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import TextClause
 
 from src.adapters.postgres.analytics_queries import (
     QUERY_BY_CATEGORY,
     QUERY_BY_TEAM,
+    QUERY_SEVERITY_TREND,
     QUERY_SUMMARY,
     QUERY_TIMELINE,
+    QUERY_TOP_RULES,
 )
 from src.domain.models import (
     AnalyticsFilter,
     AnalyticsSummary,
     CategoryStats,
     RootCauseCategory,
+    RuleEffectivenessStats,
+    SeverityTrendPoint,
     TeamStats,
     TimelinePoint,
 )
@@ -35,25 +39,29 @@ _ALL_CATEGORIES = list(RootCauseCategory)
 def _build_params(
     start: datetime, end: datetime, filters: AnalyticsFilter
 ) -> dict[str, object]:
-    """Build shared parameter dict for all analytics queries."""
+    """Build shared parameter dict for all analytics queries.
+
+    team_array: pass filters.teams (empty list = no filter, ANY([]) is false but
+    we guard with cardinality check in SQL so empty list means "all teams").
+    """
     return {
         "start": start,
         "end": end,
-        "team": filters.team,
+        "team_array": filters.teams,
         "category": filters.category.value if filters.category else None,
         "status": filters.status,
     }
 
 
 def _typed_text(sql: str) -> TextClause:
-    """Wrap a SQL string with explicit String types for nullable 'team' and 'category'.
+    """Wrap SQL with explicit types for asyncpg.
 
-    asyncpg cannot infer the PostgreSQL type of a Python None value in a named
-    parameter (e.g. ':team IS NULL'). Adding String() type hints lets SQLAlchemy
-    emit the correct type annotation so asyncpg knows these are TEXT columns.
+    asyncpg cannot infer the PostgreSQL type of Python None or empty list values.
+    - team_array: ARRAY(String()) → uses ANY(:team_array) with cardinality guard
+    - category: String() → nullable TEXT
     """
     return text(sql).bindparams(
-        bindparam("team", type_=String()),
+        bindparam("team_array", type_=ARRAY(String())),
         bindparam("category", type_=String()),
     )
 
@@ -84,7 +92,7 @@ class PostgresAnalyticsRepository:
             result_count=1,
             period_start=start.isoformat(),
             period_end=end.isoformat(),
-            team=filters.team,
+            teams=filters.teams,
             category=filters.category,
             status=filters.status,
         )
@@ -110,7 +118,7 @@ class PostgresAnalyticsRepository:
             result_count=len(rows),
             period_start=start.isoformat(),
             period_end=end.isoformat(),
-            team=filters.team,
+            teams=filters.teams,
             category=filters.category,
             status=filters.status,
         )
@@ -140,7 +148,7 @@ class PostgresAnalyticsRepository:
             result_count=len(rows),
             period_start=start.isoformat(),
             period_end=end.isoformat(),
-            team=filters.team,
+            teams=filters.teams,
             category=filters.category,
             status=filters.status,
         )
@@ -167,7 +175,7 @@ class PostgresAnalyticsRepository:
     ) -> list[TimelinePoint]:
         t0 = time.monotonic()
         params = _build_params(start, end, filters)
-        result = await self._session.execute(text(QUERY_TIMELINE), params)
+        result = await self._session.execute(_typed_text(QUERY_TIMELINE), params)
         rows = result.mappings().all()
         elapsed_ms = (time.monotonic() - t0) * 1000
         logger.info(
@@ -196,3 +204,49 @@ class PostgresAnalyticsRepository:
                 )
             )
         return points
+
+    async def get_severity_trend(
+        self, start: datetime, end: datetime, filters: AnalyticsFilter
+    ) -> list[SeverityTrendPoint]:
+        t0 = time.monotonic()
+        params = _build_params(start, end, filters)
+        result = await self._session.execute(_typed_text(QUERY_SEVERITY_TREND), params)
+        rows = result.mappings().all()
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info(
+            "analytics.query",
+            query="severity_trend",
+            elapsed_ms=round(elapsed_ms, 1),
+            result_count=len(rows),
+        )
+        return [
+            SeverityTrendPoint(
+                week=row["week"],
+                error_count=int(row["error_count"]),
+                warning_count=int(row["warning_count"]),
+            )
+            for row in rows
+        ]
+
+    async def get_top_rules(
+        self, start: datetime, end: datetime, filters: AnalyticsFilter, top_n: int = 5
+    ) -> list[RuleEffectivenessStats]:
+        t0 = time.monotonic()
+        params = {**_build_params(start, end, filters), "top_n": top_n}
+        result = await self._session.execute(_typed_text(QUERY_TOP_RULES), params)
+        rows = result.mappings().all()
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info(
+            "analytics.query",
+            query="top_rules",
+            elapsed_ms=round(elapsed_ms, 1),
+            result_count=len(rows),
+        )
+        return [
+            RuleEffectivenessStats(
+                rule_id=row["rule_id"],
+                incident_count=int(row["incident_count"]),
+                avg_severity=float(row["avg_severity"]),
+            )
+            for row in rows
+        ]

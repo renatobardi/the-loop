@@ -8,7 +8,7 @@
     ...restProps
   }: {
     children: Snippet;
-    variant?: 'default' | 'accent' | 'success' | 'error';
+    variant?: 'default' | 'accent' | 'success' | 'error' | 'warning';
     class?: string;
     [key: string]: unknown;
   } = $props();
@@ -20,6 +20,7 @@
     accent: 'bg-accent-light text-accent border border-accent/20',
     success: 'bg-success/10 text-success border border-success/20',
     error: 'bg-error/10 text-error border border-error/20',
+    warning: 'bg-warning/10 text-warning border border-warning/20',
   };
 </script>
 

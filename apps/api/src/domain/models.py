@@ -33,11 +33,13 @@ __all__ = [
     "RootCauseCategory",
     "RootCauseTemplate",
     "Rule",
+    "RuleEffectivenessStats",
     "RuleVersion",
     "RuleVersionStatus",
     "Scan",
     "ScanFinding",
     "Severity",
+    "SeverityTrendPoint",
     "TeamStats",
     "TimelineEventType",
     "TimelinePoint",
@@ -600,7 +602,7 @@ class AnalyticsFilter(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    team: str | None = None
+    teams: list[str] = []  # Empty = no filter; multi-select via ?team=a&team=b
     category: RootCauseCategory | None = None
     status: Literal["resolved", "unresolved", "all"] = "all"
 
@@ -613,6 +615,29 @@ class AnalyticsPeriod(BaseModel):
     value: Literal["week", "month", "quarter", "custom"]
     start_date: datetime | None = None  # Required when value="custom"
     end_date: datetime | None = None  # Required when value="custom"
+
+
+# ─── Spec-019: Product Analytics Models ─────────────────────────────────────
+
+
+class SeverityTrendPoint(BaseModel):
+    """Weekly severity breakdown — ERROR vs WARNING counts."""
+
+    model_config = ConfigDict(frozen=True)
+
+    week: datetime
+    error_count: int
+    warning_count: int
+
+
+class RuleEffectivenessStats(BaseModel):
+    """Rule effectiveness stats — incident count and avg severity per rule."""
+
+    model_config = ConfigDict(frozen=True)
+
+    rule_id: str
+    incident_count: int
+    avg_severity: float  # 0.5 (warning) or 1.0 (error)
 
 
 # ─── Phase 2: Navigation, Dashboard & User Profile ───────────────────────────

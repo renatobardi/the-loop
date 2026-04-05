@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { buildQueryString } from '$lib/services/analytics';
 import type { AnalyticsFilter } from '$lib/types/analytics';
 
-const base: AnalyticsFilter = { period: 'month', team: null, category: null, status: 'all' };
+const base: AnalyticsFilter = { period: 'month', teams: [], category: null, status: 'all' };
 
 describe('buildQueryString — URL param update logic (T112)', () => {
 	it('always includes period and status', () => {
@@ -13,14 +13,20 @@ describe('buildQueryString — URL param update logic (T112)', () => {
 		expect(qs).toContain('status=all');
 	});
 
-	it('omits team when null', () => {
-		const qs = buildQueryString({ ...base, team: null });
+	it('omits team when empty array', () => {
+		const qs = buildQueryString({ ...base, teams: [] });
 		expect(qs).not.toContain('team=');
 	});
 
-	it('includes team when set', () => {
-		const qs = buildQueryString({ ...base, team: 'backend' });
+	it('includes single team when set', () => {
+		const qs = buildQueryString({ ...base, teams: ['backend'] });
 		expect(qs).toContain('team=backend');
+	});
+
+	it('includes multiple teams as repeated params', () => {
+		const qs = buildQueryString({ ...base, teams: ['backend', 'platform'] });
+		expect(qs).toContain('team=backend');
+		expect(qs).toContain('team=platform');
 	});
 
 	it('omits category when null', () => {
@@ -36,7 +42,7 @@ describe('buildQueryString — URL param update logic (T112)', () => {
 	it('includes custom date range only when period=custom', () => {
 		const custom: AnalyticsFilter = {
 			period: 'custom',
-			team: null,
+			teams: [],
 			category: null,
 			status: 'all',
 			start_date: '2026-01-01',
@@ -61,7 +67,7 @@ describe('buildQueryString — URL param update logic (T112)', () => {
 	it('builds correct string for all active filters', () => {
 		const full: AnalyticsFilter = {
 			period: 'quarter',
-			team: 'platform',
+			teams: ['platform'],
 			category: 'code_pattern',
 			status: 'resolved'
 		};

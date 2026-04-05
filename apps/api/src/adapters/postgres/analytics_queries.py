@@ -1,7 +1,11 @@
-"""Raw SQL queries for analytics aggregations (Phase C.2).
+"""Raw SQL queries for analytics aggregations (Phase C.2 + Spec-019).
 
 All queries use parameterized bindings to prevent SQL injection (T020).
 Parameters are always passed via the `params` dict, never interpolated.
+
+Multi-select team filter: team_array is a TEXT[] passed via ARRAY(String()) binding.
+  - Empty array → no filter (cardinality(:team_array) = 0)
+  - Non-empty   → p.team_responsible = ANY(:team_array)
 """
 
 from __future__ import annotations
@@ -44,7 +48,7 @@ FROM postmortems p
 LEFT JOIN incidents i ON p.incident_id = i.id
 WHERE p.created_at >= :start AND p.created_at < :end
   AND (i.deleted_at IS NULL)
-  AND (:team IS NULL OR p.team_responsible = :team)
+  AND (cardinality(:team_array) = 0 OR p.team_responsible = ANY(:team_array))
   AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
       :status = 'all'
@@ -70,7 +74,7 @@ FROM postmortems p
 LEFT JOIN incidents i ON p.incident_id = i.id
 WHERE p.created_at >= :start AND p.created_at < :end
   AND (i.deleted_at IS NULL)
-  AND (:team IS NULL OR p.team_responsible = :team)
+  AND (cardinality(:team_array) = 0 OR p.team_responsible = ANY(:team_array))
   AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
       :status = 'all'
@@ -107,12 +111,19 @@ LEFT JOIN (
     LEFT JOIN incidents inc ON pm.incident_id = inc.id
     WHERE pm.created_at >= :start AND pm.created_at < :end
       AND (inc.deleted_at IS NULL)
+      AND (cardinality(:team_array) = 0 OR pm.team_responsible = ANY(:team_array))
+      AND (:category IS NULL OR pm.root_cause_category = :category)
+      AND (
+          :status = 'all'
+          OR (:status = 'resolved' AND inc.resolved_at IS NOT NULL)
+          OR (:status = 'unresolved' AND inc.resolved_at IS NULL)
+      )
     GROUP BY pm.team_responsible, pm.root_cause_category
 ) cat_count ON p.team_responsible = cat_count.team_responsible
           AND p.root_cause_category = cat_count.root_cause_category
 WHERE p.created_at >= :start AND p.created_at < :end
   AND (i.deleted_at IS NULL)
-  AND (:team IS NULL OR p.team_responsible = :team)
+  AND (cardinality(:team_array) = 0 OR p.team_responsible = ANY(:team_array))
   AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
       :status = 'all'
@@ -147,12 +158,21 @@ LEFT JOIN (
     LEFT JOIN incidents inc ON pm.incident_id = inc.id
     WHERE pm.created_at >= :start AND pm.created_at < :end
       AND (inc.deleted_at IS NULL)
+      AND (cardinality(:team_array) = 0 OR pm.team_responsible = ANY(:team_array))
+      AND (:category IS NULL OR pm.root_cause_category = :category)
+      AND (
+          :status = 'all'
+          OR (:status = 'resolved' AND inc.resolved_at IS NOT NULL)
+          OR (:status = 'unresolved' AND inc.resolved_at IS NULL)
+      )
     GROUP BY DATE_TRUNC('week', pm.created_at), pm.root_cause_category
 ) breakdown
     ON DATE_TRUNC('week', p.created_at) = breakdown.week
    AND p.root_cause_category = breakdown.root_cause_category
 WHERE p.created_at >= :start AND p.created_at < :end
   AND (i.deleted_at IS NULL)
+  AND (cardinality(:team_array) = 0 OR p.team_responsible = ANY(:team_array))
+  AND (:category IS NULL OR p.root_cause_category = :category)
   AND (
       :status = 'all'
       OR (:status = 'resolved' AND i.resolved_at IS NOT NULL)
@@ -160,4 +180,60 @@ WHERE p.created_at >= :start AND p.created_at < :end
   )
 GROUP BY DATE_TRUNC('week', p.created_at)
 ORDER BY week ASC
+"""
+
+# ─── Q3: Severity trend — weekly ERROR vs WARNING counts ──────────────────────
+#
+# Counts postmortems by week split on severity_for_rule (error / warning).
+# Respects team, category, and status filters.
+
+QUERY_SEVERITY_TREND = """
+SELECT
+    DATE_TRUNC('week', p.created_at) AS week,
+    COUNT(*) FILTER (WHERE p.severity_for_rule = 'error') AS error_count,
+    COUNT(*) FILTER (WHERE p.severity_for_rule = 'warning') AS warning_count
+FROM postmortems p
+LEFT JOIN incidents i ON p.incident_id = i.id
+WHERE p.created_at >= :start AND p.created_at < :end
+  AND (i.deleted_at IS NULL)
+  AND (cardinality(:team_array) = 0 OR p.team_responsible = ANY(:team_array))
+  AND (:category IS NULL OR p.root_cause_category = :category)
+  AND (
+      :status = 'all'
+      OR (:status = 'resolved' AND i.resolved_at IS NOT NULL)
+      OR (:status = 'unresolved' AND i.resolved_at IS NULL)
+  )
+GROUP BY DATE_TRUNC('week', p.created_at)
+ORDER BY week ASC
+"""
+
+# ─── Q4: Top rules — most triggered rules by incident count ───────────────────
+#
+# Aggregates postmortems by related_rule_id (non-null only).
+# avg_severity: error=1.0, warning=0.5.
+# :top_n limits the result set (default 5).
+
+QUERY_TOP_RULES = """
+SELECT
+    p.related_rule_id AS rule_id,
+    COUNT(*) AS incident_count,
+    ROUND(
+        AVG(CASE WHEN p.severity_for_rule = 'error' THEN 1.0 ELSE 0.5 END)::numeric,
+        2
+    ) AS avg_severity
+FROM postmortems p
+LEFT JOIN incidents i ON p.incident_id = i.id
+WHERE p.created_at >= :start AND p.created_at < :end
+  AND (i.deleted_at IS NULL)
+  AND p.related_rule_id IS NOT NULL
+  AND (cardinality(:team_array) = 0 OR p.team_responsible = ANY(:team_array))
+  AND (:category IS NULL OR p.root_cause_category = :category)
+  AND (
+      :status = 'all'
+      OR (:status = 'resolved' AND i.resolved_at IS NOT NULL)
+      OR (:status = 'unresolved' AND i.resolved_at IS NULL)
+  )
+GROUP BY p.related_rule_id
+ORDER BY incident_count DESC
+LIMIT :top_n
 """

@@ -1,8 +1,15 @@
 <script lang="ts">
 	import type { TeamStats } from '$lib/types/analytics';
 	import { formatCategory, sortTeamsByCount } from '$lib/utils/analytics';
+	import Badge from '$lib/ui/Badge.svelte';
 
-	let { stats }: { stats: TeamStats[] } = $props();
+	let {
+		stats,
+		onDrillDown
+	}: {
+		stats: TeamStats[];
+		onDrillDown?: (_: string) => void; // eslint-disable-line no-unused-vars
+	} = $props();
 
 	let sortAsc = $state(false);
 
@@ -39,15 +46,22 @@
 				</thead>
 				<tbody>
 					{#each sorted as row (row.team)}
-						<tr class="border-b border-border/50 hover:bg-bg-elevated/50">
+						<tr
+							class="border-b border-border/50 hover:bg-bg-elevated/50 {onDrillDown ? 'cursor-pointer' : ''}"
+							onclick={() => onDrillDown?.(row.team)}
+							onkeydown={(e) => e.key === 'Enter' && onDrillDown?.(row.team)}
+							role={onDrillDown ? 'button' : undefined}
+							tabindex={onDrillDown ? 0 : undefined}
+							aria-label={onDrillDown ? `Filter by team ${row.team}` : undefined}
+						>
 							<td class="py-2 font-medium text-text">{row.team}</td>
 							<td class="py-2 text-text">{row.count}</td>
 							<td class="py-2">
 								<div class="flex flex-wrap gap-1">
 									{#each row.top_categories as cat (cat)}
-										<span class="rounded bg-bg-elevated px-2 py-0.5 text-xs text-text-muted">
+										<Badge variant="default" class="px-2 py-0.5 text-xs">
 											{formatCategory(cat)}
-										</span>
+										</Badge>
 									{/each}
 								</div>
 							</td>

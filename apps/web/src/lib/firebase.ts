@@ -54,12 +54,20 @@ export function onAuthChange(callback: (user: User | null) => void): () => void 
 	return onAuthStateChanged(auth, callback);
 }
 
+const AUTH_TIMEOUT_MS = 10_000;
+
 /** Wait for Firebase to restore the persisted auth session.
  * Returns the current user (or null if not authenticated).
- * Safe to call on every page load — resolves after the first auth state event. */
-export async function waitForAuth(): Promise<User | null> {
-	return new Promise((resolve) => {
+ * Rejects after timeoutMs if onAuthStateChanged never fires. */
+export async function waitForAuth(timeoutMs = AUTH_TIMEOUT_MS): Promise<User | null> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			unsubscribe();
+			reject(new Error('Authentication timed out'));
+		}, timeoutMs);
+
 		const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
+			clearTimeout(timer);
 			unsubscribe();
 			resolve(user);
 		});

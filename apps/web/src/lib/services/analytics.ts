@@ -14,26 +14,19 @@ import { env } from '$env/dynamic/public';
 
 const API_BASE = env.PUBLIC_API_BASE_URL ?? 'https://api.loop.oute.pro';
 const BASE = `${API_BASE}/api/v1/incidents/analytics`;
+const FETCH_TIMEOUT_MS = 30_000;
 
 async function getAuthToken(): Promise<string> {
 	const user = await waitForAuth();
 	if (!user) {
 		if (typeof window !== 'undefined') {
-			console.error(
-				'[analytics] No user after waitForAuth(). ' + 'Session not restored. Redirecting to login.'
-			);
 			window.location.href = '/?auth=required';
-			// Don't throw after redirect — let page unload happen naturally
-			return new Promise(() => {});
 		}
 		throw new Error('Unauthenticated');
 	}
 	try {
-		const token = await user.getIdToken();
-		console.log('[analytics] Got token for:', user.email);
-		return token;
+		return await user.getIdToken();
 	} catch (err) {
-		console.error('[analytics] Failed to get idToken:', err);
 		throw new Error('Failed to get authentication token', { cause: err });
 	}
 }
@@ -44,14 +37,13 @@ async function request<T>(path: string): Promise<T> {
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
-		}
+		},
+		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
 	});
 
 	if (response.status === 401) {
 		if (typeof window !== 'undefined') {
 			window.location.href = '/?auth=required';
-			// Don't throw after redirect — let page unload happen naturally
-			return new Promise(() => {});
 		}
 		throw new Error('Unauthenticated');
 	}

@@ -353,7 +353,7 @@ Working on a spec:
 | Phase B | ✅ Complete | Semgrep integration (45 rules, v0.1.0 → v0.3.0) |
 | Spec-015 | ✅ Complete | Nav/Dashboard/Profile (PR #70) |
 | Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
-| Spec-017 | 🟡 Kickoff Ready | Rules Expansion (7 languages, ~78 rules, ~30–35 days) |
+| Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #91) |
 | Spec-018 | 🟡 Planned | Multi-language rules detail spec |
 
 ## Governance (CONSTITUTION.md)

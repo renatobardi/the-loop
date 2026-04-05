@@ -191,18 +191,41 @@ def upgrade() -> None:
             "Data integrity check failed."
         )
 
-    # UPDATE rule_versions to add Java rules to v0.4.0
+    # Fetch existing 45 rules and APPEND Java rules (don't overwrite!)
+    existing_result = connection.execute(
+        sa.text("SELECT rules_json FROM rule_versions WHERE version = :version"),
+        {"version": "v0.4.0"},
+    )
+    existing_data = existing_result.first()
+    if not existing_data:
+        raise RuntimeError("v0.4.0 does not exist. Run migration 015 first.")
+
+    existing_rules = (
+        json.loads(existing_data[0])
+        if isinstance(existing_data[0], str)
+        else existing_data[0]
+    )
+
+    # Merge: existing 45 + new 15 Java = 60 total
+    merged_rules = existing_rules + JAVA_RULES
+
+    if len(merged_rules) != FULL_RULES_COUNT:
+        raise RuntimeError(
+            f"Rule count mismatch: expected {FULL_RULES_COUNT}, got {len(merged_rules)}"
+        )
+
+    # UPDATE rule_versions with merged rules
     connection.execute(
         sa.text(
             "UPDATE rule_versions SET rules_json = :json WHERE version = :version"
         ),
-        {"json": json.dumps(JAVA_RULES), "version": "v0.4.0"},
+        {"json": json.dumps(merged_rules), "version": "v0.4.0"},
     )
     connection.commit()
 
 
 def downgrade() -> None:
-    """Downgrade: remove Java rules from v0.4.0, keeping original 45 rules."""
+    """Downgrade: remove Java rules from v0.4.0, keeping only Python rules."""
     connection = op.get_bind()
 
     # Fetch current rules for v0.4.0
@@ -219,12 +242,15 @@ def downgrade() -> None:
             else existing_row[1]
         )
 
-        # Filter out Java rules (keep original 45)
+        # Filter out Java rules (keep Python + any C# if migration 017 already ran)
         filtered_rules = [
             r for r in existing_rules if not r.get("id", "").startswith("java-")
         ]
 
-        if len(filtered_rules) == 45:
+        # If we only have Python rules left, we're at 45
+        # If we also have C# rules, we'll be at 60 (45 + 15 C#)
+        # Both are valid downgrade states
+        if len(filtered_rules) >= 45:
             connection.execute(
                 sa.text(
                     "UPDATE rule_versions SET rules_json = :json WHERE version = :version"

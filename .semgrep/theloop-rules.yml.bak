@@ -934,3 +934,25 @@ rules:
       category: config
     patterns:
       - pattern-regex: "[\"']https?://[a-z0-9.-]+(prod|production|staging|live)[a-z0-9.-]*[\"']"
+
+  - id: csharp-injection-003
+    languages: [csharp]
+    message: "[The Loop] Command injection via ProcessStartInfo with UseShellExecute"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+    patterns:
+      - pattern-either:
+          - pattern: "new ProcessStartInfo($CMD) { UseShellExecute = true }"
+          - pattern: "new ProcessStartInfo { FileName = $FILE, UseShellExecute = true }"
+
+  - id: csharp-security-004
+    languages: [csharp]
+    message: "[The Loop] SQL connection without encryption (Encrypt=false)"
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern-regex: "[\"']Server=.*;Encrypt=false;[\"']"

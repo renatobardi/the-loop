@@ -180,17 +180,40 @@ def upgrade() -> None:
     if CSHARP_RULES_COUNT != 15:
         raise RuntimeError(f"Expected 15 C# rules; found {CSHARP_RULES_COUNT}.")
 
+    # Fetch existing 60 rules (45 Python + 15 Java) and APPEND C# rules (don't overwrite!)
+    existing_result = connection.execute(
+        sa.text("SELECT rules_json FROM rule_versions WHERE version = :version"),
+        {"version": "v0.4.0"},
+    )
+    existing_data = existing_result.first()
+    if not existing_data:
+        raise RuntimeError("v0.4.0 does not exist. Run migration 016 first.")
+
+    existing_rules = (
+        json.loads(existing_data[0])
+        if isinstance(existing_data[0], str)
+        else existing_data[0]
+    )
+
+    # Merge: existing 60 (45 Python + 15 Java) + new 15 C# = 75 total
+    merged_rules = existing_rules + CSHARP_RULES
+
+    if len(merged_rules) != FULL_RULES_COUNT:
+        raise RuntimeError(
+            f"Rule count mismatch: expected {FULL_RULES_COUNT}, got {len(merged_rules)}"
+        )
+
     connection.execute(
         sa.text(
             "UPDATE rule_versions SET rules_json = :json WHERE version = :version"
         ),
-        {"json": json.dumps(CSHARP_RULES), "version": "v0.4.0"},
+        {"json": json.dumps(merged_rules), "version": "v0.4.0"},
     )
     connection.commit()
 
 
 def downgrade() -> None:
-    """Downgrade: remove C# rules from v0.4.0."""
+    """Downgrade: remove C# rules from v0.4.0, keeping Java + Python rules."""
     connection = op.get_bind()
 
     result = connection.execute(
@@ -206,11 +229,12 @@ def downgrade() -> None:
             else existing_row[1]
         )
 
-        # Filter out C# rules (keep original 60 from Java phase)
+        # Filter out C# rules (keep Python + Java rules = 60 rules)
         filtered_rules = [
             r for r in existing_rules if not r.get("id", "").startswith("csharp-")
         ]
 
+        # After removing C# rules, we should have 60 (45 Python + 15 Java)
         if len(filtered_rules) == 60:
             connection.execute(
                 sa.text(

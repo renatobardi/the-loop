@@ -272,6 +272,21 @@ All visual styling must use these tokens — no ad-hoc color/spacing values. Use
 - **Rate limiting + slowapi**: Never add `from __future__ import annotations` to route files (`api/routes/*.py`) — it breaks slowapi's decorator introspection.
 - **API key filtering**: Use `in` operator when filtering rules by whitelist (`if rule_id in allowed_rules`), not `not in` — prevents false positives.
 - **Lazy-loading tabs**: Always pass `incidentId` (not full object) and `active` boolean to tab components — prevents unnecessary API calls and race conditions.
+- **SSR window access in services**: Always guard `window` access in service modules (e.g., `lib/services/analytics.ts`) with `typeof window !== 'undefined'`. Services are imported in server contexts during build/rendering. Use explicit checks, not optional chaining on `window.location`.
+- **$derived in load functions race conditions** (Spec-019): Do not use `$derived()` on values computed in `+page.ts` load functions. The race between server-side computation and client-side rune initialization can cause stale data. Pass computed values as props instead.
+- **Async code in rune effects**: When wrapping async operations in `$effect()`, use an IIFE pattern to isolate the async scope and avoid dangling promises:
+  ```svelte
+  $effect(() => {
+    (async () => {
+      if (condition && !loaded) {
+        data = await fetch(...);
+        loaded = true;
+      }
+    })();
+  });
+  ```
+  Avoids cleanup complications and simplifies cancellation logic.
+- **AbortSignal.timeout vs shared AbortController in analytics**: Use `AbortSignal.timeout(ms)` (static, per-request, fire-and-forget) for fetch timeouts in `lib/services/analytics.ts`. Never use a shared `AbortController` across parallel requests — cancelling it aborts all in-flight fetches simultaneously, which breaks the page on filter changes. For stale-result protection, use a plain generation counter (`let gen = ++loadGeneration`) instead of AbortController.
 
 ## Scripts
 

@@ -31,25 +31,21 @@
 	let severityTrend: SeverityTrendPoint[] = $state([]);
 	let topRules: RuleEffectivenessStats[] = $state([]);
 	let loadError: string | null = $state(null);
-	let abortController: AbortController | null = $state(null);
+
+	// Generation counter (plain variable, not reactive) guards against stale results
+	// when filters change while a previous fetch is still in-flight.
+	let loadGeneration = 0;
 
 	// Load analytics data on mount and when filters change
 	$effect(() => {
-		// Cancel any in-flight requests when filters change
-		if (abortController) {
-			abortController.abort();
-		}
-
-		abortController = new AbortController();
-		const currentAbort = abortController;
-
+		const gen = ++loadGeneration;
 		(async () => {
 			loading = true;
 			loadError = null;
 
 			try {
 				const teamAllFilters: AnalyticsFilter = { ...data.filters, teams: [] };
-				const [s, bc, bt, bta, t, st, tr] = await Promise.all([
+				const results = await Promise.allSettled([
 					getAnalyticsSummary(data.filters),
 					getAnalyticsByCategory(data.filters),
 					getAnalyticsByTeam(data.filters),
@@ -59,25 +55,32 @@
 					getAnalyticsTopRules(data.filters)
 				]);
 
-				// Only update state if this abort controller wasn't cancelled
-				if (!currentAbort.signal.aborted) {
-					summary = s;
-					byCategory = bc;
-					byTeam = bt;
-					byTeamAll = bta;
-					timeline = t;
-					severityTrend = st;
-					topRules = tr;
+				if (gen !== loadGeneration) return; // stale — newer fetch superseded this one
+
+				const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
+					r.status === 'fulfilled' ? r.value : fallback;
+
+				summary = val(results[0], null);
+				byCategory = val(results[1], []);
+				byTeam = val(results[2], []);
+				byTeamAll = val(results[3], []);
+				timeline = val(results[4], []);
+				severityTrend = val(results[5], []);
+				topRules = val(results[6], []);
+
+				const failures = results.filter((r) => r.status === 'rejected');
+				if (failures.length > 0) {
+					const reason = (failures[0] as PromiseRejectedResult).reason;
+					loadError =
+						failures.length === results.length
+							? (reason?.message ?? 'Unable to load analytics data')
+							: `Some analytics data unavailable: ${reason?.message ?? 'Unknown error'}`;
 				}
 			} catch (err) {
-				// Only show error if this abort controller wasn't cancelled
-				if (!currentAbort.signal.aborted) {
-					loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
-				}
+				if (gen !== loadGeneration) return;
+				loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
 			} finally {
-				if (!currentAbort.signal.aborted) {
-					loading = false;
-				}
+				if (gen === loadGeneration) loading = false;
 			}
 		})();
 	});
@@ -108,7 +111,7 @@
 		<a href="/incidents/" class="text-sm text-accent hover:underline">← All Incidents</a>
 	</div>
 
-	{#if loadError}
+	{#if loadError && !summary}
 		<div
 			class="rounded-lg border border-error/40 bg-error/10 px-6 py-5"
 			role="alert"
@@ -125,6 +128,14 @@
 			</button>
 		</div>
 	{:else if summary}
+		{#if loadError}
+			<div
+				class="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning"
+				role="status"
+			>
+				{loadError}
+			</div>
+		{/if}
 		<DashboardGrid
 			{summary}
 			{byCategory}
@@ -134,7 +145,7 @@
 			{severityTrend}
 			{topRules}
 			filters={data.filters}
-			loading={navigating !== null || loading}
+			loading={navigating.to !== null || loading}
 			onFiltersChange={handleFiltersChange}
 		/>
 	{:else if loading}

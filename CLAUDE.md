@@ -354,7 +354,7 @@ Working on a spec:
 | Spec-015 | ✅ Complete | Nav/Dashboard/Profile (PR #70) |
 | Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #91) |
-| Spec-018 | 🟡 Planned | Multi-language rules detail spec |
+| Spec-019 | 📋 Ready | Product Analytics Dashboard (56 tasks, zero issues) |
 
 ## Governance (CONSTITUTION.md)
 

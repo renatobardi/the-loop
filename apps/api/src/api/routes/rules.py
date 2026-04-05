@@ -102,9 +102,9 @@ async def get_latest_rules(
         503: No active rule version or service unavailable
     """
     try:
-        # Try cache first
+        # Try cache first (validate that it has rules before using)
         cached = await cache.get_latest()
-        if cached:
+        if cached and cached.rules:
             response_data = _rule_version_to_response(cached)
             # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
             if isinstance(identity, ApiKeyContext) and identity.whitelist:
@@ -117,7 +117,7 @@ async def get_latest_rules(
                 headers={"Cache-Control": "public, max-age=300"},
             )
 
-        # Fetch from repository
+        # Cache miss or invalid cache entry — fetch from repository
         rule_version = await service.get_latest_active()
         if not rule_version:
             raise HTTPException(status_code=503, detail="No active rule version found")

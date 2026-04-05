@@ -40,7 +40,7 @@ def main() -> None:
     rules = data.get("rules", [])
     print(f"✅ Found {len(rules)} rules")
 
-    # Idempotency check: don't republish if v0.4.0 already exists with 122 rules
+    # Idempotency check: don't republish if v0.4.0 already exists with >= expected rules
     print(f"🔍 Checking if v{VERSION} already exists...")
     try:
         check_req = urllib.request.Request(
@@ -50,11 +50,12 @@ def main() -> None:
         with urllib.request.urlopen(check_req) as resp:
             existing = json.loads(resp.read())
             existing_count = len(existing.get("rules", []))
-            if existing_count == len(rules):
-                print(f"✅ v{VERSION} already exists with {existing_count} rules — skipping republish")
+            if existing_count >= len(rules):
+                print(f"✅ v{VERSION} already exists with {existing_count} rules — skipping publish (API does not support updates)")
                 return
             else:
-                print(f"⚠️  v{VERSION} exists but has {existing_count} rules (expected {len(rules)}) — republishing...")
+                print(f"❌ v{VERSION} exists but has {existing_count} rules (expected {len(rules)}) — cannot update via API")
+                sys.exit(1)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             print(f"ℹ️  v{VERSION} not found — will create new")

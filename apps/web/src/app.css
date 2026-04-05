@@ -17,6 +17,9 @@
   --color-warning: #f59e0b;
   --color-chart-blue: #3b82f6;
   --color-chart-purple: #8b5cf6;
+  --color-chart-error: #ef4444;
+  --color-chart-warning: #f59e0b;
+  --color-chart-green: #22c55e;
 
   --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
 

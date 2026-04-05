@@ -1,6 +1,4 @@
-"""Analytics route handlers for incident pattern dashboard — Phase C.2."""
-
-from __future__ import annotations
+"""Analytics route handlers for incident pattern dashboard — Phase C.2 + Spec-019."""
 
 from uuid import UUID
 
@@ -11,6 +9,8 @@ from src.api.deps import get_analytics_service, get_authenticated_user
 from src.api.middleware import limiter
 from src.api.models.analytics import (
     CategoryStatsResponse,
+    RuleEffectivenessResponse,
+    SeverityTrendResponse,
     SummaryResponse,
     TeamStatsResponse,
     TimelinePointResponse,
@@ -70,7 +70,7 @@ def _build_period(
 
 
 def _build_filter(
-    team: str | None,
+    team: list[str],
     category: str | None,
     status_filter: str,
 ) -> AnalyticsFilter:
@@ -93,7 +93,7 @@ def _build_filter(
                 detail=f"Invalid category '{category}'. Must be one of: {valid}",
             ) from exc
     return AnalyticsFilter(
-        team=team or None,
+        teams=team,
         category=category_enum,
         status=status_filter,  # type: ignore[arg-type]
     )
@@ -104,7 +104,7 @@ def _build_filter(
 async def get_analytics_summary(
     request: Request,
     period: str = Query(default="month"),
-    team: str | None = Query(default=None),
+    team: list[str] = Query(default=[]),
     category: str | None = Query(default=None),
     status: str = Query(default="all"),
     start_date: str | None = Query(default=None),
@@ -137,7 +137,7 @@ async def get_analytics_summary(
 async def get_analytics_by_category(
     request: Request,
     period: str = Query(default="month"),
-    team: str | None = Query(default=None),
+    team: list[str] = Query(default=[]),
     category: str | None = Query(default=None),
     status: str = Query(default="all"),
     start_date: str | None = Query(default=None),
@@ -175,7 +175,7 @@ async def get_analytics_by_category(
 async def get_analytics_by_team(
     request: Request,
     period: str = Query(default="month"),
-    team: str | None = Query(default=None),
+    team: list[str] = Query(default=[]),
     category: str | None = Query(default=None),
     status: str = Query(default="all"),
     start_date: str | None = Query(default=None),
@@ -212,7 +212,7 @@ async def get_analytics_by_team(
 async def get_analytics_timeline(
     request: Request,
     period: str = Query(default="month"),
-    team: str | None = Query(default=None),
+    team: list[str] = Query(default=[]),
     category: str | None = Query(default=None),
     status: str = Query(default="all"),
     start_date: str | None = Query(default=None),
@@ -242,4 +242,73 @@ async def get_analytics_timeline(
             by_category={cat.value: count for cat, count in p.by_category.items()},
         )
         for p in points
+    ]
+
+
+@router.get("/severity-trend", response_model=list[SeverityTrendResponse])
+@limiter.limit("60/minute")
+async def get_analytics_severity_trend(
+    request: Request,
+    period: str = Query(default="month"),
+    team: list[str] = Query(default=[]),
+    category: str | None = Query(default=None),
+    status: str = Query(default="all"),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
+    _user_id: UUID = Depends(get_authenticated_user),
+    service: AnalyticsService = Depends(get_analytics_service),
+) -> list[SeverityTrendResponse]:
+    """Return weekly ERROR vs WARNING counts for severity trend chart.
+
+    Each point represents one ISO week aggregated from postmortems.severity_for_rule.
+    Points are sorted ascending by week. Used to render the stacked area chart (US3).
+
+    Raises 400 for invalid period, status, or category values.
+    Raises 401 when the Firebase token is missing or expired.
+    """
+    ap = _build_period(period, start_date, end_date)
+    af = _build_filter(team, category, status)
+    points = await service.get_severity_trend(ap, af)
+    return [
+        SeverityTrendResponse(
+            week=p.week.date().isoformat(),
+            error_count=p.error_count,
+            warning_count=p.warning_count,
+        )
+        for p in points
+    ]
+
+
+@router.get("/top-rules", response_model=list[RuleEffectivenessResponse])
+@limiter.limit("60/minute")
+async def get_analytics_top_rules(
+    request: Request,
+    period: str = Query(default="month"),
+    team: list[str] = Query(default=[]),
+    category: str | None = Query(default=None),
+    status: str = Query(default="all"),
+    top_n: int = Query(default=5, ge=1, le=20),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
+    _user_id: UUID = Depends(get_authenticated_user),
+    service: AnalyticsService = Depends(get_analytics_service),
+) -> list[RuleEffectivenessResponse]:
+    """Return top N rules ranked by incident count with average severity.
+
+    Only includes postmortems where related_rule_id is set. Used to render
+    the Rule Effectiveness Card (US4). Defaults to top 5, max 20.
+
+    Raises 400 for invalid period, status, or category values.
+    Raises 401 when the Firebase token is missing or expired.
+    """
+    ap = _build_period(period, start_date, end_date)
+    af = _build_filter(team, category, status)
+    rules = await service.get_top_rules(ap, af, top_n)
+    return [
+        RuleEffectivenessResponse(
+            rule_id=r.rule_id,
+            incident_count=r.incident_count,
+            avg_severity=r.avg_severity,
+        )
+        for r in rules
     ]

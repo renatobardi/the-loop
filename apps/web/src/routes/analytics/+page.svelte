@@ -9,7 +9,9 @@
 	function handleFiltersChange(f: AnalyticsFilter) {
 		const params = new URLSearchParams(); // eslint-disable-line svelte/prefer-svelte-reactivity -- not reactive, rebuilt each call
 		params.set('period', f.period);
-		if (f.team) params.set('team', f.team);
+		for (const t of f.teams ?? []) {
+			params.append('team', t); // multi-select: repeated params
+		}
 		if (f.category) params.set('category', f.category);
 		if (f.status !== 'all') params.set('status', f.status);
 		if (f.period === 'custom') {
@@ -52,6 +54,8 @@
 			byTeam={data.byTeam}
 			byTeamAll={data.byTeamAll}
 			timeline={data.timeline}
+			severityTrend={data.severityTrend}
+			topRules={data.topRules}
 			filters={data.filters}
 			loading={navigating !== null}
 			onFiltersChange={handleFiltersChange}

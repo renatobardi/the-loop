@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AnalyticsFilter, Period, StatusFilter, RootCauseCategory } from '$lib/types/analytics';
 	import type { TeamStats } from '$lib/types/analytics';
+	import MultiSelectDropdown from './MultiSelectDropdown.svelte';
 
 	let {
 		filters,
@@ -13,11 +14,23 @@
 	} = $props();
 
 	let period = $state<Period>(filters.period);
-	let team = $state<string>(filters.team ?? '');
+	let selectedTeams = $state<string[]>(filters.teams ?? []);
 	let category = $state<string>(filters.category ?? '');
 	let status = $state<StatusFilter>(filters.status);
 	let startDate = $state<string>(filters.start_date ?? '');
 	let endDate = $state<string>(filters.end_date ?? '');
+
+	// Sync local state when filters prop changes (e.g., after drill-down navigation)
+	$effect(() => {
+		period = filters.period;
+		selectedTeams = filters.teams ?? [];
+		category = filters.category ?? '';
+		status = filters.status;
+		startDate = filters.start_date ?? '';
+		endDate = filters.end_date ?? '';
+	});
+
+	const teamOptionsList = $derived(teamOptions.map((t) => ({ value: t.team, label: t.team })));
 
 	const CATEGORIES: { value: RootCauseCategory; label: string }[] = [
 		{ value: 'code_pattern', label: 'Code Pattern' },
@@ -30,7 +43,7 @@
 	function apply() {
 		const f: AnalyticsFilter = {
 			period,
-			team: team || null,
+			teams: selectedTeams,
 			category: (category as RootCauseCategory) || null,
 			status,
 			start_date: period === 'custom' ? startDate || null : null,
@@ -41,12 +54,12 @@
 
 	function reset() {
 		period = 'month';
-		team = '';
+		selectedTeams = [];
 		category = '';
 		status = 'all';
 		startDate = '';
 		endDate = '';
-		onApply({ period: 'month', team: null, category: null, status: 'all' });
+		onApply({ period: 'month', teams: [], category: null, status: 'all' });
 	}
 </script>
 
@@ -91,21 +104,15 @@
 		</div>
 	{/if}
 
-	<!-- Team -->
-	<div class="flex flex-col gap-1">
-		<label for="af-team" class="text-xs text-text-muted">Team</label>
-		<select
-			id="af-team"
-			bind:value={team}
-			class="rounded border border-border bg-bg px-2 py-1.5 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
-			aria-label="Filter by team"
-		>
-			<option value="">All Teams</option>
-			{#each teamOptions as t (t.team)}
-				<option value={t.team}>{t.team}</option>
-			{/each}
-		</select>
-	</div>
+	<!-- Team (multi-select) -->
+	<MultiSelectDropdown
+		id="af-team"
+		label="Team"
+		options={teamOptionsList}
+		selected={selectedTeams}
+		placeholder="All Teams"
+		onchange={(vals) => (selectedTeams = vals)}
+	/>
 
 	<!-- Category -->
 	<div class="flex flex-col gap-1">

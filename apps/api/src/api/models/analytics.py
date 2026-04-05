@@ -39,3 +39,19 @@ class TimelinePointResponse(BaseModel):
     week: str  # ISO date string
     count: int
     by_category: dict[str, int]
+
+
+class SeverityTrendResponse(BaseModel):
+    """Single weekly point for GET /analytics/severity-trend."""
+
+    week: str  # ISO date string YYYY-MM-DD
+    error_count: int
+    warning_count: int
+
+
+class RuleEffectivenessResponse(BaseModel):
+    """Single rule entry for GET /analytics/top-rules."""
+
+    rule_id: str
+    incident_count: int
+    avg_severity: float  # 0.5 (warning) or 1.0 (error)

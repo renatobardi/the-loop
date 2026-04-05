@@ -169,7 +169,7 @@ function handleMouseOver(e: MouseEvent, point: TimelinePoint) {
 			{#if tooltip}
 				<div
 					class="pointer-events-none absolute z-10 min-w-40 rounded border border-border bg-bg-elevated px-3 py-2 text-sm shadow-glow"
-					style="left: {tooltip.x + 12}px; top: {Math.max(0, tooltip.y - 80)}px"
+					style="left: {Math.min(tooltip.x + 12, SVG_WIDTH - 180)}px; top: {Math.max(0, tooltip.y - 80)}px"
 				>
 					<div class="mb-1 font-medium text-text">Week of {tooltip.point.week}</div>
 					<div class="mb-1 text-text-muted">Total: {tooltip.point.count}</div>

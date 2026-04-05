@@ -9,6 +9,8 @@ from src.domain.models import (
     AnalyticsFilter,
     AnalyticsSummary,
     CategoryStats,
+    RuleEffectivenessStats,
+    SeverityTrendPoint,
     TeamStats,
     TimelinePoint,
 )
@@ -39,4 +41,16 @@ class AnalyticsRepoPort(Protocol):
         self, start: datetime, end: datetime, filters: AnalyticsFilter
     ) -> list[TimelinePoint]:
         """Return weekly incident counts with per-category breakdown, ordered by week ASC."""
+        ...
+
+    async def get_severity_trend(
+        self, start: datetime, end: datetime, filters: AnalyticsFilter
+    ) -> list[SeverityTrendPoint]:
+        """Return weekly ERROR vs WARNING counts, ordered by week ASC."""
+        ...
+
+    async def get_top_rules(
+        self, start: datetime, end: datetime, filters: AnalyticsFilter, top_n: int = 5
+    ) -> list[RuleEffectivenessStats]:
+        """Return top N rules by incident count with avg severity, ordered by count DESC."""
         ...

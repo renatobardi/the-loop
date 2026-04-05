@@ -4,6 +4,8 @@ import type {
 	AnalyticsFilter,
 	AnalyticsSummary,
 	CategoryStats,
+	RuleEffectivenessStats,
+	SeverityTrendPoint,
 	TeamStats,
 	TimelinePoint
 } from '$lib/types/analytics';
@@ -53,7 +55,10 @@ async function request<T>(path: string): Promise<T> {
 export function buildQueryString(filters: AnalyticsFilter): string {
 	const params = new URLSearchParams();
 	params.set('period', filters.period);
-	if (filters.team) params.set('team', filters.team);
+	// Multi-select: append each team as separate ?team= param
+	for (const t of filters.teams ?? []) {
+		params.append('team', t);
+	}
 	if (filters.category) params.set('category', filters.category);
 	params.set('status', filters.status);
 	if (filters.period === 'custom') {
@@ -77,4 +82,19 @@ export async function getAnalyticsByTeam(filters: AnalyticsFilter): Promise<Team
 
 export async function getAnalyticsTimeline(filters: AnalyticsFilter): Promise<TimelinePoint[]> {
 	return request<TimelinePoint[]>(`${BASE}/timeline?${buildQueryString(filters)}`);
+}
+
+export async function getAnalyticsSeverityTrend(
+	filters: AnalyticsFilter
+): Promise<SeverityTrendPoint[]> {
+	return request<SeverityTrendPoint[]>(`${BASE}/severity-trend?${buildQueryString(filters)}`);
+}
+
+export async function getAnalyticsTopRules(
+	filters: AnalyticsFilter,
+	topN = 5
+): Promise<RuleEffectivenessStats[]> {
+	return request<RuleEffectivenessStats[]>(
+		`${BASE}/top-rules?${buildQueryString(filters)}&top_n=${topN}`
+	);
 }

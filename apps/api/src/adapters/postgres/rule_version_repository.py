@@ -5,9 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from asyncpg.exceptions import UniqueViolationError  # type: ignore[import-untyped]
 from sqlalchemy import desc, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.exceptions import (

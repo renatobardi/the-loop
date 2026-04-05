@@ -1,10 +1,12 @@
-"""Fix v0.3.0 rule_versions entry with complete 45-rule set.
+"""Create v0.4.0 rule_versions entry with complete 45-rule set.
 
 Migration 014 seeded v0.3.0 with only 1 placeholder rule.
-This migration updates that entry with the full 45 rules:
+This migration creates a new version v0.4.0 with the full 45 rules:
   Phase A (6)  — Python: SQL injection, eval, shell, secrets, bare-except, ReDoS
   Phase B (14) — Python/multi-lang: path traversal, XXE, crypto, CORS, N+1, etc.
   Phase C (25) — 15 JS/TS + 10 Go
+
+Migrations 016 and 017 will then build on v0.4.0 by adding Java (15) and C# (15) rules.
 
 Revision ID: 015
 Revises: 014
@@ -13,6 +15,7 @@ Create Date: 2026-04-05
 
 import json
 from typing import Any
+from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
 
 import sqlalchemy as sa
 from alembic import op
@@ -22,8 +25,12 @@ down_revision = "014"
 branch_labels = None
 depends_on = None
 
-RULES_VERSION = "0.3.0"
+RULES_VERSION = "0.4.0"  # Create new version for Phase B (Python) + Phase C (JS/TS + Go)
 FULL_RULES_COUNT = 45
+
+# Admin user from migration 014 (deterministic UUID5)
+ADMIN_FIREBASE_UID: str = str(uuid5(NAMESPACE_URL, "firebase:admin@loop.oute.pro"))
+ADMIN_EMAIL: str = "admin@loop.oute.pro"
 
 # All 45 rules in DB JSON format (list[dict] — matches Rule domain model fields).
 # patterns follow the converter format (json_to_semgrep_yaml.py):
@@ -491,13 +498,13 @@ V030_FULL_RULES: list[dict[str, Any]] = [
 
 
 def upgrade() -> None:
-    """Update v0.3.0 rules_json with the complete 45-rule set.
+    """Create v0.4.0 with the complete 45-rule set.
 
     Migration 014 seeded v0.3.0 with 1 placeholder rule. This migration
-    replaces that entry with the full ruleset.
+    creates a new version v0.4.0 with the full ruleset.
 
-    - Idempotent: returns early if v0.3.0 already has ≥ 45 rules
-    - Fails fast if v0.3.0 does not exist (unexpected state)
+    - Idempotent: returns early if v0.4.0 already exists with ≥ 45 rules
+    - Fails fast if v0.4.0 cannot be created or insertion fails
     - Explicitly commits transaction
     """
     assert len(V030_FULL_RULES) == FULL_RULES_COUNT, (
@@ -506,28 +513,30 @@ def upgrade() -> None:
 
     connection = op.get_bind()
 
-    # Check current state of v0.3.0
+    # Check if v0.4.0 already exists
     result = connection.execute(
         sa.text("SELECT rules_json FROM rule_versions WHERE version = :version"),
         {"version": RULES_VERSION},
     )
     row = result.first()
 
-    if not row:
+    if row:
+        # v0.4.0 exists — check if already patched
+        existing_rules: Any = row[0]
+        if isinstance(existing_rules, str):
+            rules_list: Any = json.loads(existing_rules)
+        else:
+            rules_list = existing_rules
+
+        if isinstance(rules_list, list) and len(rules_list) >= FULL_RULES_COUNT:
+            # Already patched — idempotent success
+            return
+
+        # Exists but incomplete — this is unexpected
         raise RuntimeError(
-            f"v{RULES_VERSION} not found in rule_versions. "
-            "Migration 014 must run first."
+            f"v{RULES_VERSION} exists with {len(rules_list) if isinstance(rules_list, list) else 0} rules; "
+            f"expected 0 (not yet created) or {FULL_RULES_COUNT} (already patched)."
         )
-
-    existing_rules: Any = row[0]
-    if isinstance(existing_rules, str):
-        rules_list: Any = json.loads(existing_rules)
-    else:
-        rules_list = existing_rules
-
-    if isinstance(rules_list, list) and len(rules_list) >= FULL_RULES_COUNT:
-        # Already patched — idempotent success
-        return
 
     # Validate and serialize the full ruleset
     try:
@@ -536,37 +545,62 @@ def upgrade() -> None:
     except (TypeError, ValueError) as e:
         raise ValueError(f"Failed to serialize rules: {e}") from e
 
+    # Get or create admin user (same as migration 014)
+    result = connection.execute(
+        sa.text("""
+        INSERT INTO users (id, firebase_uid, email, is_admin)
+        VALUES (:id, :firebase_uid, :email, :is_admin)
+        ON CONFLICT (firebase_uid) DO UPDATE SET is_admin = true
+        RETURNING id
+        """),
+        {
+            "id": str(uuid4()),
+            "firebase_uid": ADMIN_FIREBASE_UID,
+            "email": ADMIN_EMAIL,
+            "is_admin": True,
+        }
+    )
+    admin_row = result.first()
+    if not admin_row:
+        raise RuntimeError("Failed to create or retrieve admin user")
+    admin_id: UUID = admin_row[0]
+
+    # Create v0.4.0 with the full ruleset
     connection.execute(
         sa.text(
-            "UPDATE rule_versions SET rules_json = :rules_json "
-            "WHERE version = :version"
+            "INSERT INTO rule_versions (id, version, rules_json, status, notes, published_by) "
+            "VALUES (:id, :version, :rules_json, :status, :notes, :published_by)"
         ),
-        {"rules_json": rules_json, "version": RULES_VERSION},
+        {
+            "id": str(uuid4()),
+            "version": RULES_VERSION,
+            "rules_json": rules_json,
+            "status": "active",
+            "notes": "Phase B + C: 45 rules (20 Python + 15 JS/TS + 10 Go)",
+            "published_by": admin_id,
+        }
     )
 
     connection.commit()
 
 
 def downgrade() -> None:
-    """Revert v0.3.0 to the original placeholder (1 rule) from migration 014."""
-    placeholder: list[dict[str, Any]] = [
-        {
-            "id": "injection-001-sql-string-concat",
-            "languages": ["python", "javascript", "typescript", "java", "go", "ruby"],
-            "message": "[The Loop] SQL injection via string concatenation",
-            "severity": "ERROR",
-            "category": "injection",
-            "patterns": [{"pattern": "$QUERY + $VAR"}],
-            "metadata": {"cwe": "CWE-89"},
-        }
-    ]
+    """Delete v0.4.0 on downgrade (returns to v0.3.0 from migration 014).
 
+    Also cleans up the admin user by firebase_uid (same as migration 014 downgrade).
+    """
     connection = op.get_bind()
-    connection.execute(
-        sa.text(
-            "UPDATE rule_versions SET rules_json = :rules_json "
-            "WHERE version = :version"
-        ),
-        {"rules_json": json.dumps(placeholder), "version": RULES_VERSION},
+
+    # Delete v0.4.0 if it exists
+    result = connection.execute(
+        sa.text("DELETE FROM rule_versions WHERE version = :version"),
+        {"version": RULES_VERSION}
     )
+
+    # Clean up admin user (by deterministic firebase_uid, same as migration 014)
+    connection.execute(
+        sa.text("DELETE FROM users WHERE firebase_uid = :firebase_uid"),
+        {"firebase_uid": ADMIN_FIREBASE_UID}
+    )
+
     connection.commit()

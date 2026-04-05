@@ -140,6 +140,17 @@ Every new route must explicitly decide its auth tier — never leave it implicit
 
 `get_optional_identity` in `api/deps.py` dispatches on token prefix: `tlp_` → API key path, `eyJ` → Firebase JWT path, no header → `None`. Routes that serve both scanner and browser traffic use this dependency and branch on the return type.
 
+#### Rules Endpoints & Whitelist Filtering
+
+Rules distribution endpoints follow a consistent pattern:
+
+- **`GET /api/v1/rules/{VERSION}`** — Fetch specific rule version (JSON). Authenticating with API key filters to project whitelist; unauthenticated returns all rules.
+- **`GET /api/v1/rules/latest`** — Fetch latest active version (JSON). Same filtering. **Cache requirement**: validates cache is populated before returning (prevents empty responses on cache miss).
+- **`GET /api/v1/rules/active`** — List all active versions (JSON metadata). Admin-only endpoint.
+- **Public rule browser**: `/rules/[version]/` renders rule details via client-side fetch to above endpoints (no auth required for read).
+
+Whitelist filtering: API key context includes project ID; repository `get_rules()` filters `rules_allowed_in` list (Spec-016 feature). Always use `in` operator, not `not in`, to avoid false positives.
+
 #### Repository Transaction Pattern
 
 Always call `await session.commit()` after `await session.flush()` in repository write methods. `flush()` sends SQL to the DB within the transaction but does **not** persist — without `commit()`, data is silently lost on session close. This caused a production incident (PR #75).
@@ -172,11 +183,13 @@ Postmortems follow the same hexagonal pattern but with key differences:
 
 ### Other directories
 
-- **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `007-incident-crud-v2/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names.
+- **`specs/`** — Feature specs at repo root. Each numbered directory (e.g., `007-incident-crud-v2/`) contains `spec.md`, `plan.md`, `tasks.md`, and related artifacts. The numeric prefix maps to branch names. Branch naming: `feat/{NUMBER}-{slug}` (e.g., `feat/017-rules-expansion`).
 - **`.project/`** — Persistent project history: phase specs, decisions (ADRs), research. Files here are never deleted — obsolete docs go to `.project/archive/`.
 - **`tests/unit/`** — Frontend: Vitest with jsdom environment and `$lib`/`$app` path aliases.
 - **`apps/api/tests/`** — Backend: pytest with `unit/` (domain models/services) and `api/` (route tests with mocked services) suites. The `integration/` directory exists but is currently empty.
 - **`apps/api/alembic/`** — Database migrations.
+- **`scripts/`** — Utility scripts for deployment and build tasks (see "Scripts" section below).
+- **`.semgrep/`** — Semgrep rules (YAML) and fallback bundles (`.bak` files).
 
 ### Key files
 
@@ -244,6 +257,14 @@ All visual styling must use these tokens — no ad-hoc color/spacing values. Use
   - **Ruff**: Enforces strict linting. Ignores `S101` (assertions in tests) and `B008` (FastAPI `Depends()` in default parameters — canonical pattern). The field `_Date` in `domain/models.py` uses leading underscore to avoid Pydantic 2.11 field-name shadowing.
   - **MyPy**: Strict mode enabled with Pydantic plugin (`init_forbid_extra = true`). Some dynamic typing is unavoidable in serialization layers—prefer explicit type casts over `# type: ignore` comments.
 
+## Scripts
+
+Helper scripts for deployment, build, and rules management:
+
+- **`scripts/json_to_semgrep_yaml.py`** — Converts API JSON rule format to YAML for local testing and bundling. Usage: `python3 scripts/json_to_semgrep_yaml.py --input rules.json --output output.yml`
+- **`scripts/publish_v<VERSION>.py`** — Publishes a new rule version (e.g., `publish_v030.py` for v0.3.0). Inserts rules into database and marks version as active for CI use.
+- **`scripts/generate-docs.sh`** — Generates API documentation from route docstrings. Required to pass CI `docs-check` gate. Run: `bash scripts/generate-docs.sh`
+
 ## Form Handling Pattern
 
 Server Actions flow: `+page.server.ts` → rate limit check → Zod validation (with email normalization) → Firestore write. Server functions return semantic status codes (`'created'`, `'duplicate'`) rather than throwing. Frontend uses `use:enhance` for progressive enhancement with a state machine (`idle → submitting → success | error | duplicate | rate_limited`).
@@ -267,18 +288,37 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 - **Web CI**: lint + check + test + build + Trivy (`the-loop` Cloud Run)
 - **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy (`theloop-api` Cloud Run)
 
-## Semgrep Integration (Specs 010–011–016, Phases A, B & C)
+## Semgrep Integration (Specs 010–011–016–017–018, Phases A, B, C & Multi-Language)
 
 The Loop distributes Semgrep rules via API. The CI workflow (`.github/workflows/theloop-guard.yml`) runs on every PR: fetches rules from `GET /api/v1/rules/{VERSION}`, converts JSON → YAML via `scripts/json_to_semgrep_yaml.py`, then scans. Falls back to `.semgrep/theloop-rules.yml.bak` (Phase A, 6 base rules) on API timeout.
 
 - **ERROR** findings block merge; **WARNING** findings are advisory only
-- Phase A (v0.1.0): 6 rules — SQL injection, eval, shell injection, hardcoded secrets, bare except, ReDoS
-- Phase B (v0.2.0): 14 additional rules — path traversal, XXE, weak crypto, TLS disabled, CORS wildcard, N+1, Docker root, DEBUG enabled, etc.
-- Phase C (v0.3.0): 25 new rules — 15 JS/TS + 10 Go (injection, crypto, security, performance, error handling). Total: 45 rules.
-- Version pinning: set GitHub Actions variable `THELOOP_RULES_VERSION=0.1.0` to pin to Phase A
+- **Phase A (v0.1.0)**: 6 rules — SQL injection, eval, shell injection, hardcoded secrets, bare except, ReDoS
+- **Phase B (v0.2.0)**: 14 additional rules — path traversal, XXE, weak crypto, TLS disabled, CORS wildcard, N+1, Docker root, DEBUG enabled, etc.
+- **Phase C (v0.3.0)**: 25 new rules — 15 JS/TS + 10 Go (injection, crypto, security, performance, error handling). **Total: 45 rules.**
+- **Spec-017/018 (Multi-Language)**: Expansion to Java, C#, PHP, Ruby, Kotlin, Rust, C/C++ (~78 additional rules, versioned as v0.4.0+)
+
+### Version Pinning & Rules Lifecycle
+
+- Version pinning: set GitHub Actions variable `THELOOP_RULES_VERSION=0.1.0` to pin to Phase A; default uses latest
+- Rules database: each version stored in `api/adapters/postgres/models.py:RuleVersionRow` with `active` flag
+- Publishing new version: run `python scripts/publish_v<VERSION>.py` to insert rules and set as active
 - Never delete `.semgrep/theloop-rules.yml.bak` — it's the non-negotiable fallback
-- Public rule browser: `loop.oute.pro/rules/latest` (no auth required)
+- API rate limiting: rules cache invalidates on new active version publish (see `api/services/rules_service.py`)
+
+### Test Data Organization (Rules Expansion)
+
+For Spec-017/018 multi-language coverage:
+- **Bad examples:** `tests/test-data/bad/<lang>/` (e.g., `tests/test-data/bad/java/`, `tests/test-data/bad/rust/`)
+- **Good examples:** `tests/test-data/good/<lang>/` (demonstrates correct patterns)
+- Validate rules locally: `semgrep --validate --config rules.yml`
+- Scan test data: `semgrep scan --config rules.yml tests/test-data/`
+
+### Public Rule Browser & Scan History
+
+- Public rule browser: `loop.oute.pro/rules/latest` (no auth required); filtered by API key whitelist if authenticated
 - Scan history: each workflow run posts to `POST /api/v1/scans` (best-effort, `continue-on-error: true`)
+- Cache management: `/api/v1/rules/latest` validates cache is populated before returning
 
 ```bash
 # Local rule testing
@@ -286,6 +326,35 @@ semgrep --validate --config .semgrep/theloop-rules.yml
 semgrep scan --config .semgrep/theloop-rules.yml
 python3 scripts/json_to_semgrep_yaml.py --input rules.json --output .semgrep/theloop-rules.yml
 ```
+
+## Speckit Workflow (Feature Specs)
+
+Feature planning follows a structured spec → plan → tasks workflow. Each numbered spec directory contains three documents:
+
+1. **`spec.md`** — Feature requirements, scope, acceptance criteria. Status field indicates kickoff readiness.
+2. **`plan.md`** — Implementation strategy, architecture decisions, file/component changes, phases, dependencies.
+3. **`tasks.md`** — Executable, dependency-ordered task list (T001, T002, etc.) with completion tracking.
+
+Working on a spec:
+- Create branch: `feat/{NUMBER}-{slug}` (e.g., `feat/017-rules-expansion`)
+- Review all three docs before implementing
+- Each task is claimed and tracked via `tasks.md` status
+- On completion, commit all changes (spec artifacts + code) in a single PR
+- Spec directory and branch name must stay synchronized
+
+### Phase Status (as of April 2026)
+
+| Phase | Status | Key Deliverables |
+|-------|--------|------------------|
+| Phase 0 | ✅ Complete | Landing page, waitlist, constitution |
+| Phase 1 | ✅ Complete | Incident CRUD (all auth + data flows) |
+| Phase C.1 | ✅ Complete | Postmortem workflow + locking |
+| Phase C.2 | ✅ Complete | Analytics dashboard (timeline, category, team stats) |
+| Phase B | ✅ Complete | Semgrep integration (45 rules, v0.1.0 → v0.3.0) |
+| Spec-015 | ✅ Complete | Nav/Dashboard/Profile (PR #70) |
+| Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
+| Spec-017 | 🟡 Kickoff Ready | Rules Expansion (7 languages, ~78 rules, ~30–35 days) |
+| Spec-018 | 🟡 Planned | Multi-language rules detail spec |
 
 ## Governance (CONSTITUTION.md)
 

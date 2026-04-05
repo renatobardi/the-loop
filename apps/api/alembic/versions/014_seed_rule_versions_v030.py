@@ -19,9 +19,9 @@ branch_labels = None
 depends_on = None
 
 
-# v0.3.0 rules (45 rules: 20 Python + 15 JS/TS + 10 Go)
-# Hardcoded here to ensure migration is self-contained and environment-independent
-# This avoids file I/O dependency (which breaks in Cloud Run)
+# v0.3.0 rules (45 rules: Phase A + Phase B + Phase C)
+# Placeholder: Migration 015 contains full 45 rules (hardcoded to avoid file I/O in Cloud Run)
+# This migration only seeds v0.3.0 with stub; migration 015 backfills the complete rules
 V030_RULES: list[dict[str, Any]] = [
     {
         "id": "injection-001-sql-string-concat",
@@ -32,8 +32,7 @@ V030_RULES: list[dict[str, Any]] = [
         "patterns": [{"pattern": "$QUERY + $VAR"}],
         "metadata": {"cwe": "CWE-89"},
     },
-    # Note: Full 44 remaining rules loaded from external source/database
-    # Placeholder demonstrates pattern; full rules should be imported from rules.json
+    # Note: Full 44 remaining rules are backfilled by migration 015_fix_rule_versions_v030_full_rules
 ]
 
 ADMIN_FIREBASE_UID: str = str(uuid5(NAMESPACE_URL, "firebase:admin@loop.oute.pro"))
@@ -84,7 +83,7 @@ def upgrade() -> None:
     existing_row = existing.first()
 
     if existing_row:
-        # v0.3.0 exists — verify it has rules to avoid silent data loss
+        # v0.3.0 exists — verify it has at least the placeholder rule
         existing_rules: Any = existing_row[1]
         if isinstance(existing_rules, str):
             rules_list: Any = json.loads(existing_rules)

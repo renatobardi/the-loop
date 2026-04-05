@@ -1,7 +1,7 @@
 """Add 15 Java rules to v0.4.0 (Spec-018 Phase 2)
 
-Revision ID: 016_add_java_rules
-Revises: 015_fix_rule_versions_v030_full_rules
+Revision ID: 016
+Revises: 015
 Create Date: 2026-04-05
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "016_add_java_rules"
-down_revision = "015_fix_rule_versions_v030_full_rules"
+revision = "016"
+down_revision = "015"
 branch_labels = None
 depends_on = None
 

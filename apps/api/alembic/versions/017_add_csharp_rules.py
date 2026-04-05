@@ -1,7 +1,7 @@
 """Add 15 C# rules to v0.4.0 (Spec-018 Phase 3)
 
-Revision ID: 017_add_csharp_rules
-Revises: 016_add_java_rules
+Revision ID: 017
+Revises: 016
 Create Date: 2026-04-05
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "017_add_csharp_rules"
-down_revision = "016_add_java_rules"
+revision = "017"
+down_revision = "016"
 branch_labels = None
 depends_on = None
 

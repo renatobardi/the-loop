@@ -104,7 +104,7 @@ async def get_latest_rules(
     try:
         # Try cache first
         cached = await cache.get_latest()
-        if cached:
+        if cached and cached.rules:
             response_data = _rule_version_to_response(cached)
             # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
             if isinstance(identity, ApiKeyContext) and identity.whitelist:

@@ -1,0 +1,35 @@
+Seeding 200 test incidents...
+  50/200 created...
+  100/200 created...
+  150/200 created...
+  200/200 created...
+
+✅ Seeded 200 incidents + 200 postmortems
+
+Distribution by team:
+  Backend: 40
+  Frontend: 40
+  DevOps: 40
+  Platform: 40
+  QA: 40
+
+Distribution by category:
+  code_pattern: 40
+  infrastructure: 40
+  process_breakdown: 40
+  third_party: 40
+  unknown: 40
+
+Distribution by severity:
+  error: 100
+  warning: 100
+
+Timeline: 2025-04-13 20:30:48.823993+00:00 to 2026-04-05 20:30:48.823993+00:00
+
+📌 To delete all test data later:
+
+  DELETE FROM postmortems WHERE created_by IN (
+    SELECT id FROM incidents WHERE title LIKE 'Test Incident%'
+  );
+  DELETE FROM incidents WHERE title LIKE 'Test Incident%';
+            

@@ -31,9 +31,18 @@
 	let severityTrend: SeverityTrendPoint[] = $state([]);
 	let topRules: RuleEffectivenessStats[] = $state([]);
 	let loadError: string | null = $state(null);
+	let abortController: AbortController | null = $state(null);
 
 	// Load analytics data on mount and when filters change
 	$effect(() => {
+		// Cancel any in-flight requests when filters change
+		if (abortController) {
+			abortController.abort();
+		}
+
+		abortController = new AbortController();
+		const currentAbort = abortController;
+
 		(async () => {
 			loading = true;
 			loadError = null;
@@ -49,17 +58,26 @@
 					getAnalyticsSeverityTrend(data.filters),
 					getAnalyticsTopRules(data.filters)
 				]);
-				summary = s;
-				byCategory = bc;
-				byTeam = bt;
-				byTeamAll = bta;
-				timeline = t;
-				severityTrend = st;
-				topRules = tr;
+
+				// Only update state if this abort controller wasn't cancelled
+				if (!currentAbort.signal.aborted) {
+					summary = s;
+					byCategory = bc;
+					byTeam = bt;
+					byTeamAll = bta;
+					timeline = t;
+					severityTrend = st;
+					topRules = tr;
+				}
 			} catch (err) {
-				loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
+				// Only show error if this abort controller wasn't cancelled
+				if (!currentAbort.signal.aborted) {
+					loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
+				}
 			} finally {
-				loading = false;
+				if (!currentAbort.signal.aborted) {
+					loading = false;
+				}
 			}
 		})();
 	});

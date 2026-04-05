@@ -20,10 +20,11 @@ async function getAuthToken(): Promise<string> {
 	if (!user) {
 		if (typeof window !== 'undefined') {
 			console.error(
-				'[analytics] No user after waitForAuth(). ' +
-					'Session not restored. Redirecting to login.'
+				'[analytics] No user after waitForAuth(). ' + 'Session not restored. Redirecting to login.'
 			);
 			window.location.href = '/?auth=required';
+			// Don't throw after redirect — let page unload happen naturally
+			return new Promise(() => {});
 		}
 		throw new Error('Unauthenticated');
 	}
@@ -49,6 +50,8 @@ async function request<T>(path: string): Promise<T> {
 	if (response.status === 401) {
 		if (typeof window !== 'undefined') {
 			window.location.href = '/?auth=required';
+			// Don't throw after redirect — let page unload happen naturally
+			return new Promise(() => {});
 		}
 		throw new Error('Unauthenticated');
 	}

@@ -1,4 +1,9 @@
-import type { AnalyticsFilter, Period, StatusFilter, RootCauseCategory } from '$lib/types/analytics';
+import type {
+	AnalyticsFilter,
+	Period,
+	StatusFilter,
+	RootCauseCategory
+} from '$lib/types/analytics';
 
 export async function load({ url }) {
 	// Parse URL filters — API calls happen client-side only (Firebase Auth required)

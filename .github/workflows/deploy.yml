@@ -177,14 +177,17 @@ jobs:
             sleep 1
           done
 
-          # Rewrite host to localhost:5432 (extract database name from end of URL)
-          DB_NAME="${SYNC_URL##*/}"  # Extract last segment (database name)
+          # Rewrite host to localhost:5432 preserving credentials
+          # Extract: postgresql://user:password@ (everything up to and including @)
+          CREDS="${SYNC_URL%%@*}@"
+          # Extract: database name (last segment after final /)
+          DB_NAME="${SYNC_URL##*/}"
           if [ -z "$DB_NAME" ]; then
             echo "ERROR: Failed to extract database name from URL"
             exit 1
           fi
-          ALEMBIC_URL="postgresql://localhost:5432/${DB_NAME}"
-          echo "Rewritten database URL: postgresql://localhost:5432/[db]"
+          ALEMBIC_URL="${CREDS}localhost:5432/${DB_NAME}"
+          echo "Rewritten database URL: postgresql://user:pass@localhost:5432/[db]"
 
           # Run migrations
           echo "Running database migrations..."

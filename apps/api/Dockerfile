@@ -23,9 +23,12 @@ COPY --from=build /app/src src/
 COPY --from=build /app/alembic alembic/
 COPY --from=build /app/alembic.ini .
 
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 USER api
 
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["./entrypoint.sh"]

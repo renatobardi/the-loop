@@ -162,6 +162,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
         row.status = "deprecated"
         row.deprecated_at = datetime.now(UTC)
         await self.session.flush()
+        await self.session.commit()
         await self.session.refresh(row)
 
         return self._row_to_domain(row)

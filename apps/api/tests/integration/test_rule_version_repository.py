@@ -15,11 +15,19 @@ from src.domain.exceptions import (
 from src.domain.models import RuleVersionStatus
 
 
+def _unique_version() -> str:
+    """Generate a unique version string using timestamp to avoid UNIQUE constraint violations."""
+    import time
+    ts = int(time.time() * 1000000) % 10000
+    return f"0.1.{ts}"
+
+
 @pytest.mark.asyncio
 async def test_publish_version_success(db_session: AsyncSession) -> None:
     """Test publishing a new rule version."""
     repo = PostgresRuleVersionRepository(db_session)
     user_id = uuid4()
+    version = _unique_version()
 
     rules_json = [
         {
@@ -33,13 +41,13 @@ async def test_publish_version_success(db_session: AsyncSession) -> None:
     ]
 
     result = await repo.publish_version(
-        version="0.1.0",
+        version=version,
         rules_json=rules_json,
         published_by=str(user_id),
         notes="Initial version",
     )
 
-    assert result.version == "0.1.0"
+    assert result.version == version
     assert result.status == RuleVersionStatus.ACTIVE
     assert len(result.rules) == 1
     assert result.rules[0].id == "test-rule-001"
@@ -50,6 +58,7 @@ async def test_publish_version_duplicate(db_session: AsyncSession) -> None:
     """Test publishing a duplicate version raises error."""
     repo = PostgresRuleVersionRepository(db_session)
     user_id = uuid4()
+    version = _unique_version()
 
     rules_json = [
         {
@@ -63,7 +72,7 @@ async def test_publish_version_duplicate(db_session: AsyncSession) -> None:
     ]
 
     await repo.publish_version(
-        version="0.1.0",
+        version=version,
         rules_json=rules_json,
         published_by=str(user_id),
         notes="First version",
@@ -71,7 +80,7 @@ async def test_publish_version_duplicate(db_session: AsyncSession) -> None:
 
     with pytest.raises(VersionAlreadyExistsError):
         await repo.publish_version(
-            version="0.1.0",
+            version=version,
             rules_json=rules_json,
             published_by=str(user_id),
             notes="Duplicate version",
@@ -97,6 +106,7 @@ async def test_get_by_version(db_session: AsyncSession) -> None:
     """Test retrieving a version by version string."""
     repo = PostgresRuleVersionRepository(db_session)
     user_id = uuid4()
+    version = _unique_version()
 
     rules_json = [
         {
@@ -110,15 +120,15 @@ async def test_get_by_version(db_session: AsyncSession) -> None:
     ]
 
     await repo.publish_version(
-        version="0.1.0",
+        version=version,
         rules_json=rules_json,
         published_by=str(user_id),
     )
 
-    result = await repo.get_by_version("0.1.0")
+    result = await repo.get_by_version(version)
 
     assert result is not None
-    assert result.version == "0.1.0"
+    assert result.version == version
     assert len(result.rules) == 1
 
 
@@ -172,6 +182,8 @@ async def test_list_all(db_session: AsyncSession) -> None:
     """Test listing all versions."""
     repo = PostgresRuleVersionRepository(db_session)
     user_id = uuid4()
+    version1 = _unique_version()
+    version2 = _unique_version()
 
     rules_json = [
         {
@@ -185,21 +197,23 @@ async def test_list_all(db_session: AsyncSession) -> None:
     ]
 
     await repo.publish_version(
-        version="0.1.0",
+        version=version1,
         rules_json=rules_json,
         published_by=str(user_id),
     )
     await repo.publish_version(
-        version="0.2.0",
+        version=version2,
         rules_json=rules_json,
         published_by=str(user_id),
     )
 
     result = await repo.list_all()
 
-    assert len(result) == 2
-    assert result[0].version == "0.2.0"  # Most recent first
-    assert result[1].version == "0.1.0"
+    # Find our test versions in the result (most recent first)
+    test_versions = [v for v in result if v.version in (version1, version2)]
+    assert len(test_versions) == 2
+    assert test_versions[0].version == version2  # Most recent first
+    assert test_versions[1].version == version1
 
 
 @pytest.mark.asyncio
@@ -207,6 +221,7 @@ async def test_deprecate_version(db_session: AsyncSession) -> None:
     """Test deprecating a version."""
     repo = PostgresRuleVersionRepository(db_session)
     user_id = uuid4()
+    version = _unique_version()
 
     rules_json = [
         {
@@ -220,12 +235,12 @@ async def test_deprecate_version(db_session: AsyncSession) -> None:
     ]
 
     await repo.publish_version(
-        version="0.1.0",
+        version=version,
         rules_json=rules_json,
         published_by=str(user_id),
     )
 
-    result = await repo.deprecate_version("0.1.0")
+    result = await repo.deprecate_version(version)
 
     assert result.status == RuleVersionStatus.DEPRECATED
     assert result.deprecated_at is not None

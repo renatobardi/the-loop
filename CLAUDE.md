@@ -257,6 +257,13 @@ All visual styling must use these tokens — no ad-hoc color/spacing values. Use
   - **Ruff**: Enforces strict linting. Ignores `S101` (assertions in tests) and `B008` (FastAPI `Depends()` in default parameters — canonical pattern). The field `_Date` in `domain/models.py` uses leading underscore to avoid Pydantic 2.11 field-name shadowing.
   - **MyPy**: Strict mode enabled with Pydantic plugin (`init_forbid_extra = true`). Some dynamic typing is unavoidable in serialization layers—prefer explicit type casts over `# type: ignore` comments.
 
+## Common Gotchas
+
+- **Transaction commits** (PR #75 lesson): Always call `await session.commit()` after `await session.flush()` in repository write methods. Without `commit()`, data is silently lost on session close.
+- **Rate limiting + slowapi**: Never add `from __future__ import annotations` to route files (`api/routes/*.py`) — it breaks slowapi's decorator introspection.
+- **API key filtering**: Use `in` operator when filtering rules by whitelist (`if rule_id in allowed_rules`), not `not in` — prevents false positives.
+- **Lazy-loading tabs**: Always pass `incidentId` (not full object) and `active` boolean to tab components — prevents unnecessary API calls and race conditions.
+
 ## Scripts
 
 Helper scripts for deployment, build, and rules management:
@@ -342,6 +349,10 @@ Working on a spec:
 - On completion, commit all changes (spec artifacts + code) in a single PR
 - Spec directory and branch name must stay synchronized
 
+## Current Sprint (Spec-019)
+
+Product Analytics Dashboard is ready for implementation. Branch: `feat/019-product-analytics`. Review `specs/019-product-analytics/spec.md`, `plan.md`, and `tasks.md` before starting. All 56 tasks are defined and dependency-ordered; no blockers.
+
 ### Phase Status (as of April 2026)
 
 | Phase | Status | Key Deliverables |
@@ -353,7 +364,8 @@ Working on a spec:
 | Phase B | ✅ Complete | Semgrep integration (45 rules, v0.1.0 → v0.3.0) |
 | Spec-015 | ✅ Complete | Nav/Dashboard/Profile (PR #70) |
 | Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
-| Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #91) |
+| Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
+| Spec-018 | ✅ Complete | Consolidated into Spec-017 |
 | Spec-019 | 📋 Ready | Product Analytics Dashboard (56 tasks, zero issues) |
 
 ## Governance (CONSTITUTION.md)

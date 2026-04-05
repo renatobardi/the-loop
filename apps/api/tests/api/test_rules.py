@@ -306,12 +306,12 @@ async def test_deprecate_version_not_found(mock_rule_version_service: AsyncMock)
 
 async def test_deprecate_version_missing_auth() -> None:
     """Test POST /rules/deprecate returns 401 without auth token."""
-    # No overrides — no auth header → 403 from require_admin (not authenticated)
+    # No overrides — no auth header → 401 from HTTPBearer (missing credentials)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.1.0"})
     app.dependency_overrides.clear()
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 async def test_deprecate_version_invalid_semver() -> None:

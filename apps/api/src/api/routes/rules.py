@@ -61,7 +61,7 @@ def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
     return {
         "version": rv.version,
         "rules_count": rv.rules_count,
-        "created_at": rv.created_at,
+        "created_at": rv.created_at.isoformat(),
         "status": rv.status.value,
         "rules": [
             {
@@ -76,7 +76,7 @@ def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
         ],
         "published_by": str(rv.published_by) if rv.published_by else None,
         "notes": rv.notes,
-        "deprecated_at": rv.deprecated_at,
+        "deprecated_at": rv.deprecated_at.isoformat() if rv.deprecated_at else None,
     }
 
 

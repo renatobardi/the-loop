@@ -83,6 +83,41 @@ async def test_get_latest_rules_not_found(
     assert response.status_code == 503
 
 
+async def test_get_latest_rules_cached_empty_rules_falls_through(
+    mock_rule_version_service: AsyncMock,
+    mock_rule_version_cache: AsyncMock,
+) -> None:
+    """Test GET /rules/latest falls through to DB when cached version has empty rules list.
+
+    Regression test for: cache returning a RuleVersion with rules=[] would be treated
+    as a cache hit and return 200 with empty rules. The fix ensures empty cached rules
+    are treated as a cache miss, falling through to the DB fetch.
+    """
+    # Cache returns a RuleVersion with empty rules (stale/corrupt cache entry)
+    empty_cached = _make_rule_version(rules=[])
+    mock_rule_version_cache.get_latest = AsyncMock(return_value=empty_cached)
+
+    # DB has the real active version with rules
+    db_version = _make_rule_version(version="0.3.0", rules=[_make_rule()])
+    mock_rule_version_service.get_latest_active = AsyncMock(return_value=db_version)
+    mock_rule_version_cache.set_latest = AsyncMock()
+
+    app.dependency_overrides[get_current_user] = lambda: _USER
+    app.dependency_overrides[get_rule_version_service] = lambda: mock_rule_version_service
+    app.dependency_overrides[get_rule_version_cache] = lambda: mock_rule_version_cache
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get("/api/v1/rules/latest")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "0.3.0"
+    assert len(data["rules"]) == 1
+    # Must have fallen through to DB (not returned the empty cache)
+    mock_rule_version_service.get_latest_active.assert_called_once()
+    mock_rule_version_cache.set_latest.assert_called_once()
+
+
 async def test_get_rules_by_version(mock_rule_version_service: AsyncMock) -> None:
     """Test GET /rules/{version} returns specific version."""
     rule_version = _make_rule_version(version="0.1.0")
@@ -271,12 +306,12 @@ async def test_deprecate_version_not_found(mock_rule_version_service: AsyncMock)
 
 async def test_deprecate_version_missing_auth() -> None:
     """Test POST /rules/deprecate returns 401 without auth token."""
-    # No overrides — no auth header → 401 from Firebase token verification
+    # No overrides — no auth header → 403 from require_admin (not authenticated)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post("/api/v1/rules/deprecate", json={"version": "0.1.0"})
     app.dependency_overrides.clear()
 
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 async def test_deprecate_version_invalid_semver() -> None:

@@ -136,6 +136,7 @@ class PostgresRuleVersionRepository(RuleVersionRepository):
 
         try:
             await self.session.flush()  # Flush to detect constraint violations
+            await self.session.commit()
         except IntegrityError as e:
             await self.session.rollback()
             if "unique constraint" in str(e).lower() or "version" in str(e).lower():

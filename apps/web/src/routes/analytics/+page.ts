@@ -1,11 +1,3 @@
-import {
-	getAnalyticsSummary,
-	getAnalyticsByCategory,
-	getAnalyticsByTeam,
-	getAnalyticsTimeline,
-	getAnalyticsSeverityTrend,
-	getAnalyticsTopRules
-} from '$lib/services/analytics';
 import type { AnalyticsFilter, Period, StatusFilter, RootCauseCategory } from '$lib/types/analytics';
 
 export async function load({ url }) {

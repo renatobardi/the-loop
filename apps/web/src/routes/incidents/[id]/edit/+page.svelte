@@ -6,7 +6,7 @@
 
 	let { data } = $props();
 
-	const initial: IncidentCreate = {
+	const initial = $derived({
 		title: data.incident.title,
 		date: data.incident.date,
 		source_url: data.incident.source_url,
@@ -22,10 +22,10 @@
 		static_rule_possible: data.incident.static_rule_possible,
 		semgrep_rule_id: data.incident.semgrep_rule_id,
 		tags: data.incident.tags
-	};
+	} as IncidentCreate);
 
-	const incidentVersion = data.incident.version;
-	const incidentId = data.incident.id;
+	const incidentVersion = $derived(data.incident.version);
+	const incidentId = $derived(data.incident.id);
 
 	async function handleSubmit(formData: IncidentCreate & { version?: number }) {
 		await updateIncident(incidentId, {

@@ -571,3 +571,422 @@ rules:
     metadata:
       category: config
     pattern: http.ListenAndServe($ADDR, $HANDLER)
+
+# ============================================================================
+# PHASE 5: RUBY (10 rules)
+# ============================================================================
+
+  # RUBY — INJECTION (3)
+
+  - id: ruby-injection-001
+    languages: [ruby]
+    message: "[The Loop] SQL injection via string concatenation in ActiveRecord"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: ActiveRecord::Base.connection.execute("..." + $INPUT)
+          - pattern: User.find_by_sql("..." + $INPUT)
+
+  - id: ruby-injection-002
+    languages: [ruby]
+    message: "[The Loop] Command injection via backticks or system() with user input"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+    patterns:
+      - pattern-either:
+          - pattern: "`$CMD`"
+          - pattern: system($CMD)
+          - pattern: exec($CMD)
+
+  - id: ruby-injection-003
+    languages: [ruby]
+    message: "[The Loop] Unsafe evaluation of user-supplied code"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-94"
+    patterns:
+      - pattern-either:
+          - pattern: eval($INPUT)
+          - pattern: instance_eval($INPUT)
+          - pattern: class_eval($INPUT)
+
+  # RUBY — CRYPTOGRAPHY (2)
+
+  - id: ruby-crypto-001
+    languages: [ruby]
+    message: "[The Loop] Weak hash algorithm (MD5 or SHA1) detected"
+    severity: WARNING
+    metadata:
+      category: crypto
+      cwe: "CWE-327"
+    patterns:
+      - pattern-either:
+          - pattern: Digest::MD5.digest(...)
+          - pattern: Digest::SHA1.digest(...)
+
+  - id: ruby-crypto-002
+    languages: [ruby]
+    message: "[The Loop] Weak random for security-sensitive operations"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern: SecureRandom.random_bytes($N) if rand() > 0.5
+
+  # RUBY — SECURITY (3)
+
+  - id: ruby-security-001
+    languages: [ruby]
+    message: "[The Loop] Hardcoded API key or credential in source code"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "\\$(api_key|password|secret)\\s*=\\s*['\"][^'\"]+['\"]"
+
+  - id: ruby-security-002
+    languages: [ruby]
+    message: "[The Loop] Mass assignment vulnerability — all params sent to model"
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-434"
+    patterns:
+      - pattern: User.create(params)
+
+  - id: ruby-security-003
+    languages: [ruby]
+    message: "[The Loop] Unsafe use of YAML.load() — use YAML.safe_load()"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-502"
+    patterns:
+      - pattern: YAML.load($INPUT)
+
+  # RUBY — ERROR HANDLING (2)
+
+  - id: ruby-error-001
+    languages: [ruby]
+    message: "[The Loop] Bare rescue catches StandardError and masks bugs"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern-regex: "rescue\\s*$"
+
+  - id: ruby-config-001
+    languages: [ruby]
+    message: "[The Loop] Rails.env == 'production' check for toggling security (missing in dev)"
+    severity: WARNING
+    metadata:
+      category: config
+    patterns:
+      - pattern-regex: "skip_.*if.*Rails\\.env.*production"
+
+# ============================================================================
+# PHASE 6: KOTLIN (10 rules)
+# ============================================================================
+
+  # KOTLIN — INJECTION (3)
+
+  - id: kotlin-injection-001
+    languages: [kotlin]
+    message: "[The Loop] SQL injection via string concatenation in JDBC"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: connection.createStatement().executeQuery("..." + $INPUT)
+          - pattern: statement.execute("..." + $INPUT)
+
+  - id: kotlin-injection-002
+    languages: [kotlin]
+    message: "[The Loop] Runtime.getRuntime().exec() with unvalidated input"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+    patterns:
+      - pattern: Runtime.getRuntime().exec($CMD)
+
+  - id: kotlin-injection-003
+    languages: [kotlin]
+    message: "[The Loop] Unsafe reflection with external input"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-470"
+    patterns:
+      - pattern: Class.forName($INPUT).newInstance()
+
+  # KOTLIN — CRYPTOGRAPHY (2)
+
+  - id: kotlin-crypto-001
+    languages: [kotlin]
+    message: "[The Loop] Weak hash algorithm (MD5 or SHA1) in MessageDigest"
+    severity: WARNING
+    metadata:
+      category: crypto
+      cwe: "CWE-327"
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: MessageDigest.getInstance("SHA1")
+
+  - id: kotlin-crypto-002
+    languages: [kotlin]
+    message: "[The Loop] java.util.Random instead of SecureRandom for secrets"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern: Random().nextInt(...)
+
+  # KOTLIN — SECURITY (3)
+
+  - id: kotlin-security-001
+    languages: [kotlin]
+    message: "[The Loop] TLS verification disabled"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern: setDefaultHostnameVerifier { _, _ -> true }
+
+  - id: kotlin-security-002
+    languages: [kotlin]
+    message: "[The Loop] Hardcoded credential in code"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "val\\s+(password|apiKey|secret)\\s*=\\s*['\"][^'\"]+['\"]"
+
+  - id: kotlin-security-003
+    languages: [kotlin]
+    message: "[The Loop] Unsafe deserialization with ObjectInputStream"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-502"
+    patterns:
+      - pattern: ObjectInputStream($STREAM).readObject()
+
+  # KOTLIN — ERROR HANDLING (2)
+
+  - id: kotlin-error-001
+    languages: [kotlin]
+    message: "[The Loop] Coroutine launched without error handling"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern: GlobalScope.launch { ... }
+
+  - id: kotlin-config-001
+    languages: [kotlin]
+    message: "[The Loop] Hardcoded URL or endpoint in code"
+    severity: WARNING
+    metadata:
+      category: config
+    patterns:
+      - pattern-regex: "val.*url.*=.*['\"]https?://.*['\"]"
+
+# ============================================================================
+# PHASE 7A: RUST (8 rules)
+# ============================================================================
+
+  # RUST — INJECTION (2)
+
+  - id: rust-injection-001
+    languages: [rust]
+    message: "[The Loop] SQL injection via string formatting in sqlx or rusqlite"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: sqlx::query($FORMAT + $INPUT)
+          - pattern: conn.execute(format!("SELECT ... WHERE {}", $INPUT))
+
+  - id: rust-injection-002
+    languages: [rust]
+    message: "[The Loop] Command injection via Command::new() with unsanitized args"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+    patterns:
+      - pattern: Command::new($CMD).arg($INPUT).output()
+
+  # RUST — CRYPTOGRAPHY (2)
+
+  - id: rust-crypto-001
+    languages: [rust]
+    message: "[The Loop] Use of weak RNG (rand::random) for cryptography"
+    severity: WARNING
+    metadata:
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern: rand::random()
+
+  - id: rust-crypto-002
+    languages: [rust]
+    message: "[The Loop] Hardcoded cryptographic key in source code"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "const\\s+(KEY|SECRET|PASSWORD)\\s*=\\s*b?['\"][^'\"]+['\"]"
+
+  # RUST — SECURITY (2)
+
+  - id: rust-security-001
+    languages: [rust]
+    message: "[The Loop] Unsafe block without justification — potential memory safety issue"
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-416"
+    patterns:
+      - pattern: unsafe { ... }
+
+  - id: rust-security-002
+    languages: [rust]
+    message: "[The Loop] panic!() in library code — use Result instead"
+    severity: WARNING
+    metadata:
+      category: security
+    patterns:
+      - pattern: panic!(...)
+
+  # RUST — ERROR HANDLING (1)
+
+  - id: rust-error-001
+    languages: [rust]
+    message: "[The Loop] unwrap() called on Result without context — prefer ? operator"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern-regex: "unwrap()"
+
+# ============================================================================
+# PHASE 7B: C/C++ (10 rules)
+# ============================================================================
+
+  # C/C++ — INJECTION (2)
+
+  - id: cpp-injection-001
+    languages: [c, cpp]
+    message: "[The Loop] SQL injection via string formatting in SQL query"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: sprintf($BUFFER, "SELECT ... %s ...", $INPUT)
+          - pattern: sqlite3_prepare_v2($DB, "..." + $INPUT, ...)
+
+  - id: cpp-injection-002
+    languages: [c, cpp]
+    message: "[The Loop] Command injection via system() with unsanitized input"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+    patterns:
+      - pattern: system($CMD)
+
+  # C/C++ — MEMORY SAFETY (3)
+
+  - id: cpp-memory-001
+    languages: [c, cpp]
+    message: "[The Loop] Buffer overflow risk — use of strcpy() instead of strncpy()"
+    severity: ERROR
+    metadata:
+      category: memory-safety
+      cwe: "CWE-120"
+    patterns:
+      - pattern: strcpy($DST, $SRC)
+
+  - id: cpp-memory-002
+    languages: [c, cpp]
+    message: "[The Loop] Use-after-free — pointer used after deletion"
+    severity: ERROR
+    metadata:
+      category: memory-safety
+      cwe: "CWE-416"
+    patterns:
+      - pattern-regex: "delete.*\\n.*\\w+\\s*->"
+
+  - id: cpp-memory-003
+    languages: [c, cpp]
+    message: "[The Loop] Memory leak — allocated but not freed"
+    severity: WARNING
+    metadata:
+      category: memory-safety
+      cwe: "CWE-401"
+    patterns:
+      - pattern: new $TYPE(...)
+
+  # C/C++ — CRYPTOGRAPHY (2)
+
+  - id: cpp-crypto-001
+    languages: [c, cpp]
+    message: "[The Loop] Hardcoded encryption key or IV in source"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(const\\s+)?unsigned char.*key.*=.*\\{[0-9x,\\s]+\\}"
+
+  - id: cpp-crypto-002
+    languages: [c, cpp]
+    message: "[The Loop] Weak random number generation (rand instead of secure source)"
+    severity: WARNING
+    metadata:
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern: rand()
+
+  # C/C++ — ERROR HANDLING (2)
+
+  - id: cpp-error-001
+    languages: [c, cpp]
+    message: "[The Loop] Unchecked return value from system function — check errno"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern-regex: "(open|read|write|recv|send)\\([^)]*\\)\\s*[;)]"
+
+  - id: cpp-error-002
+    languages: [c, cpp]
+    message: "[The Loop] Missing null pointer check before dereference"
+    severity: ERROR
+    metadata:
+      category: error-handling
+      cwe: "CWE-476"
+    patterns:
+      - pattern-regex: "\\w+\\s*->[a-zA-Z_]"

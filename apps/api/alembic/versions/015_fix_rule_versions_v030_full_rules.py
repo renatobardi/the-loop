@@ -15,6 +15,7 @@ Create Date: 2026-04-05
 
 import json
 from typing import Any
+from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
 
 import sqlalchemy as sa
 from alembic import op
@@ -26,6 +27,10 @@ depends_on = None
 
 RULES_VERSION = "0.4.0"  # Create new version for Phase B (Python) + Phase C (JS/TS + Go)
 FULL_RULES_COUNT = 45
+
+# Admin user from migration 014 (deterministic UUID5)
+ADMIN_FIREBASE_UID: str = str(uuid5(NAMESPACE_URL, "firebase:admin@loop.oute.pro"))
+ADMIN_EMAIL: str = "admin@loop.oute.pro"
 
 # All 45 rules in DB JSON format (list[dict] — matches Rule domain model fields).
 # patterns follow the converter format (json_to_semgrep_yaml.py):
@@ -540,9 +545,27 @@ def upgrade() -> None:
     except (TypeError, ValueError) as e:
         raise ValueError(f"Failed to serialize rules: {e}") from e
 
-    # Create v0.4.0 with the full ruleset
-    from uuid import uuid4
+    # Get or create admin user (same as migration 014)
+    result = connection.execute(
+        sa.text("""
+        INSERT INTO users (id, firebase_uid, email, is_admin)
+        VALUES (:id, :firebase_uid, :email, :is_admin)
+        ON CONFLICT (firebase_uid) DO UPDATE SET is_admin = true
+        RETURNING id
+        """),
+        {
+            "id": str(uuid4()),
+            "firebase_uid": ADMIN_FIREBASE_UID,
+            "email": ADMIN_EMAIL,
+            "is_admin": True,
+        }
+    )
+    admin_row = result.first()
+    if not admin_row:
+        raise RuntimeError("Failed to create or retrieve admin user")
+    admin_id: UUID = admin_row[0]
 
+    # Create v0.4.0 with the full ruleset
     connection.execute(
         sa.text(
             "INSERT INTO rule_versions (id, version, rules_json, status, notes, published_by) "
@@ -554,7 +577,7 @@ def upgrade() -> None:
             "rules_json": rules_json,
             "status": "active",
             "notes": "Phase B + C: 45 rules (20 Python + 15 JS/TS + 10 Go)",
-            "published_by": None,  # System migration, no user attribution
+            "published_by": admin_id,
         }
     )
 
@@ -562,7 +585,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Delete v0.4.0 on downgrade (returns to v0.3.0 from migration 014)."""
+    """Delete v0.4.0 on downgrade (returns to v0.3.0 from migration 014).
+
+    Also cleans up the admin user by firebase_uid (same as migration 014 downgrade).
+    """
     connection = op.get_bind()
 
     # Delete v0.4.0 if it exists
@@ -571,8 +597,10 @@ def downgrade() -> None:
         {"version": RULES_VERSION}
     )
 
-    if result.rowcount == 0:
-        # v0.4.0 doesn't exist — idempotent (downgrade already complete or never ran)
-        return
+    # Clean up admin user (by deterministic firebase_uid, same as migration 014)
+    connection.execute(
+        sa.text("DELETE FROM users WHERE firebase_uid = :firebase_uid"),
+        {"firebase_uid": ADMIN_FIREBASE_UID}
+    )
 
     connection.commit()

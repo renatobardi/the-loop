@@ -9,10 +9,9 @@ import {
 import type { AnalyticsFilter, Period, StatusFilter, RootCauseCategory } from '$lib/types/analytics';
 
 export async function load({ url }) {
-	// Firebase auth initialization + session restoration happens client-side.
-	// The API calls in analytics.ts use waitForAuth() which handles the async auth flow.
+	// Parse URL filters — API calls happen client-side only (Firebase Auth required)
 	const period = (url.searchParams.get('period') || 'month') as Period;
-	const teams = url.searchParams.getAll('team'); // multi-select: ?team=a&team=b
+	const teams = url.searchParams.getAll('team');
 	const category = (url.searchParams.get('category') || null) as RootCauseCategory | null;
 	const status = (url.searchParams.get('status') || 'all') as StatusFilter;
 	const start_date = url.searchParams.get('start_date') || null;
@@ -20,47 +19,15 @@ export async function load({ url }) {
 
 	const filters: AnalyticsFilter = { period, teams, category, status, start_date, end_date };
 
-	// byTeamAll fetches all teams (no filter) for dropdown population
-	const teamAllFilters: AnalyticsFilter = { ...filters, teams: [] };
-
-	const empty = {
-		summary: { total: 0, resolved: 0, unresolved: 0, avg_resolution_days: null },
-		byCategory: [],
-		byTeam: [],
-		byTeamAll: [],
-		timeline: [],
-		severityTrend: [],
-		topRules: [],
+	return {
+		summary: null,
+		byCategory: null,
+		byTeam: null,
+		byTeamAll: null,
+		timeline: null,
+		severityTrend: null,
+		topRules: null,
 		filters,
 		loadError: null as string | null
 	};
-
-	try {
-		const [summary, byCategory, byTeam, byTeamAll, timeline, severityTrend, topRules] =
-			await Promise.all([
-				getAnalyticsSummary(filters),
-				getAnalyticsByCategory(filters),
-				getAnalyticsByTeam(filters),
-				getAnalyticsByTeam(teamAllFilters),
-				getAnalyticsTimeline(filters),
-				getAnalyticsSeverityTrend(filters),
-				getAnalyticsTopRules(filters)
-			]);
-		return {
-			summary,
-			byCategory,
-			byTeam,
-			byTeamAll,
-			timeline,
-			severityTrend,
-			topRules,
-			filters,
-			loadError: null
-		};
-	} catch (err) {
-		return {
-			...empty,
-			loadError: err instanceof Error ? err.message : 'Unable to load analytics data'
-		};
-	}
 }

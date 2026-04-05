@@ -17,22 +17,25 @@ const BASE = `${API_BASE}/api/v1/incidents/analytics`;
 
 async function getAuthToken(): Promise<string> {
 	const user = await waitForAuth();
-	console.log('[analytics] waitForAuth() returned:', user?.email ?? 'null');
 	if (!user) {
 		if (typeof window !== 'undefined') {
+			console.error('[analytics] No user after waitForAuth(). Session not restored. Redirecting to login.');
 			window.location.href = '/?auth=required';
 		}
 		throw new Error('Unauthenticated');
 	}
-	const token = await user.getIdToken();
-	console.log('[analytics] got idToken for user:', user.email);
-	return token;
+	try {
+		const token = await user.getIdToken();
+		console.log('[analytics] Got token for:', user.email);
+		return token;
+	} catch (err) {
+		console.error('[analytics] Failed to get idToken:', err);
+		throw new Error('Failed to get authentication token');
+	}
 }
 
 async function request<T>(path: string): Promise<T> {
 	const token = await getAuthToken();
-	console.log('[analytics] request to:', path);
-	console.log('[analytics] token length:', token.length);
 	const response = await fetch(path, {
 		headers: {
 			'Content-Type': 'application/json',
@@ -40,10 +43,7 @@ async function request<T>(path: string): Promise<T> {
 		}
 	});
 
-	console.log('[analytics] response status:', response.status);
 	if (response.status === 401) {
-		const body = await response.text();
-		console.error('[analytics] 401 response body:', body);
 		if (typeof window !== 'undefined') {
 			window.location.href = '/?auth=required';
 		}

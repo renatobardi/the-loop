@@ -2,7 +2,15 @@
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
 	import DashboardGrid from '$lib/components/analytics/DashboardGrid.svelte';
-	import type { AnalyticsFilter, AnalyticsSummary, CategoryStats, TeamStats, TimelinePoint, SeverityTrendPoint, RuleEffectivenessStats } from '$lib/types/analytics';
+	import type {
+		AnalyticsFilter,
+		AnalyticsSummary,
+		CategoryStats,
+		TeamStats,
+		TimelinePoint,
+		SeverityTrendPoint,
+		RuleEffectivenessStats
+	} from '$lib/types/analytics';
 	import {
 		getAnalyticsSummary,
 		getAnalyticsByCategory,
@@ -55,7 +63,8 @@
 	});
 
 	function handleFiltersChange(f: AnalyticsFilter) {
-		const params = new URLSearchParams(); // eslint-disable-line svelte/prefer-svelte-reactivity -- not reactive, rebuilt each call
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		const params = new URLSearchParams();
 		params.set('period', f.period);
 		for (const t of f.teams ?? []) {
 			params.append('team', t); // multi-select: repeated params

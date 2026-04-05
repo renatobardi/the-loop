@@ -19,7 +19,10 @@ async function getAuthToken(): Promise<string> {
 	const user = await waitForAuth();
 	if (!user) {
 		if (typeof window !== 'undefined') {
-			console.error('[analytics] No user after waitForAuth(). Session not restored. Redirecting to login.');
+			console.error(
+				'[analytics] No user after waitForAuth(). ' +
+					'Session not restored. Redirecting to login.'
+			);
 			window.location.href = '/?auth=required';
 		}
 		throw new Error('Unauthenticated');

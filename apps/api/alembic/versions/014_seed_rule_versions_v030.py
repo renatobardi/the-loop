@@ -83,7 +83,7 @@ def upgrade() -> None:
     existing_row = existing.first()
 
     if existing_row:
-        # v0.3.0 exists — verify it has rules to avoid silent data loss
+        # v0.3.0 exists — verify it has at least the placeholder rule
         existing_rules: Any = existing_row[1]
         if isinstance(existing_rules, str):
             rules_list: Any = json.loads(existing_rules)

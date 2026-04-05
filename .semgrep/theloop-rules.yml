@@ -888,6 +888,17 @@ rules:
     patterns:
       - pattern-regex: "unwrap()"
 
+  # RUST — CONFIG (1)
+
+  - id: rust-config-001
+    languages: [rust]
+    message: "[The Loop] Hardcoded credentials or API keys in source code"
+    severity: ERROR
+    metadata:
+      category: config
+    patterns:
+      - pattern-regex: "(?i)(api_key|secret|password|token)\\s*[=:]\\s*['\"][A-Za-z0-9]{8,}['\"]"
+
 # ============================================================================
 # PHASE 7B: C/C++ (10 rules)
 # ============================================================================

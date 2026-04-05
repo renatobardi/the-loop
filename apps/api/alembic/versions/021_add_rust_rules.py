@@ -38,6 +38,7 @@ def upgrade() -> None:
         {"id": "rust-security-001", "languages": ["rust"], "message": "[The Loop] Unsafe block without justification — potential memory safety issue", "severity": "WARNING", "patterns": [{"pattern": "unsafe { ... }"}], "metadata": {"category": "security", "cwe": "CWE-416"}},
         {"id": "rust-security-002", "languages": ["rust"], "message": "[The Loop] panic!() in library code — use Result instead", "severity": "WARNING", "patterns": [{"pattern": "panic!(...)"}], "metadata": {"category": "security"}},
         {"id": "rust-error-001", "languages": ["rust"], "message": "[The Loop] unwrap() called on Result without context — prefer ? operator", "severity": "WARNING", "patterns": [{"pattern-regex": "unwrap()"}], "metadata": {"category": "error-handling"}},
+        {"id": "rust-config-001", "languages": ["rust"], "message": "[The Loop] Hardcoded credentials or API keys in source code", "severity": "ERROR", "patterns": [{"pattern-regex": "(?i)(api_key|secret|password|token)\\s*[=:]\\s*['\"][A-Za-z0-9]{8,}['\"]"}], "metadata": {"category": "config"}},
     ]
 
     # Only 8 Rust rules (not 10)

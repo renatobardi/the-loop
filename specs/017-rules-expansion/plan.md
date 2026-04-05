@@ -385,9 +385,9 @@ For each language phase:
 ## Out of Scope
 
 - **Swift, Scala, Dart** → Phase 8 (future)
-- **Custom rules per project** → Spec-018
-- **AI-suggested rules** → Spec-019
-- **Rule whitelisting by team** → Spec-020
+- **Custom rules per project** → Phase 8 (future)
+- **AI-suggested rules** → Phase 9 (future)
+- **Rule whitelisting by team** → Phase 10 (future)
 - **Remediation suggestions** → Phase C (future)
 
 ---

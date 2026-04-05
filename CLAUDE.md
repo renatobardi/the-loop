@@ -286,7 +286,7 @@ All visual styling must use these tokens — no ad-hoc color/spacing values. Use
   });
   ```
   Avoids cleanup complications and simplifies cancellation logic.
-- **Cache guards over AbortController in analytics**: Avoid AbortController for cache-driven API requests (e.g., `lib/services/analytics.ts`). The cache layer already prevents duplicate fetches; AbortController adds complexity without preventing race conditions in a cached context. Prefer simple cache guards with boolean flags.
+- **AbortSignal.timeout vs shared AbortController in analytics**: Use `AbortSignal.timeout(ms)` (static, per-request, fire-and-forget) for fetch timeouts in `lib/services/analytics.ts`. Never use a shared `AbortController` across parallel requests — cancelling it aborts all in-flight fetches simultaneously, which breaks the page on filter changes. For stale-result protection, use a plain generation counter (`let gen = ++loadGeneration`) instead of AbortController.
 
 ## Scripts
 

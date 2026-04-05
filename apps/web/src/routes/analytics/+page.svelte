@@ -32,8 +32,13 @@
 	let topRules: RuleEffectivenessStats[] = $state([]);
 	let loadError: string | null = $state(null);
 
+	// Generation counter (plain variable, not reactive) guards against stale results
+	// when filters change while a previous fetch is still in-flight.
+	let loadGeneration = 0;
+
 	// Load analytics data on mount and when filters change
 	$effect(() => {
+		const gen = ++loadGeneration;
 		(async () => {
 			loading = true;
 			loadError = null;
@@ -49,6 +54,8 @@
 					getAnalyticsSeverityTrend(data.filters),
 					getAnalyticsTopRules(data.filters)
 				]);
+
+				if (gen !== loadGeneration) return; // stale — newer fetch superseded this one
 
 				const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
 					r.status === 'fulfilled' ? r.value : fallback;
@@ -70,9 +77,10 @@
 							: `Some analytics data unavailable: ${reason?.message ?? 'Unknown error'}`;
 				}
 			} catch (err) {
+				if (gen !== loadGeneration) return;
 				loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
 			} finally {
-				loading = false;
+				if (gen === loadGeneration) loading = false;
 			}
 		})();
 	});
@@ -137,7 +145,7 @@
 			{severityTrend}
 			{topRules}
 			filters={data.filters}
-			loading={navigating !== null || loading}
+			loading={navigating.to !== null || loading}
 			onFiltersChange={handleFiltersChange}
 		/>
 	{:else if loading}

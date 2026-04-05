@@ -17,7 +17,15 @@ const BASE = `${API_BASE}/api/v1/incidents/analytics`;
 const FETCH_TIMEOUT_MS = 30_000;
 
 async function getAuthToken(): Promise<string> {
-	const user = await waitForAuth();
+	let user;
+	try {
+		user = await waitForAuth();
+	} catch (err) {
+		if (typeof window !== 'undefined') {
+			window.location.href = '/?auth=required';
+		}
+		throw new Error('Authentication timed out', { cause: err });
+	}
 	if (!user) {
 		if (typeof window !== 'undefined') {
 			window.location.href = '/?auth=required';

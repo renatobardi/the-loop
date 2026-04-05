@@ -58,7 +58,8 @@ const AUTH_TIMEOUT_MS = 10_000;
 
 /** Wait for Firebase to restore the persisted auth session.
  * Returns the current user (or null if not authenticated).
- * Rejects after timeoutMs if onAuthStateChanged never fires. */
+ * Rejects with an error if onAuthStateChanged does not fire within timeoutMs
+ * (e.g. slow initialization or network issues). Callers must handle the rejection. */
 export async function waitForAuth(timeoutMs = AUTH_TIMEOUT_MS): Promise<User | null> {
 	return new Promise((resolve, reject) => {
 		const timer = setTimeout(() => {

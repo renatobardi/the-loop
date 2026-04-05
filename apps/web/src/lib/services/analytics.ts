@@ -18,7 +18,9 @@ const BASE = `${API_BASE}/api/v1/incidents/analytics`;
 async function getAuthToken(): Promise<string> {
 	const user = await waitForAuth();
 	if (!user) {
-		window.location.href = '/?auth=required';
+		if (typeof window !== 'undefined') {
+			window.location.href = '/?auth=required';
+		}
 		throw new Error('Unauthenticated');
 	}
 	return user.getIdToken();
@@ -34,7 +36,9 @@ async function request<T>(path: string): Promise<T> {
 	});
 
 	if (response.status === 401) {
-		window.location.href = '/?auth=required';
+		if (typeof window !== 'undefined') {
+			window.location.href = '/?auth=required';
+		}
 		throw new Error('Unauthenticated');
 	}
 

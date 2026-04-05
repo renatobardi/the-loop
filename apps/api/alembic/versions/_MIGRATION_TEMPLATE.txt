@@ -1,0 +1,111 @@
+# Spec-018 Migration Template Pattern
+#
+# This template documents the standard pattern for all 7 language-phase migrations (016-022).
+# Use this as a reference when creating each migration file.
+#
+# FILE NAME: 0NN_add_{language}_rules.py
+# EXAMPLES: 016_add_java_rules.py, 017_add_csharp_rules.py, etc.
+#
+# KEY REQUIREMENTS:
+# 1. Idempotency Guard: Always check if rules already exist for the version
+# 2. Hardcoded Rules: Rules are embedded as Python list (not fetched from external source)
+# 3. Version Update: UPDATE rule_versions SET rules_json WHERE version='v0.4.0'
+# 4. Transaction Commit: Always call connection.commit() after flush()
+#
+# IDEMPOTENCY GUARD PATTERN:
+# ===========================
+#
+#   def upgrade() -> None:
+#       connection = op.get_bind()
+#
+#       # Guard: Check if rules already exist for this version
+#       existing_check = connection.execute(
+#           sa.text("SELECT id, rules_json FROM rule_versions WHERE version = :version"),
+#           {"version": "v0.4.0"}
+#       )
+#       existing_row = existing_check.first()
+#
+#       if existing_row:
+#           existing_rules = json.loads(existing_row[1]) if isinstance(existing_row[1], str) else existing_row[1]
+#
+#           # Idempotency: If rules already at full count, skip
+#           if isinstance(existing_rules, list) and len(existing_rules) >= FULL_RULES_COUNT:
+#               return  # Already patched; skip safely
+#
+#           # else: raise error (corruption detected; halt deployment)
+#           raise RuntimeError(
+#               f"Version v0.4.0 exists with {len(existing_rules)} rules; expected {FULL_RULES_COUNT}. "
+#               "Possible data corruption. Manual review required."
+#           )
+#
+#       # HARDCODED RULES (embedded as Python list)
+#       RULES = [
+#           {
+#               "id": "java-injection-001",
+#               "languages": ["java"],
+#               "message": "[The Loop] SQL injection via string concatenation",
+#               "severity": "ERROR",
+#               "patterns": [{"pattern": "..."}],
+#               "metadata": {"category": "injection", "cwe": "CWE-89"}
+#           },
+#           # ... more rules ...
+#       ]
+#       FULL_RULES_COUNT = len(RULES)
+#
+#       # UPDATE rule_versions to add rules
+#       connection.execute(
+#           sa.text(
+#               "UPDATE rule_versions SET rules_json = :json WHERE version = :version"
+#           ),
+#           {
+#               "json": json.dumps(RULES),
+#               "version": "v0.4.0"
+#           }
+#       )
+#       connection.commit()  # ⚠️ CRITICAL: Must commit after flush
+#
+# RULE SCHEMA:
+# ============
+# Each rule must follow this structure:
+#
+#   {
+#       "id": "{language}-{category}-{number}",      # e.g., "java-injection-001"
+#       "languages": ["lang1", "lang2"],             # Semgrep language codes
+#       "message": "[The Loop] ...",                 # Must start with [The Loop]
+#       "severity": "ERROR" | "WARNING",             # Two levels only
+#       "patterns": [{"pattern": "..."}],            # Non-empty, valid Semgrep syntax
+#       "metadata": {
+#           "category": "injection|crypto|security|performance|error-handling|lang-specific",
+#           "cwe": "CWE-{number}" (optional, e.g., "CWE-89")
+#       }
+#   }
+#
+# VALIDATION:
+# ===========
+# After creating migration file, run:
+#   1. cd apps/api && alembic upgrade head
+#   2. Verify: SELECT COUNT(*) FROM rule_versions WHERE version='v0.4.0';
+#   3. Expected: Row count = 1, rules_count incrementally increases per phase
+#
+# ROLLBACK:
+# =========
+# Each migration auto-generates a downgrade():
+#   - Deletes rules from v0.4.0 for that language
+#   - Idempotency guard prevents corruption on downgrade
+#
+# PHASE PROGRESSION (rule count per language):
+# =============================================
+# Phase 1 (Java):           45 + 15 = 60 total rules
+# Phase 2 (C#):             60 + 15 = 75 total rules
+# Phase 3 (PHP):            75 + 10 = 85 total rules
+# Phase 4 (Ruby):           85 + 10 = 95 total rules
+# Phase 5 (Kotlin):         95 + 10 = 105 total rules
+# Phase 6 (Rust):          105 +  8 = 113 total rules
+# Phase 7 (C/C++):         113 + 10 = 123 total rules
+#
+# REFERENCE:
+# ==========
+# - Spec: /Users/bardi/Projetos/the-loop/specs/018-multi-lang-rules/spec.md
+# - Plan: /Users/bardi/Projetos/the-loop/specs/018-multi-lang-rules/plan.md
+# - Contract: /Users/bardi/Projetos/the-loop/specs/018-multi-lang-rules/contracts/rule-schema.md
+# - Existing pattern: alembic/versions/015_fix_rule_versions_v030_full_rules.py (reference impl)

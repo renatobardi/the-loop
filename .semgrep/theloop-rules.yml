@@ -7,7 +7,7 @@ rules:
   # PHASE A: 6 Base Rules
 
   - id: injection-001-sql-string-concat
-    languages: [python, javascript, typescript, java, go, ruby]
+    languages: [python, javascript, typescript, ruby]
     message: "[The Loop] SQL injection via string concatenation"
     severity: ERROR
     metadata:
@@ -203,7 +203,7 @@ rules:
       - pattern-not: cursor.execute($QUERY, ..., timeout=$TIMEOUT)
 
   - id: n-plus-one-001
-    languages: [python, javascript]
+    languages: [python]
     message: "[The Loop] N+1 query pattern"
     severity: WARNING
     metadata:
@@ -571,3 +571,366 @@ rules:
     metadata:
       category: config
     pattern: http.ListenAndServe($ADDR, $HANDLER)
+
+  # PHASE 1 (Spec-018): 15 Java Rules (v0.4.0)
+
+  # JAVA — INJECTION (5)
+
+  - id: java-injection-001
+    languages: [java]
+    message: "[The Loop] SQL injection via string concatenation with JDBC"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: $STMT.executeQuery($X + $INPUT)
+          - pattern: $STMT.execute($X + $INPUT)
+          - pattern: $STMT.executeUpdate($X + $INPUT)
+          - pattern: $CONN.createStatement().execute($X + $INPUT)
+
+  - id: java-injection-002
+    languages: [java]
+    message: "[The Loop] SQL injection via string interpolation in dynamic SQL"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: new PreparedStatement($X + $Y)
+          - pattern: $CONNECTION.createStatement().execute($X + $Y)
+
+  - id: java-injection-003
+    languages: [java]
+    message: "[The Loop] XPath injection via string concatenation"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+    patterns:
+      - pattern-either:
+          - pattern: XPathFactory.newInstance().newXPath().compile("..." + $INPUT)
+          - pattern: xpath.compile($X + $INPUT)
+
+  - id: java-injection-004
+    languages: [java]
+    message: "[The Loop] Shell command injection via Runtime.exec()"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+    patterns:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec("..." + $INPUT)
+          - pattern: Runtime.getRuntime().exec($CMD)
+      - pattern-not: Runtime.getRuntime().exec(new String[] { ... })
+
+  - id: java-injection-005
+    languages: [java]
+    message: "[The Loop] XXE (XML External Entity) injection risk"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-611"
+    patterns:
+      - pattern-either:
+          - pattern: DocumentBuilderFactory.newInstance().newDocumentBuilder().parse($UNTRUSTED_INPUT)
+          - pattern: SAXParserFactory.newInstance().newSAXParser().parse($UNTRUSTED_INPUT, ...)
+
+  # JAVA — CRYPTO (3)
+
+  - id: java-crypto-001
+    languages: [java]
+    message: "[The Loop] Weak cryptographic hash MD5 or SHA1"
+    severity: WARNING
+    metadata:
+      category: crypto
+      cwe: "CWE-327"
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: MessageDigest.getInstance("SHA1")
+          - pattern: MessageDigest.getInstance("SHA-1")
+          - pattern: Digest.getInstance("MD5")
+          - pattern: DigestUtils.md5(...)
+          - pattern: DigestUtils.sha1(...)
+
+  - id: java-crypto-002
+    languages: [java]
+    message: "[The Loop] java.util.Random used for security-sensitive value — use SecureRandom"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-338"
+    patterns:
+      - pattern-either:
+          - pattern: new Random().nextInt(...)
+          - pattern: new Random().nextLong()
+          - pattern: new Random().nextDouble()
+          - pattern: new Random().next$METHOD(...)
+
+  - id: java-crypto-003
+    languages: [java]
+    message: "[The Loop] Hardcoded encryption key in source code"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(?i)(encryption|cipher|secret).*Key.*=.*[\"'][A-Za-z0-9+/=]{16,}[\"']"
+
+  # JAVA — SECURITY (4)
+
+  - id: java-security-001
+    languages: [java]
+    message: "[The Loop] Hardcoded API key or database credential detected"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(?i)(api_?key|password|db_?password|secret)\\s*=\\s*[\"'][^\"']{8,}[\"']"
+
+  - id: java-security-002
+    languages: [java]
+    message: "[The Loop] TLS certificate verification disabled via X509TrustManager"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern: |
+          new X509TrustManager() {
+              ...
+              public void checkServerTrusted(...) {
+                  // No validation
+              }
+              ...
+          }
+
+  - id: java-security-003
+    languages: [java]
+    message: "[The Loop] Unsafe deserialization with ObjectInputStream"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-502"
+    patterns:
+      - pattern-either:
+          - pattern: new ObjectInputStream($INPUT).readObject()
+          - pattern: $OIS.readObject()
+          - pattern: $OIS.readUnshared()
+
+  - id: java-security-004
+    languages: [java]
+    message: "[The Loop] JDBC connection without SSL/TLS enabled"
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern: DriverManager.getConnection($URL, ...)
+      - pattern-not: DriverManager.getConnection("...ssl=true...", ...)
+      - pattern-not: DriverManager.getConnection("...sslMode=...", ...)
+
+  # JAVA — PERFORMANCE (1)
+
+  - id: java-perf-001
+    languages: [java]
+    message: "[The Loop] N+1 query pattern — database query inside loop"
+    severity: WARNING
+    metadata:
+      category: performance
+    patterns:
+      - pattern: $DB.execute(...)
+      - pattern-inside: |
+          for (...) {
+              ...
+          }
+
+  # JAVA — ERROR HANDLING (1)
+
+  - id: java-error-001
+    languages: [java]
+    message: "[The Loop] Exception caught and silently discarded (empty catch block)"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern: |
+          try {
+              ...
+          } catch ($EXCEPTION $E) {
+              // Empty or just logging
+          }
+
+  # JAVA — CONFIG (1)
+
+  - id: java-config-001
+    languages: [java]
+    message: "[The Loop] Hardcoded production/staging URL in source code"
+    severity: WARNING
+    metadata:
+      category: config
+    patterns:
+      - pattern-regex: "String.*=.*[\"']https?://[a-z0-9.-]+(prod|production|staging|live)[a-z0-9.-]*[\"']"
+
+  # PHASE 2 (Spec-018): 15 C# Rules (v0.4.0)
+
+  # C# — INJECTION (3)
+
+  - id: csharp-sql-001
+    languages: [csharp]
+    message: "[The Loop] SQL injection via string concatenation with SqlCommand"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: new SqlCommand("..." + $INPUT, ...)
+          - pattern: $CMD.CommandText = $X + $INPUT
+          - pattern: SqlCommand($X + $INPUT, ...)
+
+  - id: csharp-linq-001
+    languages: [csharp]
+    message: "[The Loop] LINQ injection via dynamic expression trees"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    patterns:
+      - pattern-either:
+          - pattern: $CTX.FromSqlRaw($X + $INPUT)
+          - pattern: $CTX.FromSqlInterpolated($X + $INPUT)
+
+  - id: csharp-injection-002
+    languages: [csharp]
+    message: "[The Loop] XPath injection in .NET XML parsing"
+    severity: ERROR
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+    patterns:
+      - pattern-either:
+          - pattern: $XPATH.Compile($X + $INPUT)
+          - pattern: new XPathNavigator().Select($X + $INPUT)
+
+  # C# — CRYPTO (2)
+
+  - id: csharp-crypto-001
+    languages: [csharp]
+    message: "[The Loop] Weak hash algorithm (MD5 or SHA1) in cryptography"
+    severity: WARNING
+    metadata:
+      category: crypto
+      cwe: "CWE-327"
+    patterns:
+      - pattern-either:
+          - pattern: MD5.Create()
+          - pattern: SHA1.Create()
+          - pattern: using (var hash = MD5.Create()) { ... }
+
+  - id: csharp-crypto-002
+    languages: [csharp]
+    message: "[The Loop] Hardcoded encryption key in C# code"
+    severity: ERROR
+    metadata:
+      category: crypto
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(?i)(encryptionkey|cipher.*key)\\s*=\\s*[\"']([A-Za-z0-9+/=]{16,})[\"']"
+
+  # C# — SECURITY (3)
+
+  - id: csharp-security-001
+    languages: [csharp]
+    message: "[The Loop] Hardcoded credential (password, API key) detected"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-798"
+    patterns:
+      - pattern-regex: "(?i)(password|apikey|secret|token)\\s*=\\s*[\"'][^\"']{8,}[\"']"
+
+  - id: csharp-security-002
+    languages: [csharp]
+    message: "[The Loop] TLS certificate validation disabled in HttpClientHandler"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-295"
+    patterns:
+      - pattern-either:
+          - pattern: |
+              new HttpClientHandler {
+                  ...,
+                  ServerCertificateCustomValidationCallback = ...
+              }
+          - pattern: $HANDLER.ServerCertificateCustomValidationCallback = ($X, $Y, $Z, $W) => true;
+
+  - id: csharp-security-003
+    languages: [csharp]
+    message: "[The Loop] Unsafe BinaryFormatter deserialization"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-502"
+    patterns:
+      - pattern-either:
+          - pattern: new BinaryFormatter().Deserialize($STREAM)
+          - pattern: BinaryFormatter $BF = ...;
+
+  # C# — PERFORMANCE (2)
+
+  - id: csharp-perf-001
+    languages: [csharp]
+    message: "[The Loop] N+1 query pattern in Entity Framework loop"
+    severity: WARNING
+    metadata:
+      category: performance
+    patterns:
+      - pattern: $DB.Database.ExecuteSql(...)
+
+  - id: csharp-perf-002
+    languages: [csharp]
+    message: "[The Loop] Missing .AsNoTracking() in readonly Entity Framework queries"
+    severity: WARNING
+    metadata:
+      category: performance
+    patterns:
+      - pattern: $CTX.Set<$T>().Where(...).FirstOrDefault()
+      - pattern-not: $CTX.Set<$T>().AsNoTracking().Where(...).FirstOrDefault()
+
+  # C# — ERROR HANDLING (2)
+
+  - id: csharp-error-001
+    languages: [csharp]
+    message: "[The Loop] Overly broad exception catch (catching Exception instead of specific type)"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern: catch (Exception) { ... }
+
+  - id: csharp-error-002
+    languages: [csharp]
+    message: "[The Loop] Swallowing exception without logging"
+    severity: WARNING
+    metadata:
+      category: error-handling
+    patterns:
+      - pattern: catch (...) { }
+
+  # C# — CONFIG (1)
+
+  - id: csharp-config-001
+    languages: [csharp]
+    message: "[The Loop] Hardcoded production URL in application configuration"
+    severity: WARNING
+    metadata:
+      category: config
+    patterns:
+      - pattern-regex: "[\"']https?://[a-z0-9.-]+(prod|production|staging|live)[a-z0-9.-]*[\"']"

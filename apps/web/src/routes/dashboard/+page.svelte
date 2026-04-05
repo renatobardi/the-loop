@@ -75,6 +75,15 @@
 					</a>
 				</div>
 			{:else}
+				<!-- Quick link to active rules -->
+				<div class="mb-8 rounded-lg border border-accent/20 bg-accent/5 p-6">
+					<h3 class="mb-2 text-sm font-semibold text-accent">Active Rules</h3>
+					<p class="mb-4 text-sm text-text-muted">Browse the security and quality rules enforced in your scans</p>
+					<a href="/rules/" class="inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover transition-colors">
+						View All Rules
+					</a>
+				</div>
+
 				<!-- Stats cards -->
 				<div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
 					<div class="rounded-lg border border-border bg-bg-surface p-6">

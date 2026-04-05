@@ -178,25 +178,24 @@ jobs:
           done
 
           # Rewrite host to localhost:5432 preserving credentials
-          echo "DEBUG: Full SYNC_URL=$SYNC_URL"
+          # Cloud SQL connection string format:
+          # postgresql://user:password@/DATABASE_NAME?host=/cloudsql/INSTANCE_ID
 
-          # Extract credentials and everything after the last /
-          # For postgresql://user:pass@/cloudsql/instance/db → database is 'db'
-          DB_NAME="${SYNC_URL##*/}"
-
-          echo "DEBUG: Extracted DB_NAME=$DB_NAME"
+          # Extract database name (between @/ and ?)
+          DB_NAME="${SYNC_URL#*@/}"        # Remove postgresql://user:pass@/
+          DB_NAME="${DB_NAME%%\?*}"        # Remove ?host=... and everything after
 
           if [ -z "$DB_NAME" ]; then
             echo "ERROR: Failed to extract database name from URL"
+            echo "DEBUG: SYNC_URL=$SYNC_URL"
             exit 1
           fi
 
           # Extract credentials: postgresql://user:password@
           CREDS="${SYNC_URL%%@*}@"
-          echo "DEBUG: CREDS=$CREDS"
 
           ALEMBIC_URL="${CREDS}localhost:5432/${DB_NAME}"
-          echo "Rewritten database URL: ${CREDS}localhost:5432/${DB_NAME}"
+          echo "Using database: $DB_NAME"
 
           # Run migrations
           echo "Running database migrations..."

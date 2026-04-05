@@ -119,8 +119,80 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install API dependencies
+        run: pip install -r requirements.txt
+        working-directory: apps/api
+
+      - name: Install Cloud SQL Auth Proxy and dependencies
+        run: |
+          # Install netcat for readiness checks
+          apt-get update && apt-get install -y netcat-traditional
+
+          # Download Cloud SQL Proxy
+          curl -fsSL -o cloud-sql-proxy \
+            https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.1/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+
+      - name: Run database migrations
+        run: |
+          set -e
+          set -o pipefail
+
+          # Fetch DATABASE_URL from Secret Manager
+          echo "Fetching database credentials..."
+          DB_URL=$(gcloud secrets versions access latest --secret=THELOOP_API_DATABASE_URL)
+
+          # Convert asyncpg → sync URL for alembic
+          SYNC_URL="${DB_URL/+asyncpg/}"
+          if [ -z "$SYNC_URL" ]; then
+            echo "ERROR: Failed to convert database URL"
+            exit 1
+          fi
+
+          # Start Cloud SQL Proxy in background with cleanup trap
+          echo "Starting Cloud SQL Proxy..."
+          ./cloud-sql-proxy theloopoute:southamerica-east1:theloop-db \
+            --port=5432 --quiet &
+          PROXY_PID=$!
+
+          # Ensure proxy is killed on exit (success or failure)
+          trap "kill $PROXY_PID 2>/dev/null || true" EXIT
+
+          # Wait for proxy to be ready (poll for up to 30 seconds)
+          echo "Waiting for Cloud SQL Proxy to be ready..."
+          for i in {1..30}; do
+            if nc -z localhost 5432 2>/dev/null; then
+              echo "Cloud SQL Proxy is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "ERROR: Cloud SQL Proxy failed to start after 30 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # Rewrite host to localhost:5432
+          ALEMBIC_URL=$(echo "$SYNC_URL" | sed 's|@[^/]*/|@localhost:5432/|')
+          if [ -z "$ALEMBIC_URL" ] || [[ ! "$ALEMBIC_URL" =~ localhost:5432 ]]; then
+            echo "ERROR: Failed to rewrite database URL to localhost:5432"
+            exit 1
+          fi
+
+          # Run migrations
+          echo "Running database migrations..."
+          cd apps/api
+          export DATABASE_URL="$ALEMBIC_URL"
+          export PYTHONPATH=.
+          alembic upgrade head
+          echo "Migrations completed successfully"
+
       - name: Deploy to Cloud Run
-        continue-on-error: true
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}

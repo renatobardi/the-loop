@@ -5,6 +5,11 @@ import type {
 	RootCauseCategory
 } from '$lib/types/analytics';
 
+// Firebase Auth is client-side only — disable SSR to avoid hydration race conditions
+// where $effect runs with undefined data.filters before the client-side load completes.
+// Same approach used by /login/ and /signup/.
+export const ssr = false;
+
 export async function load({ url }) {
 	// Parse URL filters — API calls happen client-side only (Firebase Auth required)
 	const period = (url.searchParams.get('period') || 'month') as Period;

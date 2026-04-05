@@ -108,11 +108,12 @@ rules:
       category: missing-error-handling
       loop_url: https://loop.oute.pro/incidents/missing-error-handling-001
       remediation: "Use 'except SpecificException as e:' em vez de 'except:'"
-    pattern: |
-      try:
-          ...
-      except:
-          pass
+    patterns:
+      - pattern: |
+          try:
+              ...
+          except:
+              pass
 
   # ─── UNSAFE-REGEX-001: ReDoS patterns ───────────────────────────────────────
   - id: unsafe-regex-001-redos-pattern
@@ -168,7 +169,8 @@ rules:
     metadata:
       category: injection
       confidence: HIGH
-    pattern: eval(...)
+    patterns:
+      - pattern: eval(...)
 
   # ─── JS-INJECTION-003: innerHTML / dangerouslySetInnerHTML ──────────────────
   - id: js-injection-003
@@ -286,7 +288,8 @@ rules:
     metadata:
       category: security
       confidence: HIGH
-    pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    patterns:
+      - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
   # ─── JS-SECURITY-004: prototype pollution ───────────────────────────────────
   - id: js-security-004
@@ -396,7 +399,8 @@ rules:
     metadata:
       category: security
       confidence: MEDIUM
-    pattern: ($X as unknown as $T)
+    patterns:
+      - pattern: ($X as unknown as $T)
 
   # ═══════════════════════════════════════════════════════════════════════════
   # PHASE C: GO RULES (10)
@@ -496,8 +500,9 @@ rules:
     metadata:
       category: security
       confidence: HIGH
-    pattern: |
-      &tls.Config{..., InsecureSkipVerify: true, ...}
+    patterns:
+      - pattern: |
+          &tls.Config{..., InsecureSkipVerify: true, ...}
 
   # ─── GO-SECURITY-002: hardcoded JWT secret ──────────────────────────────────
   - id: go-security-002
@@ -560,7 +565,8 @@ rules:
     metadata:
       category: config
       confidence: MEDIUM
-    pattern: http.ListenAndServe($ADDR, $HANDLER)
+    patterns:
+      - pattern: http.ListenAndServe($ADDR, $HANDLER)
 
   # PHASE B: 14 Python Rules
   # INJECTION (3)

@@ -127,6 +127,27 @@ Always use these aliases. Never use relative imports (`../../../lib`). This keep
 - **`config.py`** — Configuration. **`main.py`** — App entrypoint with `GET /api/v1/health` check.
 - **`domain/models.py`** — includes `ApiKey` and `Scan` domain models (Spec-016).
 
+#### Auth Tiers (apply to every new endpoint)
+
+Every new route must explicitly decide its auth tier — never leave it implicit:
+
+| Tier | Dependency | Who calls it | What they get |
+|---|---|---|---|
+| Anonymous | none / `get_optional_identity` returning `None` | Public browsers | No extras (public read-only only) |
+| API key (`tlp_…`) | `get_optional_identity` returning `ApiKeyContext` | Scanner CI workflow | Rule whitelist scoped to project |
+| Firebase JWT | `get_firebase_token_data` | Authenticated users | Full access to their data |
+| Admin | `require_admin` | Firebase user with `is_admin=True` | Admin operations (rule publishing, etc.) |
+
+`get_optional_identity` in `api/deps.py` dispatches on token prefix: `tlp_` → API key path, `eyJ` → Firebase JWT path, no header → `None`. Routes that serve both scanner and browser traffic use this dependency and branch on the return type.
+
+#### Repository Transaction Pattern
+
+Always call `await session.commit()` after `await session.flush()` in repository write methods. `flush()` sends SQL to the DB within the transaction but does **not** persist — without `commit()`, data is silently lost on session close. This caused a production incident (PR #75).
+
+#### `from __future__ import annotations` + slowapi Incompatibility
+
+`from __future__ import annotations` makes all annotations strings at runtime (PEP 563), which breaks slowapi's decorator introspection. **Do not add this import to any file that uses `@limiter.limit()`** (route files). In `deps.py`, forward references that would trigger `UP037` (use `X | Y` instead of `"X | Y"`) are suppressed with `# noqa: UP037` on string-annotated dependencies — this is intentional. Integration tests require `NullPool` for asyncpg (`create_async_engine(..., poolclass=NullPool)`) to avoid connection reuse across test transactions.
+
 #### Sub-Resource Hexagonal Pattern
 
 All sub-resources (timeline events, responders, action items, attachments) follow the same layering:

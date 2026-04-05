@@ -61,7 +61,7 @@ def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
     return {
         "version": rv.version,
         "rules_count": rv.rules_count,
-        "created_at": rv.created_at,
+        "created_at": rv.created_at.isoformat(),
         "status": rv.status.value,
         "rules": [
             {
@@ -76,7 +76,7 @@ def _rule_version_to_response(rv: RuleVersion) -> dict[str, Any]:
         ],
         "published_by": str(rv.published_by) if rv.published_by else None,
         "notes": rv.notes,
-        "deprecated_at": rv.deprecated_at,
+        "deprecated_at": rv.deprecated_at.isoformat() if rv.deprecated_at else None,
     }
 
 
@@ -109,7 +109,7 @@ async def get_latest_rules(
             # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
             if isinstance(identity, ApiKeyContext) and identity.whitelist:
                 response_data["rules"] = [
-                    r for r in response_data["rules"] if r["id"] not in identity.whitelist
+                    r for r in response_data["rules"] if r["id"] in identity.whitelist
                 ]
                 response_data["rules_count"] = len(response_data["rules"])
             return JSONResponse(
@@ -129,7 +129,7 @@ async def get_latest_rules(
         # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
         if isinstance(identity, ApiKeyContext) and identity.whitelist:
             response_data["rules"] = [
-                r for r in response_data["rules"] if r["id"] not in identity.whitelist
+                r for r in response_data["rules"] if r["id"] in identity.whitelist
             ]
             response_data["rules_count"] = len(response_data["rules"])
         return JSONResponse(
@@ -232,7 +232,7 @@ async def get_rules_by_version(
         # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
         if isinstance(identity, ApiKeyContext) and identity.whitelist:
             rule_version_data["rules"] = [
-                r for r in rule_version_data["rules"] if r["id"] not in identity.whitelist
+                r for r in rule_version_data["rules"] if r["id"] in identity.whitelist
             ]
             rule_version_data["rules_count"] = len(rule_version_data["rules"])
         return RuleVersionResponse(**rule_version_data)

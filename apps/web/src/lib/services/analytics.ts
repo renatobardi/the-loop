@@ -33,7 +33,7 @@ async function getAuthToken(): Promise<string> {
 		return token;
 	} catch (err) {
 		console.error('[analytics] Failed to get idToken:', err);
-		throw new Error('Failed to get authentication token');
+		throw new Error('Failed to get authentication token', { cause: err });
 	}
 }
 

@@ -56,7 +56,6 @@
 			severityTrend = st;
 			topRules = tr;
 		} catch (err) {
-			// eslint-disable-next-line @typescript-eslint/only-throw-error
 			loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
 		} finally {
 			loading = false;

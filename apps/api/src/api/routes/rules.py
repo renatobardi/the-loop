@@ -109,7 +109,7 @@ async def get_latest_rules(
             # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
             if isinstance(identity, ApiKeyContext) and identity.whitelist:
                 response_data["rules"] = [
-                    r for r in response_data["rules"] if r["id"] not in identity.whitelist
+                    r for r in response_data["rules"] if r["id"] in identity.whitelist
                 ]
                 response_data["rules_count"] = len(response_data["rules"])
             return JSONResponse(
@@ -129,7 +129,7 @@ async def get_latest_rules(
         # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
         if isinstance(identity, ApiKeyContext) and identity.whitelist:
             response_data["rules"] = [
-                r for r in response_data["rules"] if r["id"] not in identity.whitelist
+                r for r in response_data["rules"] if r["id"] in identity.whitelist
             ]
             response_data["rules_count"] = len(response_data["rules"])
         return JSONResponse(
@@ -232,7 +232,7 @@ async def get_rules_by_version(
         # Apply whitelist filtering for API keys (Phase 4 will populate whitelist from DB)
         if isinstance(identity, ApiKeyContext) and identity.whitelist:
             rule_version_data["rules"] = [
-                r for r in rule_version_data["rules"] if r["id"] not in identity.whitelist
+                r for r in rule_version_data["rules"] if r["id"] in identity.whitelist
             ]
             rule_version_data["rules_count"] = len(rule_version_data["rules"])
         return RuleVersionResponse(**rule_version_data)

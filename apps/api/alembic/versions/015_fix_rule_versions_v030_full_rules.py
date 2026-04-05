@@ -13,6 +13,7 @@ Create Date: 2026-04-05
 
 import json
 from typing import Any
+from uuid import uuid4, uuid5, NAMESPACE_URL
 
 import sqlalchemy as sa
 from alembic import op
@@ -24,6 +25,7 @@ depends_on = None
 
 RULES_VERSION = "0.3.0"
 FULL_RULES_COUNT = 45
+ADMIN_FIREBASE_UID: str = str(uuid5(NAMESPACE_URL, "firebase:admin@loop.oute.pro"))
 
 # All 45 rules in DB JSON format (list[dict] — matches Rule domain model fields).
 # patterns follow the converter format (json_to_semgrep_yaml.py):
@@ -562,6 +564,18 @@ def upgrade() -> None:
 
     # Step 2: Create v0.4.0 if it doesn't exist
     if not v040_exists:
+        # Get admin user ID (same one created in migration 014)
+        admin_result = connection.execute(
+            sa.text("SELECT id FROM users WHERE firebase_uid = :firebase_uid"),
+            {"firebase_uid": ADMIN_FIREBASE_UID},
+        )
+        admin_row = admin_result.first()
+        if not admin_row:
+            raise RuntimeError(
+                "Admin user not found. Migration 014 must run first to create admin user."
+            )
+        admin_id = admin_row[0]
+
         connection.execute(
             sa.text(
                 "INSERT INTO rule_versions (id, version, rules_json, status, notes, published_by) "
@@ -573,7 +587,7 @@ def upgrade() -> None:
                 "rules_json": rules_json,
                 "status": "active",
                 "notes": "Phase C: 45 rules (baseline for multi-language expansion to Java, C#, PHP, Ruby, Kotlin, Rust, C/C++)",
-                "published_by": None,  # System-generated, no specific publisher
+                "published_by": admin_id,
             },
         )
 

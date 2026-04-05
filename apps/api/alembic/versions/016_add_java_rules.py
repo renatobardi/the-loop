@@ -24,7 +24,7 @@ def upgrade() -> None:
     # Idempotency guard: check if rules already exist for v0.4.0
     existing_check = connection.execute(
         sa.text("SELECT id, rules_json FROM rule_versions WHERE version = :version"),
-        {"version": "v0.4.0"},
+        {"version": "0.4.0"},
     )
     existing_row = existing_check.first()
 
@@ -194,7 +194,7 @@ def upgrade() -> None:
     # Fetch existing 45 rules and APPEND Java rules (don't overwrite!)
     existing_result = connection.execute(
         sa.text("SELECT rules_json FROM rule_versions WHERE version = :version"),
-        {"version": "v0.4.0"},
+        {"version": "0.4.0"},
     )
     existing_data = existing_result.first()
     if not existing_data:
@@ -219,7 +219,7 @@ def upgrade() -> None:
         sa.text(
             "UPDATE rule_versions SET rules_json = :json WHERE version = :version"
         ),
-        {"json": json.dumps(merged_rules), "version": "v0.4.0"},
+        {"json": json.dumps(merged_rules), "version": "0.4.0"},
     )
     connection.commit()
 
@@ -231,7 +231,7 @@ def downgrade() -> None:
     # Fetch current rules for v0.4.0
     result = connection.execute(
         sa.text("SELECT id, rules_json FROM rule_versions WHERE version = :version"),
-        {"version": "v0.4.0"},
+        {"version": "0.4.0"},
     )
     existing_row = result.first()
 
@@ -255,6 +255,6 @@ def downgrade() -> None:
                 sa.text(
                     "UPDATE rule_versions SET rules_json = :json WHERE version = :version"
                 ),
-                {"json": json.dumps(filtered_rules), "version": "v0.4.0"},
+                {"json": json.dumps(filtered_rules), "version": "0.4.0"},
             )
             connection.commit()

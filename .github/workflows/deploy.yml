@@ -177,12 +177,14 @@ jobs:
             sleep 1
           done
 
-          # Rewrite host to localhost:5432
-          ALEMBIC_URL=$(echo "$SYNC_URL" | sed 's|@[^/]*/|@localhost:5432/|')
-          if [ -z "$ALEMBIC_URL" ] || [[ ! "$ALEMBIC_URL" =~ localhost:5432 ]]; then
-            echo "ERROR: Failed to rewrite database URL to localhost:5432"
+          # Rewrite host to localhost:5432 (extract database name from end of URL)
+          DB_NAME="${SYNC_URL##*/}"  # Extract last segment (database name)
+          if [ -z "$DB_NAME" ]; then
+            echo "ERROR: Failed to extract database name from URL"
             exit 1
           fi
+          ALEMBIC_URL="postgresql://localhost:5432/${DB_NAME}"
+          echo "Rewritten database URL: postgresql://localhost:5432/[db]"
 
           # Run migrations
           echo "Running database migrations..."

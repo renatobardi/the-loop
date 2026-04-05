@@ -33,33 +33,35 @@
 	let loadError: string | null = $state(null);
 
 	// Load analytics data on mount and when filters change
-	$effect(async () => {
-		loading = true;
-		loadError = null;
+	$effect(() => {
+		(async () => {
+			loading = true;
+			loadError = null;
 
-		try {
-			const teamAllFilters: AnalyticsFilter = { ...data.filters, teams: [] };
-			const [s, bc, bt, bta, t, st, tr] = await Promise.all([
-				getAnalyticsSummary(data.filters),
-				getAnalyticsByCategory(data.filters),
-				getAnalyticsByTeam(data.filters),
-				getAnalyticsByTeam(teamAllFilters),
-				getAnalyticsTimeline(data.filters),
-				getAnalyticsSeverityTrend(data.filters),
-				getAnalyticsTopRules(data.filters)
-			]);
-			summary = s;
-			byCategory = bc;
-			byTeam = bt;
-			byTeamAll = bta;
-			timeline = t;
-			severityTrend = st;
-			topRules = tr;
-		} catch (err) {
-			loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
-		} finally {
-			loading = false;
-		}
+			try {
+				const teamAllFilters: AnalyticsFilter = { ...data.filters, teams: [] };
+				const [s, bc, bt, bta, t, st, tr] = await Promise.all([
+					getAnalyticsSummary(data.filters),
+					getAnalyticsByCategory(data.filters),
+					getAnalyticsByTeam(data.filters),
+					getAnalyticsByTeam(teamAllFilters),
+					getAnalyticsTimeline(data.filters),
+					getAnalyticsSeverityTrend(data.filters),
+					getAnalyticsTopRules(data.filters)
+				]);
+				summary = s;
+				byCategory = bc;
+				byTeam = bt;
+				byTeamAll = bta;
+				timeline = t;
+				severityTrend = st;
+				topRules = tr;
+			} catch (err) {
+				loadError = err instanceof Error ? err.message : 'Unable to load analytics data';
+			} finally {
+				loading = false;
+			}
+		})();
 	});
 
 	function handleFiltersChange(f: AnalyticsFilter) {

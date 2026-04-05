@@ -28,6 +28,8 @@ SELECT
             LEFT JOIN incidents i2 ON p2.incident_id = i2.id
             WHERE p2.created_at >= :start AND p2.created_at < :end
               AND (i2.deleted_at IS NULL)
+              AND (cardinality(:team_array) = 0 OR p2.team_responsible = ANY(:team_array))
+              AND (:category IS NULL OR p2.root_cause_category = :category)
               AND (
                   :status = 'all'
                   OR (:status = 'resolved' AND i2.resolved_at IS NOT NULL)

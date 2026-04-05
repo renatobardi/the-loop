@@ -728,8 +728,8 @@ class AnalyticsService:
     def _cache_key(
         self, method: str, filters: AnalyticsFilter, start: Any, end: Any, **extra: Any
     ) -> dict[str, Any]:
+        """Build cache key params. The method is passed separately to make_key()."""
         return {
-            "method": method,
             **filters.model_dump(),
             "start": str(start),
             "end": str(end),
@@ -801,7 +801,7 @@ class AnalyticsService:
     async def get_timeline(
         self, period: AnalyticsPeriod, filters: AnalyticsFilter
     ) -> list[TimelinePoint]:
-        """Return weekly timeline points for the period (minimum 52 weeks)."""
+        """Return weekly timeline points grouped by ISO week for the requested period."""
         t0 = time.monotonic()
         start, end = self._parse_period(period)
         ck = self._cache_key("timeline", filters, start, end)

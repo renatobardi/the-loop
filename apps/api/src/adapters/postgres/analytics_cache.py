@@ -19,9 +19,17 @@ class AnalyticsCache:
 
     @staticmethod
     def make_key(method: str, params: dict[str, Any]) -> str:
-        """Build a stable cache key by sorting params alphabetically."""
+        """Build a stable cache key by sorting params alphabetically.
+
+        List values are sorted before stringification to ensure stable keys
+        regardless of order (e.g., teams=['a','b'] and teams=['b','a'] produce
+        the same key).
+        """
         sorted_items = sorted(
-            ((k, str(v)) for k, v in params.items()),
+            (
+                (k, str(sorted(v) if isinstance(v, list) else v))
+                for k, v in params.items()
+            ),
             key=lambda x: x[0],
         )
         parts = "&".join(f"{k}={v}" for k, v in sorted_items)
@@ -43,7 +51,7 @@ class AnalyticsCache:
         self._store[key] = (value, time.monotonic() + self._ttl)
 
     def invalidate_all(self) -> None:
-        """Clear all cached entries (call after publishing a new rule version)."""
+        """Clear all cached entries. Called to invalidate cache when analytics data changes."""
         self._store.clear()
 
     def size(self) -> int:

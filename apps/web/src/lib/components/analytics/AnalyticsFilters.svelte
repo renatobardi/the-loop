@@ -20,6 +20,16 @@
 	let startDate = $state<string>(filters.start_date ?? '');
 	let endDate = $state<string>(filters.end_date ?? '');
 
+	// Sync local state when filters prop changes (e.g., after drill-down navigation)
+	$effect(() => {
+		period = filters.period;
+		selectedTeams = filters.teams ?? [];
+		category = filters.category ?? '';
+		status = filters.status;
+		startDate = filters.start_date ?? '';
+		endDate = filters.end_date ?? '';
+	});
+
 	const teamOptionsList = $derived(teamOptions.map((t) => ({ value: t.team, label: t.team })));
 
 	const CATEGORIES: { value: RootCauseCategory; label: string }[] = [

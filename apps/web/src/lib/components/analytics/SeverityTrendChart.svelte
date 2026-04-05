@@ -9,7 +9,7 @@
 	const CHART_W = SVG_WIDTH - PADDING.left - PADDING.right;
 	const CHART_H = SVG_HEIGHT - PADDING.top - PADDING.bottom;
 
-	let tooltip = $state<{ x: number; y: number; point: SeverityTrendPoint } | null>(null);
+	let tooltip = $state<{ x: number; y: number; point: SeverityTrendPoint; svgWidth: number } | null>(null);
 
 	const maxTotal = $derived(Math.max(...data.map((p) => p.error_count + p.warning_count), 1));
 
@@ -50,13 +50,20 @@
 			.filter(({ i }) => i % 4 === 0)
 			.map(({ p, i }) => ({
 				label: new Date(p.week).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-				x: cx(i)
+				x: cx(i),
+				key: p.week // Use week ISO string as unique, stable key (no duplicate labels)
 			}))
 	);
 
 	function handleMouseOver(e: MouseEvent, point: SeverityTrendPoint) {
-		const rect = (e.currentTarget as SVGElement).closest('svg')!.getBoundingClientRect();
-		tooltip = { x: e.clientX - rect.left, y: e.clientY - rect.top, point };
+		const svgEl = (e.currentTarget as SVGElement).closest('svg')!;
+		const rect = svgEl.getBoundingClientRect();
+		tooltip = {
+			x: e.clientX - rect.left,
+			y: e.clientY - rect.top,
+			point,
+			svgWidth: rect.width
+		};
 	}
 
 	function handleMouseOut() {
@@ -65,9 +72,15 @@
 
 	function handleFocus(e: FocusEvent, point: SeverityTrendPoint) {
 		const el = e.currentTarget as SVGElement;
-		const rect = el.closest('svg')!.getBoundingClientRect();
+		const svgEl = el.closest('svg')!;
+		const rect = svgEl.getBoundingClientRect();
 		const selfRect = el.getBoundingClientRect();
-		tooltip = { x: selfRect.left - rect.left, y: selfRect.top - rect.top, point };
+		tooltip = {
+			x: selfRect.left - rect.left,
+			y: selfRect.top - rect.top,
+			point,
+			svgWidth: rect.width
+		};
 	}
 
 	function handleBlur() {
@@ -169,7 +182,7 @@
 				{/each}
 
 				<!-- X-axis labels -->
-				{#each monthLabels as { label, x } (label)}
+				{#each monthLabels as { label, x, key } (key)}
 					<text
 						{x}
 						y={SVG_HEIGHT - 8}
@@ -186,7 +199,7 @@
 			{#if tooltip}
 				<div
 					class="pointer-events-none absolute z-10 rounded border border-border bg-bg-elevated px-3 py-2 text-sm shadow-glow"
-					style="left: {Math.min(tooltip.x + 12, SVG_WIDTH - 180)}px; top: {Math.max(0, tooltip.y - 60)}px"
+					style="left: {Math.min(tooltip.x + 12, tooltip.svgWidth - 180)}px; top: {Math.max(0, tooltip.y - 60)}px"
 				>
 					<div class="mb-1 font-medium text-text">Week of {tooltip.point.week}</div>
 					<div class="flex items-center gap-1.5 text-xs text-text-muted">

@@ -25,8 +25,8 @@ def upgrade() -> None:
     if existing_row:
         existing_rules = json.loads(existing_row[1]) if isinstance(existing_row[1], str) else existing_row[1]
         rule_count = len(existing_rules) if isinstance(existing_rules, list) else 0
-        if rule_count >= 123:
-            return
+        if rule_count >= 122:
+            return  # Already patched — migration 022 completed (113 + 9 = 122)
         if rule_count not in (45, 60, 75, 85, 95, 105, 113):
             raise RuntimeError(f"Version v0.4.0 exists with {rule_count} rules; expected intermediate state.")
 

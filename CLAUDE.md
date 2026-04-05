@@ -11,6 +11,28 @@ The Loop — incident prevention platform. Monorepo with two apps:
 
 Deployed to GCP Cloud Run. Single environment: `main` = production.
 
+## Spec & Task Workflow
+
+Specs are the source of truth for new features. Each spec is stored in a numbered directory under `specs/`:
+- `specs/001-landing-page-waitlist/` → Branch: `feat/001-landing-page-waitlist`
+- `specs/017-rules-expansion/` → Branch: `feat/017-rules-expansion`
+
+**Key files in each spec directory:**
+- `spec.md` — Feature requirements and acceptance criteria
+- `plan.md` — Implementation architecture and approach
+- `tasks.md` — Ordered, dependency-tracked tasks for execution
+- Other artifacts: research, data models, contracts, checklists
+
+**To work on a new spec:**
+1. Create branch: `git checkout -b feat/NNN-feature-name`
+2. Use `/speckit.specify` to define requirements
+3. Use `/speckit.plan` to design the implementation
+4. Use `/speckit.tasks` to generate the task list
+5. Use `/speckit.implement` to execute tasks
+6. Use `/speckit.analyze` to validate cross-artifact consistency
+
+**Important:** Spec directory number and branch name must stay synchronized. Keep `.semgrep/theloop-rules.yml.bak` — it's the immutable fallback for rule scanning.
+
 ## Commands
 
 ### Frontend (`apps/web/`)
@@ -56,6 +78,25 @@ pytest supports targeted test execution:
 - `pytest --cov=src --cov-report=html` — generate HTML coverage report
 - Tests run against a real PostgreSQL database (see "Local PostgreSQL Setup" below). Migrations are applied before each test suite and rolled back after via `conftest.py` fixtures.
 - **asyncio_mode = "auto"** — all async test functions run without explicit `@pytest.mark.asyncio` decorator; configured in `pyproject.toml`.
+
+### Database Migrations (Alembic)
+
+Located in `apps/api/alembic/`:
+
+**Creating a new migration:**
+```bash
+cd apps/api
+alembic revision --autogenerate -m "Add new field to incidents table"
+# Review the generated migration in alembic/versions/
+alembic upgrade head
+```
+
+**Key conventions:**
+- Always use `--autogenerate` to let SQLAlchemy diff the models
+- Review generated migrations for accuracy before applying
+- Test migrations locally against your test database before pushing
+- Never modify applied migrations (already-run revisions) — create new ones instead
+- Rollback: `alembic downgrade -1` (go back one migration)
 
 ### Local PostgreSQL Setup
 
@@ -188,6 +229,13 @@ Postmortems follow the same hexagonal pattern but with key differences:
 - `src/app.css` — Tailwind 4 `@theme` block with all design tokens (colors, fonts, spacing, shadows)
 - `svelte.config.js` — SvelteKit config; adapter-node outputs to `build/` directory (not `dist/`)
 
+### Frontend Build & Deployment
+
+- **Build output:** `build/` directory (configured in `svelte.config.js`, not `dist/`)
+- **Adapter:** `adapter-node` — requires Node.js at runtime (used in Cloud Run)
+- **Environment:** `PORT=3000` at runtime (set in Cloud Run deployment)
+- Production builds are served via Node.js entrypoint, not a static file server
+
 ## Svelte 5 Conventions
 
 This project uses Svelte 5 runes exclusively (enforced in `svelte.config.js`):
@@ -287,6 +335,19 @@ semgrep scan --config .semgrep/theloop-rules.yml
 python3 scripts/json_to_semgrep_yaml.py --input rules.json --output .semgrep/theloop-rules.yml
 ```
 
+## Rule Publishing (Semgrep Platform)
+
+**Rule source:** `apps/api/src/adapters/postgres/rules.py` (hardcoded JSON rules)
+
+**To add/modify rules:**
+1. Edit rule definitions in `apps/api/src/adapters/postgres/rules.py`
+2. Run local validation: `python3 scripts/json_to_semgrep_yaml.py --input rules.json --output .semgrep/theloop-rules.yml`
+3. Test against codebase: `semgrep scan --config .semgrep/theloop-rules.yml`
+4. Bump version in `apps/api/src/adapters/postgres/rules.py` (e.g., `0.3.0` → `0.3.1`)
+5. Rules auto-distribute on merge to `main` via `GET /api/v1/rules/{VERSION}`
+
+**Pinning rules for testing:** Set `THELOOP_RULES_VERSION` in `.github/workflows/theloop-guard.yml` to test specific versions before full rollout.
+
 ## Governance (CONSTITUTION.md)
 
 - Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches for specs use a numeric prefix matching their spec directory: `feat/017-rules-expansion` → `specs/017-rules-expansion/`. This ensures spec directory and branch name stay synchronized.
@@ -296,3 +357,23 @@ python3 scripts/json_to_semgrep_yaml.py --input rules.json --output .semgrep/the
 - Hexagonal architecture applies from Phase 1 onward (backend only)
 - Structural changes (new routes, components, architecture) require doc updates in the same PR
 - **Mandamento XIII**: ALL dependencies (infra, APIs, backend, DB, secrets, CI/CD) MUST be explicit in the execution plan. Code without its dependencies is broken code.
+
+### Current Phase Status
+
+- **Phase 0** (landing + waitlist): COMPLETE
+- **Phase 1** (incident CRUD + auth): COMPLETE + in production
+- **Phase C.1** (postmortem capture): COMPLETE (Spec-013)
+- **Phase C.2** (analytics dashboard): COMPLETE (Spec-014)
+- **Phase B** (Semgrep rules distribution): COMPLETE (Phase C, 45 rules, Spec-016)
+- **Active**: Spec-017 (Rules Expansion: 7 languages, ~78 rules, 30–35 days)
+- **Upcoming**: Spec-019 (Product Analytics Dashboard)
+
+## Common Development Gotchas
+
+- **Missing `session.commit()` in repos**: Calling only `session.flush()` doesn't persist to DB. Always follow with `await session.commit()` in repository write methods. Omitting this causes silent data loss (production incident PR #75).
+- **`from __future__ import annotations` breaks slowapi**: Never add this import to route files using `@limiter.limit()`. It makes all annotations strings at runtime (PEP 563), breaking slowapi's decorator introspection. See Backend Architecture section for details.
+- **Firebase UID mapping**: Non-UUID Firebase UIDs are converted to UUIDs via `uuid5(NAMESPACE_URL, f"firebase:{uid}")` in `adapters/firebase/auth.py`. This must stay consistent across all components.
+- **Design token updates**: All visual changes must use existing Tailwind tokens in `app.css`. Adding ad-hoc colors breaks the design system. Use opacity modifiers (`/20`, `/50`) for tinted backgrounds.
+- **Soft deletes in queries**: Incidents use soft deletes (`deleted_at`), but sub-resources do not. Always filter by `deleted_at IS NULL` in queries and ensure `deleted_at=None` as default in ORM models.
+- **Test database isolation**: Integration tests require `NullPool` (`create_async_engine(..., poolclass=NullPool)`) to avoid connection reuse across transactions with asyncpg.
+- **Auth tier decision required**: Every new route must explicitly declare its auth tier (anonymous, API key, Firebase JWT, or admin) — never leave it implicit. Use the tier table in Backend Architecture as reference.

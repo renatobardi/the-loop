@@ -491,15 +491,18 @@ V030_FULL_RULES: list[dict[str, Any]] = [
 
 
 def upgrade() -> None:
-    """Update v0.3.0 rules_json with the complete 45-rule set.
+    """Update v0.3.0 and create v0.4.0 with the complete 45-rule set.
 
-    Migration 014 seeded v0.3.0 with 1 placeholder rule. This migration
-    replaces that entry with the full ruleset.
+    Migration 014 seeded v0.3.0 with 1 placeholder rule. This migration:
+    1. Updates v0.3.0 with the full 45-rule set
+    2. Creates v0.4.0 (same 45 rules) as the baseline for multi-language expansion
 
-    - Idempotent: returns early if v0.3.0 already has ≥ 45 rules
+    - Idempotent: returns early if both v0.3.0 and v0.4.0 already exist with ≥ 45 rules
     - Fails fast if v0.3.0 does not exist (unexpected state)
     - Explicitly commits transaction
     """
+    from uuid import uuid4
+
     assert len(V030_FULL_RULES) == FULL_RULES_COUNT, (
         f"Expected {FULL_RULES_COUNT} rules, got {len(V030_FULL_RULES)}"
     )
@@ -525,8 +528,20 @@ def upgrade() -> None:
     else:
         rules_list = existing_rules
 
-    if isinstance(rules_list, list) and len(rules_list) >= FULL_RULES_COUNT:
-        # Already patched — idempotent success
+    # Check if both versions already exist with full rulesets
+    v040_check = connection.execute(
+        sa.text("SELECT rules_json FROM rule_versions WHERE version = :version"),
+        {"version": "0.4.0"},
+    )
+    v040_row = v040_check.first()
+    v040_exists = (
+        v040_row is not None
+        and isinstance(json.loads(v040_row[0]) if isinstance(v040_row[0], str) else v040_row[0], list)
+        and len(json.loads(v040_row[0]) if isinstance(v040_row[0], str) else v040_row[0]) >= FULL_RULES_COUNT
+    )
+
+    if isinstance(rules_list, list) and len(rules_list) >= FULL_RULES_COUNT and v040_exists:
+        # Both already patched — idempotent success
         return
 
     # Validate and serialize the full ruleset
@@ -536,6 +551,7 @@ def upgrade() -> None:
     except (TypeError, ValueError) as e:
         raise ValueError(f"Failed to serialize rules: {e}") from e
 
+    # Step 1: Update v0.3.0
     connection.execute(
         sa.text(
             "UPDATE rule_versions SET rules_json = :rules_json "
@@ -543,6 +559,23 @@ def upgrade() -> None:
         ),
         {"rules_json": rules_json, "version": RULES_VERSION},
     )
+
+    # Step 2: Create v0.4.0 if it doesn't exist
+    if not v040_exists:
+        connection.execute(
+            sa.text(
+                "INSERT INTO rule_versions (id, version, rules_json, status, notes, published_by) "
+                "VALUES (:id, :version, :rules_json, :status, :notes, :published_by)"
+            ),
+            {
+                "id": str(uuid4()),
+                "version": "0.4.0",
+                "rules_json": rules_json,
+                "status": "active",
+                "notes": "Phase C: 45 rules (baseline for multi-language expansion to Java, C#, PHP, Ruby, Kotlin, Rust, C/C++)",
+                "published_by": None,  # System-generated, no specific publisher
+            },
+        )
 
     connection.commit()
 

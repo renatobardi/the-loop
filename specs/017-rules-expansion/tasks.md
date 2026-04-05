@@ -1,6 +1,6 @@
 # Tasks: Spec-017 (Multi-Language Rules Expansion)
 
-**Feature**: Expand Semgrep rules from 45 to 122 rules across 10 languages (Java, C#, PHP, Ruby, Kotlin, Rust, C/C++)
+**Feature**: Expand Semgrep rules from 45 to 122 rules across 10 languages (Python, JavaScript, TypeScript, Go from Phase B; Java, C#, PHP, Ruby, Kotlin, Rust, C/C++ from Phases 2-7)
 
 **Status**: ✅ COMPLETE - All 122 rules deployed to production (v0.4.0 active, migrations 016-022 applied)
 
@@ -100,7 +100,7 @@
 - [x] T040 Merge to main (PR #91) and deploy to production
 
 **Test Criteria:**
-- All 123 rules validate without errors
+- All 122 rules validate without errors
 - All bad test files trigger expected findings
 - All good test files trigger 0 false positives
 - CI gates pass
@@ -123,13 +123,13 @@
 - Phase 1: 1 day (setup)
 - Phase 2: 2-3 days (Java, 15 rules + test data)
 - Phase 3: 2-3 days (C#, 15 rules + test data)
-- Phase 4: 1-2 days (PHP, 12 rules + test data)
+- Phase 4: 1-2 days (PHP, 10 rules + test data)
 - Phase 5: 1-2 days (Ruby, 10 rules + test data)
-- Phase 6: 1 day (Kotlin, 8 rules + test data)
-- Phase 7: 2 days (Rust + C/C++, 13 rules + test data)
+- Phase 6: 1 day (Kotlin, 10 rules + test data)
+- Phase 7: 2 days (Rust + C/C++, 17 rules + test data)
 - Phase 8: 2-3 days (integration + deployment)
 
-**Total: ~15-21 days**
+**Total: ~15-21 days** (actual: ~30 days due to incremental rollout and CI/CD fixes)
 
 ---
 
@@ -142,7 +142,7 @@
 4. Run semgrep --validate to ensure YAML syntax is correct
 
 **Final Validation (Phase 8):**
-- `semgrep --validate --config .semgrep/theloop-rules.yml` → 0 errors, 123 rules
+- `semgrep --validate --config .semgrep/theloop-rules.yml` → 0 errors, 122 rules
 - `semgrep scan --config .semgrep/theloop-rules.yml apps/api/tests/test-data/bad/` → all expected findings triggered
 - `semgrep scan --config .semgrep/theloop-rules.yml apps/api/tests/test-data/good/` → 0 findings
 

@@ -786,7 +786,7 @@ rules:
     patterns:
       - pattern: ObjectInputStream($STREAM).readObject()
 
-  # KOTLIN — ERROR HANDLING (2)
+  # KOTLIN — ERROR HANDLING (1)
 
   - id: kotlin-error-001
     languages: [kotlin]
@@ -886,7 +886,7 @@ rules:
     metadata:
       category: error-handling
     patterns:
-      - pattern-regex: "unwrap()"
+      - pattern-regex: "unwrap\\(\\)"
 
   # RUST — CONFIG (1)
 
@@ -900,7 +900,7 @@ rules:
       - pattern-regex: "(?i)(api_key|secret|password|token)\\s*[=:]\\s*['\"][A-Za-z0-9]{8,}['\"]"
 
 # ============================================================================
-# PHASE 7B: C/C++ (10 rules)
+# PHASE 7B: C/C++ (9 rules)
 # ============================================================================
 
   # C/C++ — INJECTION (2)
@@ -947,7 +947,7 @@ rules:
       category: memory-safety
       cwe: "CWE-416"
     patterns:
-      - pattern-regex: "delete.*\\n.*\\w+\\s*->"
+      - pattern-regex: "delete.*;"
 
   - id: cpp-memory-003
     languages: [c, cpp]
@@ -990,7 +990,7 @@ rules:
     metadata:
       category: error-handling
     patterns:
-      - pattern-regex: "(open|read|write|recv|send)\\([^)]*\\)\\s*[;)]"
+      - pattern-regex: "(open|read|write|recv|send)\\([^)]*\\)"
 
   - id: cpp-error-002
     languages: [c, cpp]

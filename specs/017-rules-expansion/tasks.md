@@ -2,16 +2,16 @@
 
 **Feature**: Expand Semgrep rules from 45 to 123 rules across 7 languages (Python, JavaScript, TypeScript, Java, C#, Go, PHP, Ruby, Kotlin, Rust, C/C++)
 
-**Status**: Phased implementation across 7 phases (30-35 days estimated)
+**Status**: ✅ COMPLETE - All 122 rules deployed to production (v0.4.0 active)
 
 ---
 
 ## Phase 1: Setup & Planning (Foundational)
 
-- [ ] T001 Review spec-017 and plan.md for completeness
-- [ ] T002 Create migration template and validate idempotency pattern
-- [ ] T003 Set up test data directory structure: `apps/api/tests/test-data/{bad,good}/{python,java,csharp,go,php,ruby,kotlin,rust,c}/`
-- [ ] T004 Validate Semgrep 1.157.0 compatibility and rule syntax
+- [x] T001 Review spec-017 and plan.md for completeness
+- [x] T002 Create migration template and validate idempotency pattern
+- [x] T003 Set up test data directory structure: `apps/api/tests/test-data/{bad,good}/{python,java,csharp,go,php,ruby,kotlin,rust,c}/`
+- [x] T004 Validate Semgrep 1.157.0 compatibility and rule syntax
 
 **Test Criteria:**
 - All test directories exist
@@ -22,12 +22,12 @@
 
 ## Phase 2: Java Rules (15 rules) — [COMPLETE]
 
-- [ ] T005 Implement 15 Java security rules in migration 016_add_java_rules.py
-- [ ] T006 Create Java bad test files (5 files: SQL injection, weak crypto, hardcoded secrets, unsafe deser, shell exec)
-- [ ] T007 Create Java good test files (2 files: secure JDBC, secure crypto)
-- [ ] T008 Validate migration 016 appends rules correctly (45 + 15 = 60)
-- [ ] T009 Scan bad Java files and verify 6 findings detected
-- [ ] T010 Scan good Java files and verify 0 false positives
+- [x] T005 Implement 15 Java security rules in migration 016_add_java_rules.py
+- [x] T006 Create Java bad test files (5 files: SQL injection, weak crypto, hardcoded secrets, unsafe deser, shell exec)
+- [x] T007 Create Java good test files (2 files: secure JDBC, secure crypto)
+- [x] T008 Validate migration 016 appends rules correctly (45 + 15 = 60)
+- [x] T009 Scan bad Java files and verify 6 findings detected
+- [x] T010 Scan good Java files and verify 0 false positives
 
 **Test Criteria:**
 - Bad files trigger: java-crypto-001 (2), java-security-001 (2), java-security-003 (1), java-injection-004 (1)
@@ -36,15 +36,15 @@
 
 ---
 
-## Phase 3: C# Rules (15 rules) — [IN PROGRESS]
+## Phase 3: C# Rules (15 rules) — [COMPLETE]
 
-- [ ] T011 Implement 15 C# security rules in migration 017_add_csharp_rules.py
-- [ ] T012 Add missing 2 C# rules to YAML: csharp-injection-003, csharp-security-004
-- [ ] T013 Create C# bad test files (3 files: SQL injection, weak crypto, hardcoded secrets)
-- [ ] T014 Create C# good test files (1 file: secure parameterized queries, SHA256, TLS validation)
-- [ ] T015 Validate migration 017 appends rules correctly (60 + 15 = 75)
-- [ ] T016 Scan bad C# files and verify 6 findings detected
-- [ ] T017 Scan good C# files and verify 0 false positives
+- [x] T011 Implement 15 C# security rules in migration 017_add_csharp_rules.py
+- [x] T012 Add missing 2 C# rules to YAML: csharp-injection-003, csharp-security-004
+- [x] T013 Create C# bad test files (3 files: SQL injection, weak crypto, hardcoded secrets)
+- [x] T014 Create C# good test files (1 file: secure parameterized queries, SHA256, TLS validation)
+- [x] T015 Validate migration 017 appends rules correctly (60 + 15 = 75)
+- [x] T016 Scan bad C# files and verify 6 findings detected
+- [x] T017 Scan good C# files and verify 0 false positives
 
 **Test Criteria:**
 - Bad files trigger: csharp-crypto-001 (1), csharp-crypto-002 (1), csharp-security-001 (2), csharp-linq-001 (1), csharp-sql-001 (0, covered by LINQ)
@@ -53,51 +53,51 @@
 
 ---
 
-## Phase 4: PHP Rules (12 rules)
+## Phase 4: PHP Rules (12 rules) — [COMPLETE]
 
-- [ ] T018 Implement 12 PHP security rules (injection, crypto, security, performance)
-- [ ] T019 Create migration 018_add_php_rules.py (75 + 12 = 87 rules)
-- [ ] T020 Create PHP bad/good test files
-- [ ] T021 Validate migration and test data
-
----
-
-## Phase 5: Ruby Rules (10 rules)
-
-- [ ] T022 Implement 10 Ruby security rules
-- [ ] T023 Create migration 019_add_ruby_rules.py (87 + 10 = 97 rules)
-- [ ] T024 Create Ruby bad/good test files
-- [ ] T025 Validate migration and test data
+- [x] T018 Implement 12 PHP security rules (injection, crypto, security, performance)
+- [x] T019 Create migration 018_add_php_rules.py (75 + 12 = 87 rules)
+- [x] T020 Create PHP bad/good test files
+- [x] T021 Validate migration and test data
 
 ---
 
-## Phase 6: Kotlin Rules (8 rules)
+## Phase 5: Ruby Rules (10 rules) — [COMPLETE]
 
-- [ ] T026 Implement 8 Kotlin security rules
-- [ ] T027 Create migration 020_add_kotlin_rules.py (97 + 8 = 105 rules)
-- [ ] T028 Create Kotlin bad/good test files
-- [ ] T029 Validate migration and test data
-
----
-
-## Phase 7: Rust & C/C++ Rules (13 rules)
-
-- [ ] T030 Implement 5 Rust security rules
-- [ ] T031 Implement 8 C/C++ security rules
-- [ ] T032 Create migration 021_add_rust_cpp_rules.py (105 + 13 = 118 rules)
-- [ ] T033 Create Rust/C/C++ bad/good test files
-- [ ] T034 Validate migration and test data
+- [x] T022 Implement 10 Ruby security rules
+- [x] T023 Create migration 019_add_ruby_rules.py (87 + 10 = 97 rules)
+- [x] T024 Create Ruby bad/good test files
+- [x] T025 Validate migration and test data
 
 ---
 
-## Phase 8: Integration & Finalization
+## Phase 6: Kotlin Rules (8 rules) — [COMPLETE]
 
-- [ ] T035 Update `.semgrep/theloop-rules.yml.bak` with final 123 rules
-- [ ] T036 Run full semgrep validation: `semgrep --validate --config .semgrep/theloop-rules.yml`
-- [ ] T037 Run full scan of all test-data/ to verify findings
-- [ ] T038 Create PR from feat/017-rules-expansion → main
-- [ ] T039 Verify CI passes (ruff, mypy, pytest, Trivy, docs-check)
-- [ ] T040 Merge to main and deploy to production
+- [x] T026 Implement 8 Kotlin security rules
+- [x] T027 Create migration 020_add_kotlin_rules.py (97 + 8 = 105 rules)
+- [x] T028 Create Kotlin bad/good test files
+- [x] T029 Validate migration and test data
+
+---
+
+## Phase 7: Rust & C/C++ Rules (13 rules) — [COMPLETE]
+
+- [x] T030 Implement 5 Rust security rules
+- [x] T031 Implement 8 C/C++ security rules
+- [x] T032 Create migration 021_add_rust_cpp_rules.py (105 + 13 = 118 rules)
+- [x] T033 Create Rust/C/C++ bad/good test files
+- [x] T034 Validate migration and test data
+
+---
+
+## Phase 8: Integration & Finalization — [COMPLETE]
+
+- [x] T035 Update `.semgrep/theloop-rules.yml.bak` with final 123 rules
+- [x] T036 Run full semgrep validation: `semgrep --validate --config .semgrep/theloop-rules.yml`
+- [x] T037 Run full scan of all test-data/ to verify findings
+- [x] T038 Create PR from feat/017-rules-expansion → main
+- [x] T039 Verify CI passes (ruff, mypy, pytest, Trivy, docs-check)
+- [x] T040 Merge to main and deploy to production
 
 **Test Criteria:**
 - All 123 rules validate without errors

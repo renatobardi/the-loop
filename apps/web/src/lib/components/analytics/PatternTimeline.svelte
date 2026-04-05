@@ -52,7 +52,8 @@
 			.filter(({ i }) => i % 4 === 0)
 			.map(({ p, i }) => ({
 				label: new Date(p.week).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-				x: cx(i)
+				x: cx(i),
+				key: p.week // Use week ISO string as unique key — label can duplicate (e.g. two weeks in same month)
 			}))
 	);
 
@@ -152,7 +153,7 @@ function handleMouseOver(e: MouseEvent, point: TimelinePoint) {
 				{/each}
 
 				<!-- X-axis month labels -->
-				{#each monthLabels as { label, x } (label)}
+				{#each monthLabels as { label, x, key } (key)}
 					<text
 						{x}
 						y={SVG_HEIGHT - 8}

@@ -55,6 +55,7 @@ pytest supports targeted test execution:
 - `pytest tests/ -k incident` — run all tests matching keyword
 - `pytest --cov=src --cov-report=html` — generate HTML coverage report
 - Tests run against a real PostgreSQL database (see "Local PostgreSQL Setup" below). Migrations are applied before each test suite and rolled back after via `conftest.py` fixtures.
+- **asyncio_mode = "auto"** — all async test functions run without explicit `@pytest.mark.asyncio` decorator; configured in `pyproject.toml`.
 
 ### Local PostgreSQL Setup
 
@@ -72,6 +73,17 @@ docker run --name theloop-db \
 # In another terminal, apply migrations:
 cd apps/api
 export DATABASE_URL="postgresql+asyncpg://theloop:theloop@localhost:5432/theloop"
+alembic upgrade head
+```
+
+**Alternatively: Cloud SQL Proxy (for cloud-based development)**
+```bash
+# Binary pre-built in repo root; use port 5433 to avoid Docker conflicts
+./cloud-sql-proxy theloopoute:southamerica-east1:theloop-db --port=5433
+
+# In another terminal:
+cd apps/api
+export DATABASE_URL="postgresql+asyncpg://theloop:theloop@localhost:5433/theloop"
 alembic upgrade head
 ```
 
@@ -98,11 +110,11 @@ For CI tests, a temporary test database is created with the same setup.
 
 #### Import Path Aliases
 
-Frontend uses SvelteKit path aliases:
+Frontend uses SvelteKit path aliases (also configured in `tsconfig.json`):
 - `$lib` — resolves to `src/lib/`
 - `$app` — resolves to `@sveltejs/kit` (internal SvelteKit modules)
 
-Use these in all imports for cleaner, import-agnostic code.
+Always use these aliases. Never use relative imports (`../../../lib`). This keeps code portable if directory structure changes.
 
 ### Backend (`apps/api/src/`)
 
@@ -208,6 +220,8 @@ All visual styling must use these tokens — no ad-hoc color/spacing values. Use
 
 - **Frontend**: Prettier — tabs, single quotes, no trailing commas, 100 char print width. Run `npm run format` to fix.
 - **Backend**: Ruff (strict rules) + mypy (strict mode). Run `ruff format` to fix.
+  - **Ruff**: Enforces strict linting. Ignores `S101` (assertions in tests) and `B008` (FastAPI `Depends()` in default parameters — canonical pattern). The field `_Date` in `domain/models.py` uses leading underscore to avoid Pydantic 2.11 field-name shadowing.
+  - **MyPy**: Strict mode enabled with Pydantic plugin (`init_forbid_extra = true`). Some dynamic typing is unavoidable in serialization layers—prefer explicit type casts over `# type: ignore` comments.
 
 ## Form Handling Pattern
 
@@ -254,7 +268,7 @@ python3 scripts/json_to_semgrep_yaml.py --input rules.json --output .semgrep/the
 
 ## Governance (CONSTITUTION.md)
 
-- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches for specs use a numeric prefix matching their spec directory (e.g., branch `007-incident-crud-v2` → `specs/007-incident-crud-v2/`)
+- Trunk-based development: `main` only via PRs, branch prefixes `feat/`, `fix/`, `hotfix/`, `chore/`. Feature branches for specs use a numeric prefix matching their spec directory: `feat/017-rules-expansion` → `specs/017-rules-expansion/`. This ensures spec directory and branch name stay synchronized.
 - Design system tokens are centralized in `lib/ui/` — no ad-hoc styling
 - `main` = production (no dev environment — single environment)
 - All merges controlled by @renatobardi — sole approver

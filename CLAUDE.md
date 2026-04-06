@@ -97,6 +97,7 @@ For CI tests, a temporary test database is created with the same setup.
 - **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`.
 - **`routes/analytics/`** — Product analytics dashboard. SSR disabled (`ssr = false`). `+page.ts` only parses URL filter params and returns null placeholders; all API calls happen client-side in a `$effect` on `+page.svelte` via `Promise.allSettled` across 7 endpoints (summary, byCategory, byTeam, byTeamAll, timeline, severityTrend, topRules). A generation counter guards against stale results on rapid filter changes.
 - **`routes/constitution/`** — Public page rendering the 13 mandamentos (ConstitutionHero + MandatesGrid + TransparencySection components).
+- **`routes/docs/`** — Role-based product wiki. User sections (`getting-started`, `incidents`, `postmortems`, `analytics`, `semgrep`, `api-keys`, `rules`) SSR-enabled and public. Admin sections (`administration`, `security`, `api-reference`) under `routes/docs/(admin)/` group with `ssr = false` and a guard layout that redirects unauthenticated users to `/login/` and non-admins to `/docs/`. The index page (`+page.svelte`) renders user section cards via SSR, then silently adds admin cards client-side via `{#if $profile?.is_admin}`. PersonaPicker highlights relevant sections per role (6 personas). Components: `DocSection.svelte`, `CodeBlock.svelte` (copy-to-clipboard, `aria-label="Copy code"`), `DocSidebar.svelte`, `PersonaPicker.svelte`. Nav data in `lib/components/docs/nav.ts`.
 - **`routes/login/` and `routes/signup/`** — Firebase email/password auth pages. SSR disabled (client-side only) to avoid server-side Firebase Auth SDK usage.
 - **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink, Tabs). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
 - **`lib/components/`** — Page section components (Hero, Problem, Layers, HowItWorks, Pricing, Footer, WaitlistForm, etc.). All text hardcoded in English.
@@ -404,3 +405,10 @@ No active sprint. All specs complete.
 - Hexagonal architecture applies from Phase 1 onward (backend only)
 - Structural changes (new routes, components, architecture) require doc updates in the same PR
 - **Mandamento XIII**: ALL dependencies (infra, APIs, backend, DB, secrets, CI/CD) MUST be explicit in the execution plan. Code without its dependencies is broken code.
+
+## Active Technologies
+- TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4, Firebase SDK 11 — existing stack, no new packages (021-product-wiki)
+- N/A — static content, no database (021-product-wiki)
+
+## Recent Changes
+- 021-product-wiki: Added TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4, Firebase SDK 11 — existing stack, no new packages

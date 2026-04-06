@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
+	import { Container } from '$lib/ui';
 	import DashboardGrid from '$lib/components/analytics/DashboardGrid.svelte';
 	import type {
 		AnalyticsFilter,
@@ -102,55 +103,57 @@
 	}
 </script>
 
-<div class="py-8">
-	<div class="mb-6 flex items-center justify-between">
-		<div>
-			<h1 class="text-2xl font-bold text-text">Analytics</h1>
-			<p class="mt-1 text-sm text-text-muted">Incident patterns and trends</p>
+<Container>
+	<div class="py-8">
+		<div class="mb-6 flex items-center justify-between">
+			<div>
+				<h1 class="text-2xl font-bold text-text">Analytics</h1>
+				<p class="mt-1 text-sm text-text-muted">Incident patterns and trends</p>
+			</div>
+			<a href="/incidents/" class="text-sm text-accent hover:underline">← All Incidents</a>
 		</div>
-		<a href="/incidents/" class="text-sm text-accent hover:underline">← All Incidents</a>
-	</div>
 
-	{#if loadError && !summary}
-		<div
-			class="rounded-lg border border-error/40 bg-error/10 px-6 py-5"
-			role="alert"
-			aria-live="assertive"
-		>
-			<p class="font-medium text-error">Failed to load analytics</p>
-			<p class="mt-1 text-sm text-error/80">{loadError}</p>
-			<button
-				class="mt-3 rounded border border-error/40 px-3 py-1.5 text-sm text-error hover:bg-error/10 focus:outline-none focus:ring-2 focus:ring-error"
-				onclick={() => goto('/analytics/', { invalidateAll: true })}
-				aria-label="Retry loading analytics"
-			>
-				Retry
-			</button>
-		</div>
-	{:else if summary}
-		{#if loadError}
+		{#if loadError && !summary}
 			<div
-				class="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning"
-				role="status"
+				class="rounded-lg border border-error/40 bg-error/10 px-6 py-5"
+				role="alert"
+				aria-live="assertive"
 			>
-				{loadError}
+				<p class="font-medium text-error">Failed to load analytics</p>
+				<p class="mt-1 text-sm text-error/80">{loadError}</p>
+				<button
+					class="mt-3 rounded border border-error/40 px-3 py-1.5 text-sm text-error hover:bg-error/10 focus:outline-none focus:ring-2 focus:ring-error"
+					onclick={() => goto('/analytics/', { invalidateAll: true })}
+					aria-label="Retry loading analytics"
+				>
+					Retry
+				</button>
+			</div>
+		{:else if summary}
+			{#if loadError}
+				<div
+					class="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning"
+					role="status"
+				>
+					{loadError}
+				</div>
+			{/if}
+			<DashboardGrid
+				{summary}
+				{byCategory}
+				{byTeam}
+				{byTeamAll}
+				{timeline}
+				{severityTrend}
+				{topRules}
+				filters={data.filters}
+				loading={navigating.to !== null || loading}
+				onFiltersChange={handleFiltersChange}
+			/>
+		{:else if loading}
+			<div class="text-center py-12">
+				<p class="text-text-muted">Loading analytics...</p>
 			</div>
 		{/if}
-		<DashboardGrid
-			{summary}
-			{byCategory}
-			{byTeam}
-			{byTeamAll}
-			{timeline}
-			{severityTrend}
-			{topRules}
-			filters={data.filters}
-			loading={navigating.to !== null || loading}
-			onFiltersChange={handleFiltersChange}
-		/>
-	{:else if loading}
-		<div class="text-center py-12">
-			<p class="text-text-muted">Loading analytics...</p>
-		</div>
-	{/if}
-</div>
+	</div>
+</Container>

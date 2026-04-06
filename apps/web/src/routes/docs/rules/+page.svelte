@@ -105,7 +105,7 @@ semgrep scan --config .semgrep/theloop-rules.yml tests/test-data/`;
 <DocSection title="Supported Languages" id="languages">
 	<p class="text-text-muted">Rules are available for 10 languages as of v0.4.0:</p>
 	<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-		{#each ['Python', 'JavaScript', 'TypeScript', 'Go', 'Java', 'C#', 'PHP', 'Ruby', 'Kotlin', 'Rust', 'C', 'C++'] as lang (lang)}
+		{#each ['Python', 'JavaScript/TypeScript', 'Go', 'Java', 'C#', 'PHP', 'Ruby', 'Kotlin', 'Rust', 'C/C++'] as lang (lang)}
 			<span class="px-3 py-1.5 rounded-lg bg-bg-elevated border border-border text-sm text-text-muted font-mono">
 				{lang}
 			</span>

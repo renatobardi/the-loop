@@ -12,11 +12,15 @@
 	let copied = $state(false);
 
 	async function copy() {
-		await navigator.clipboard.writeText(code);
-		copied = true;
-		setTimeout(() => {
-			copied = false;
-		}, 2000);
+		try {
+			await navigator.clipboard.writeText(code);
+			copied = true;
+			setTimeout(() => {
+				copied = false;
+			}, 2000);
+		} catch {
+			// Clipboard write failed (permission denied or unsupported) — fail silently
+		}
 	}
 </script>
 

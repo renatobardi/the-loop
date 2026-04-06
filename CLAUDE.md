@@ -401,3 +401,10 @@ No active sprint. All specs complete.
 - Hexagonal architecture applies from Phase 1 onward (backend only)
 - Structural changes (new routes, components, architecture) require doc updates in the same PR
 - **Mandamento XIII**: ALL dependencies (infra, APIs, backend, DB, secrets, CI/CD) MUST be explicit in the execution plan. Code without its dependencies is broken code.
+
+## Active Technologies
+- TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4 — existing stack, no new packages (021-product-wiki)
+- N/A — static content, no database (021-product-wiki)
+
+## Recent Changes
+- 021-product-wiki: Added TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4 — existing stack, no new packages

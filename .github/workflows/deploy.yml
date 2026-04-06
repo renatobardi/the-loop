@@ -222,5 +222,6 @@ jobs:
             --allow-unauthenticated
           secrets: |
             DATABASE_URL=THELOOP_API_DATABASE_URL:latest
+            GITHUB_TOKEN=GITHUB_TOKEN:latest
           env_vars: |
             CORS_ORIGINS=https://loop.oute.pro,http://localhost:5173

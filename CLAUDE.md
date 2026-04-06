@@ -391,6 +391,9 @@ No active sprint. All specs complete.
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
 | Spec-018 | ✅ Complete | Consolidated into Spec-017 |
 | Spec-019 | ✅ Complete | Product Analytics Dashboard (7 phases, PRs #101–#104) |
+| Spec-020 | 🚀 In Progress | Product Wiki (knowledge base, PR #109 pending) |
+| Spec-021 | 🚀 In Progress | UI Refinements (PR #107 open, awaiting merge) |
+| Spec-022 | 🚀 In Progress | Product Releases Notification (75/75 tasks, PR #108 open, M1 setup complete) |
 
 ## Governance (CONSTITUTION.md)
 

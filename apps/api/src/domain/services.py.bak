@@ -1,0 +1,32 @@
+## Backup to add ReleaseSync service at end of services.py
+
+# Add this to the bottom of src/domain/services.py:
+
+class ReleaseSyncService:
+    """Service to sync GitHub releases into database."""
+
+    def __init__(self, release_repo: Any, github_client: Any) -> None:
+        """Initialize with injected repositories."""
+        self._release_repo = release_repo
+        self._github_client = github_client
+
+    async def sync_releases(self) -> int:
+        """Fetch latest releases from GitHub and sync to database. Returns count synced."""
+        try:
+            github_releases = await self._github_client.fetch_latest_releases(per_page=20)
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch releases from GitHub: {e}") from e
+
+        synced_count = 0
+        for release in github_releases:
+            try:
+                existing = await self._release_repo.get_by_version(release.version)
+                if not existing:
+                    await self._release_repo.create(release)
+                    synced_count += 1
+            except Exception as e:
+                # Log and continue on sync error
+                print(f"Failed to sync release {release.version}: {e}")
+                continue
+
+        return synced_count

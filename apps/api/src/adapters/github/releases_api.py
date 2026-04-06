@@ -1,0 +1,108 @@
+"""GitHub Releases API client for fetching product releases (Phase 5 Product Releases Notification)."""
+
+from datetime import datetime
+from typing import Any
+from uuid import uuid4
+
+import httpx
+
+from src.domain.models import Release
+
+
+class GitHubReleasesApiClient:
+    """Client for GitHub Releases REST API integration."""
+
+    BASE_URL = "https://api.github.com/repos"
+
+    def __init__(self, owner: str, repo: str, token: str | None = None) -> None:
+        """Initialize with GitHub repository owner, repo name, and optional token."""
+        self.owner = owner
+        self.repo = repo
+        self.token = token
+        self.client = httpx.AsyncClient(timeout=10.0)
+
+    async def fetch_latest_releases(self, per_page: int = 10) -> list[Release]:
+        """Fetch latest releases from GitHub, return as Release domain models."""
+        url = f"{self.BASE_URL}/{self.owner}/{self.repo}/releases"
+        headers = {}
+
+        if self.token:
+            headers["Authorization"] = f"token {self.token}"
+            headers["Accept"] = "application/vnd.github.v3+json"
+
+        try:
+            response = await self.client.get(url, headers=headers, params={"per_page": per_page})
+            response.raise_for_status()
+        except httpx.RequestError as e:
+            raise RuntimeError(f"Failed to fetch releases from GitHub: {e}") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(f"GitHub API error ({e.response.status_code}): {e.response.text}") from e
+
+        releases: list[Release] = []
+        data = response.json()
+
+        if not isinstance(data, list):
+            raise RuntimeError("Unexpected response format from GitHub API")
+
+        for item in data:
+            try:
+                release = self._parse_github_release(item)
+                releases.append(release)
+            except (KeyError, ValueError) as e:
+                # Skip malformed releases, log and continue
+                print(f"Warning: Failed to parse GitHub release: {e}")
+                continue
+
+        return releases
+
+    def _parse_github_release(self, item: dict[str, Any]) -> Release:
+        """Parse GitHub release JSON into Release domain model."""
+        # GitHub returns ISO 8601 datetime strings
+        published_date_str = item.get("published_at") or item.get("created_at")
+        if not published_date_str:
+            raise ValueError("Missing published_at or created_at")
+
+        # Parse ISO 8601 datetime
+        if published_date_str.endswith("Z"):
+            published_date_str = published_date_str[:-1] + "+00:00"
+        published_date = datetime.fromisoformat(published_date_str)
+
+        # Extract breaking changes from changelog if indicated in body
+        changelog_body = item.get("body", "") or ""
+        breaking_changes_flag = "breaking" in changelog_body.lower()
+
+        return Release(
+            id=uuid4(),  # Generate UUID for new releases
+            title=item.get("name") or item.get("tag_name", "Untitled Release"),
+            version=item.get("tag_name", "unknown"),
+            published_date=published_date,
+            summary=self._extract_summary(changelog_body),
+            changelog_html=changelog_body,  # Store raw markdown, will be rendered on frontend
+            breaking_changes_flag=breaking_changes_flag,
+            documentation_url=item.get("html_url"),  # Link to GitHub release page
+            created_at=datetime.fromisoformat(
+                item.get("created_at", datetime.now(datetime.UTC).isoformat()).replace("Z", "+00:00")
+            ),
+            updated_at=datetime.fromisoformat(
+                item.get("updated_at", datetime.now(datetime.UTC).isoformat()).replace("Z", "+00:00")
+            ),
+        )
+
+    @staticmethod
+    def _extract_summary(changelog: str) -> str:
+        """Extract first 200 chars of changelog as summary."""
+        if not changelog:
+            return ""
+        return changelog[:200].strip() + ("..." if len(changelog) > 200 else "")
+
+    async def close(self) -> None:
+        """Close the HTTP client."""
+        await self.client.aclose()
+
+    async def __aenter__(self) -> "GitHubReleasesApiClient":
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Async context manager exit."""
+        await self.close()

@@ -29,6 +29,8 @@ __all__ = [
     "Postmortem",
     "PostmortemStatus",
     "PostmortumSeverity",
+    "Release",
+    "ReleaseNotificationStatus",
     "ResponderRole",
     "RootCauseCategory",
     "RootCauseTemplate",
@@ -737,3 +739,39 @@ class Scan(BaseModel):
     warnings_count: int
     duration_ms: int
     created_at: datetime
+
+
+# ─── Phase 5: Product Releases Notification ───────────────────────────────
+
+
+class Release(BaseModel):
+    """Immutable domain entity representing a product release."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    title: str
+    version: str
+    published_date: datetime
+    summary: str | None = None
+    changelog_html: str | None = None
+    breaking_changes_flag: bool = False
+    documentation_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReleaseNotificationStatus(BaseModel):
+    """Immutable domain entity for per-user release read/unread status."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    release_id: UUID
+    user_id: UUID
+    read_at: datetime | None = None
+    created_at: datetime
+
+    @property
+    def is_read(self) -> bool:
+        return self.read_at is not None

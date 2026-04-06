@@ -1,8 +1,8 @@
 # Feature Specification: Product Docs
 
-**Feature Branch**: `021-product-wiki`  
+**Feature Branch**: `feat/021-product-wiki`  
 **Created**: 2026-04-05  
-**Status**: Ready for planning  
+**Status**: Implementation complete — PR #107 open, pending merge  
 **Input**: User description: "documentação de produto em /docs/ com controle de seções por perfil — seções de uso geral para todos os usuários e seções administrativas visíveis somente para administradores"
 
 ---

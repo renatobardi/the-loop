@@ -376,7 +376,7 @@ Working on a spec:
 
 ## Current Sprint
 
-No active sprint. All specs complete.
+Spec-021 (Product Wiki) — PR #107 open, pending merge.
 
 ### Phase Status (as of April 2026)
 
@@ -392,6 +392,7 @@ No active sprint. All specs complete.
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
 | Spec-018 | ✅ Complete | Consolidated into Spec-017 |
 | Spec-019 | ✅ Complete | Product Analytics Dashboard (7 phases, PRs #101–#104) |
+| Spec-021 | 🔄 PR Open | Product Wiki — role-based /docs/ (PR #107, feat/021-product-wiki) |
 
 ## Governance (CONSTITUTION.md)
 
@@ -408,4 +409,4 @@ No active sprint. All specs complete.
 - N/A — static content, no database (021-product-wiki)
 
 ## Recent Changes
-- 021-product-wiki: Added TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4, Firebase SDK 11 — existing stack, no new packages
+- 021-product-wiki: 10 docs pages under /docs/ (7 public SSR + 3 admin CSR); DocSection, CodeBlock, DocSidebar, PersonaPicker components; (admin) route group with profile-only auth guard; PR #107

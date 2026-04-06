@@ -1,12 +1,3 @@
-// SSR disabled: requires Firebase Auth client SDK (browser-only).
-import { redirect } from '@sveltejs/kit';
-import { waitForAuth } from '$lib/firebase';
-
-export const ssr = false;
-
-export async function load() {
-	const user = await waitForAuth();
-	if (!user) {
-		redirect(303, '/login/');
-	}
-}
+// User-facing docs home: SSR enabled (public, no auth required — FR-004).
+// Admin section cards are added client-side after auth resolves (silent, no skeleton).
+export {};

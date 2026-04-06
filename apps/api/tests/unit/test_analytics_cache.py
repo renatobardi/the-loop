@@ -93,7 +93,7 @@ class TestCacheTTL:
         with patch("time.monotonic", return_value=now + 61):
             assert cache.get("k") is None
 
-    def test_boundary_at_exact_ttl_is_expired(self) -> None:
+    def test_boundary_at_exact_ttl_is_still_valid(self) -> None:
         # expires_at = now + ttl; get checks monotonic() > expires_at
         # so at exactly expires_at it is NOT yet expired (strictly greater)
         cache = AnalyticsCache(ttl_seconds=300)

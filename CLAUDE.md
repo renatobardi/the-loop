@@ -390,7 +390,7 @@ No active sprint. All specs complete.
 | Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
 | Spec-018 | ✅ Complete | Consolidated into Spec-017 |
-| Spec-019 | ✅ Complete | Product Analytics Dashboard (53 tasks, 7 phases, PRs #101–#104) |
+| Spec-019 | ✅ Complete | Product Analytics Dashboard (7 phases, PRs #101–#104) |
 
 ## Governance (CONSTITUTION.md)
 

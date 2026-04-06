@@ -17,11 +17,9 @@ describe('RuleEffectivenessCard — data contract', () => {
 		expect(r.avg_severity).toBe(1.0);
 	});
 
-	it('avg_severity is 0.5 (warning) or 1.0 (error) by API contract', () => {
-		const valid = [0.5, 1.0];
-		for (const v of valid) {
-			expect(valid).toContain(v);
-		}
+	it('maps severity thresholds correctly', () => {
+		expect(barColor(0.5)).toContain('warning');
+		expect(barColor(1.0)).toContain('error');
 	});
 });
 

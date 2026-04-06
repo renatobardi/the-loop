@@ -95,7 +95,7 @@ For CI tests, a temporary test database is created with the same setup.
 
 - **`routes/`** — File-based routing with plain paths. Trailing slashes enforced (`trailingSlash: 'always'` in `+layout.ts`). All routes use plain paths (`/`, `/incidents/`, `/analytics/`, `/constitution/`).
 - **`routes/incidents/`** — Incident CRUD pages: list with filters/pagination, `[id]/` detail view, `[id]/edit/` edit form, `new/` create form. Client-side data loading via `+page.ts`.
-- **`routes/analytics/`** — Product analytics dashboard. `+page.ts` calls all 6 analytics endpoints in parallel (`Promise.all`), returns `summary`, `timeline`, `byCategory`, `byTeam`, `severityTrend`, `topRules` to the page component.
+- **`routes/analytics/`** — Product analytics dashboard. SSR disabled (`ssr = false`). `+page.ts` only parses URL filter params and returns null placeholders; all API calls happen client-side in a `$effect` on `+page.svelte` via `Promise.allSettled` across 7 endpoints (summary, byCategory, byTeam, byTeamAll, timeline, severityTrend, topRules). A generation counter guards against stale results on rapid filter changes.
 - **`routes/constitution/`** — Public page rendering the 13 mandamentos (ConstitutionHero + MandatesGrid + TransparencySection components).
 - **`routes/login/` and `routes/signup/`** — Firebase email/password auth pages. SSR disabled (client-side only) to avoid server-side Firebase Auth SDK usage.
 - **`lib/ui/`** — Design system components (Button, Input, Card, Badge, Container, Section, Navbar, SkipLink, Tabs). Barrel-exported via `index.ts`. Consumes design tokens from `app.css`.
@@ -104,7 +104,7 @@ For CI tests, a temporary test database is created with the same setup.
   - Details, Operational, Postmortem (core incident fields)
   - Timeline, Responders, Action Items, Attachments (sub-resources with lazy loading)
 - **`lib/components/incidents/tabs/`** — Individual tab components. Each implements lazy loading pattern (see "Lazy-Loading Tab Pattern" section).
-- **`lib/components/analytics/`** — Analytics dashboard components: `DashboardGrid.svelte` (layout + data distribution), `SummaryCard.svelte` (8 KPI cards in 2×4 grid), `CategoryHeatmap.svelte`, `AnalyticsFilters.svelte`, `MultiSelectDropdown.svelte` (accessible multi-select with click-outside dismiss; props: `id`, `label`, `options`, `selected[]`, `placeholder`, `onchange`).
+- **`lib/components/analytics/`** — Analytics dashboard components: `DashboardGrid.svelte` (layout + data distribution to all sub-components), `SummaryCard.svelte` (8 KPI cards in 2×4 grid), `CategoryHeatmap.svelte`, `TeamHeatmap.svelte`, `PatternTimeline.svelte`, `SeverityTrendChart.svelte` (stacked SVG area chart, pure-SVG no charting lib), `RuleEffectivenessCard.svelte`, `AnalyticsFilters.svelte`, `MultiSelectDropdown.svelte` (accessible multi-select with click-outside dismiss; props: `id`, `label`, `options`, `selected[]`, `placeholder`, `onchange`).
 - **`lib/server/`** — Server-only modules: `firebase.ts` (singleton init), `waitlist.ts` (Firestore write, returns `'created' | 'duplicate'`), `schemas.ts` (Zod with email normalization), `rateLimiter.ts` (5 req/60s per IP).
 - **`lib/services/incidents.ts`** — API client for incident CRUD + sub-resources (timeline, responders, action items, attachments). Attaches Firebase Auth token to requests.
 - **`lib/services/analytics.ts`** — API client for analytics endpoints (`/api/v1/incidents/analytics/*`). Returns `SummaryResponse`, `TimelinePoint[]`, `CategoryStats[]`, `TeamStats[]`, `SeverityTrendPoint[]`, `RuleEffectiveness[]`. Supports `AnalyticsFilter` (period, custom date range, team, category, severity).
@@ -373,9 +373,9 @@ Working on a spec:
 - On completion, commit all changes (spec artifacts + code) in a single PR
 - Spec directory and branch name must stay synchronized
 
-## Current Sprint (Spec-019)
+## Current Sprint
 
-Product Analytics Dashboard — in progress on `feat/019-product-analytics`. Phase 1 (T002–T026) is underway: SQL bug fixes for team/category filters, `AnalyticsCache`, new `SeverityTrendPoint`/`RuleEffectivenessStats` models, 2 new API endpoints, and frontend redesign. See `specs/019-product-analytics/tasks.md` for full task list.
+No active sprint. All specs complete.
 
 ### Phase Status (as of April 2026)
 
@@ -390,7 +390,7 @@ Product Analytics Dashboard — in progress on `feat/019-product-analytics`. Pha
 | Spec-016 | ✅ Complete | Semgrep Platform (9 phases, PR #79) |
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
 | Spec-018 | ✅ Complete | Consolidated into Spec-017 |
-| Spec-019 | 🚀 In Progress | Product Analytics Dashboard (56 tasks, 7 phases, branch feat/019-product-analytics) |
+| Spec-019 | ✅ Complete | Product Analytics Dashboard (7 phases, PRs #101–#104) |
 
 ## Governance (CONSTITUTION.md)
 

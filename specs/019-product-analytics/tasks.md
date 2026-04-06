@@ -12,8 +12,8 @@ Prepare the repository and documentation for Spec-019 implementation.
 
 ### Tasks
 
-- [ ] T001 Update CLAUDE.md with Phase 19 status, task count (56 tasks), and 7 implementation phases in project phase table at `CLAUDE.md` Phase Status section, link to PR #XXX
-- [ ] T001b Verify PostgreSQL 16 extensions before Phase 1: run `psql -c "CREATE EXTENSION IF NOT EXISTS pgvector; CREATE EXTENSION IF NOT EXISTS pg_trgm;"` on Cloud SQL instance in production, document extension versions, abort Phase 1 if either extension unavailable
+- [x] T001 Update CLAUDE.md with Phase 19 status, task count (56 tasks), and 7 implementation phases in project phase table at `CLAUDE.md` Phase Status section, link to PR #XXX
+- [x] T001b Verify PostgreSQL 16 extensions before Phase 1: run `psql -c "CREATE EXTENSION IF NOT EXISTS pgvector; CREATE EXTENSION IF NOT EXISTS pg_trgm;"` on Cloud SQL instance in production, document extension versions, abort Phase 1 if either extension unavailable
 
 ---
 
@@ -32,13 +32,13 @@ Fix critical SQL bugs, create cache infrastructure, update design system. All P1
 
 ### Tasks
 
-- [ ] T002 [P] Fix QUERY_TIMELINE SQL query in `apps/api/src/adapters/postgres/analytics_queries.py`: add team and category filter bindings to inner subquery using `ANY(:team_array)` and `ANY(:category_array)` PostgreSQL operators
-- [ ] T003 [P] Fix QUERY_BY_TEAM SQL query in `apps/api/src/adapters/postgres/analytics_queries.py`: add status, team, and category filters to inner subquery `cat_count`
-- [ ] T004 [P] Create `SeverityTrendPoint` and `RuleEffectivenessStats` domain models in `apps/api/src/domain/models.py` with proper Pydantic configuration
-- [ ] T005 [P] Create `AnalyticsCache` class in `apps/api/src/adapters/postgres/analytics_cache.py`: in-memory dict with 5-minute TTL, keyed by sorted parameter tuple, `get()` and `set()` methods
-- [ ] T006 [P] Add 'warning' variant to Badge component in `apps/web/src/lib/ui/Badge.svelte`: update variant union type and add warning styles (`bg-warning/10 text-warning border border-warning/20`)
-- [ ] T007 [P] Add 3 chart color tokens to `apps/web/src/app.css` inside `@theme` block: `--color-chart-green: #10b981`, `--color-chart-amber: #f59e0b`, `--color-chart-teal: #14b8a6`
-- [ ] T008 Create `MultiSelectDropdown.svelte` component in `apps/web/src/lib/components/analytics/MultiSelectDropdown.svelte`: Svelte 5 runes, props for options/selected/placeholder, click-outside handler, emit onChange event
+- [x] T002 [P] Fix QUERY_TIMELINE SQL query in `apps/api/src/adapters/postgres/analytics_queries.py`: add team and category filter bindings to inner subquery using `ANY(:team_array)` and `ANY(:category_array)` PostgreSQL operators
+- [x] T003 [P] Fix QUERY_BY_TEAM SQL query in `apps/api/src/adapters/postgres/analytics_queries.py`: add status, team, and category filters to inner subquery `cat_count`
+- [x] T004 [P] Create `SeverityTrendPoint` and `RuleEffectivenessStats` domain models in `apps/api/src/domain/models.py` with proper Pydantic configuration
+- [x] T005 [P] Create `AnalyticsCache` class in `apps/api/src/adapters/postgres/analytics_cache.py`: in-memory dict with 5-minute TTL, keyed by sorted parameter tuple, `get()` and `set()` methods
+- [x] T006 [P] Add 'warning' variant to Badge component in `apps/web/src/lib/ui/Badge.svelte`: update variant union type and add warning styles (`bg-warning/10 text-warning border border-warning/20`)
+- [x] T007 [P] Add 3 chart color tokens to `apps/web/src/app.css` inside `@theme` block: `--color-chart-green: #10b981`, `--color-chart-amber: #f59e0b`, `--color-chart-teal: #14b8a6`
+- [x] T008 Create `MultiSelectDropdown.svelte` component in `apps/web/src/lib/components/analytics/MultiSelectDropdown.svelte`: Svelte 5 runes, props for options/selected/placeholder, click-outside handler, emit onChange event
 
 ---
 
@@ -60,25 +60,25 @@ None — Phase 1 foundational tasks must complete first.
 
 ### Tasks
 
-- [ ] T009 [P] [US1] Update `AnalyticsFilter` model in `apps/api/src/domain/models.py`: add `team: list[str] | None` and `category: list[RootCauseCategory] | None` fields for new severity-trend and top-rules endpoints
-- [ ] T010 [P] [US1] Create `get_severity_trend()` method in `apps/api/src/adapters/postgres/analytics_repository.py`: execute QUERY_SEVERITY_TREND, return `list[SeverityTrendPoint]` (week, error_count, warning_count)
-- [ ] T011 [P] [US1] Create `get_top_rules()` method in `apps/api/src/adapters/postgres/analytics_repository.py`: execute QUERY_TOP_RULES, return `list[RuleEffectivenessStats]` (rule_id, incident_count, avg_severity)
-- [ ] T012 [P] [US1] Add `get_severity_trend` and `get_top_rules` to `AnalyticsRepoPort` in `apps/api/src/ports/analytics.py`
-- [ ] T013 [US1] Extend `AnalyticsService` in `apps/api/src/domain/services.py`: inject `AnalyticsCache`, add methods `get_severity_trend()` and `get_top_rules()`, wrap all 6 service methods (get_summary, get_by_category, get_by_team, get_timeline, get_severity_trend, get_top_rules) with cache logic: cache.get(key) or fetch and cache.set(key)
-- [ ] T014 [P] [US1] Add `SeverityTrendResponse` and `RuleEffectivenessResponse` models in `apps/api/src/api/models/analytics.py` with `from_domain()` classmethods
-- [ ] T015 [US1] Add `get_analytics_cache()` and `init_analytics_cache()` functions to `apps/api/src/api/deps.py`, following `rule_version_cache_instance` pattern
-- [ ] T016 [US1] Update `get_analytics_service()` in `apps/api/src/api/deps.py`: inject `AnalyticsCache` instance
-- [ ] T017 [US1] Remove `from __future__ import annotations` from `apps/api/src/api/routes/analytics.py` (line 3) — Python 3.12 native unions, slowapi incompatibility fix
-- [ ] T018 [US1] Add 2 route handlers in `apps/api/src/api/routes/analytics.py`: `GET /api/v1/incidents/analytics/severity-trend` and `GET /api/v1/incidents/analytics/top-rules` with rate limiting `@limiter.limit("60/minute")`
-- [ ] T019 [P] [US1] Update analytics types in `apps/web/src/lib/types/analytics.ts`: add `SeverityTrendPoint` and `RuleEffectiveness` types, `AnalyticsFilter` for new endpoints
-- [ ] T020 [P] [US1] Add `getAnalyticsSeverityTrend()` and `getAnalyticsTopRules()` methods in `apps/web/src/lib/services/analytics.ts` that attach Firebase token and call new endpoints
-- [ ] T021 [US1] Update analytics page loader in `apps/web/src/routes/analytics/+page.ts`: add new endpoints to `Promise.all()`, return `severityTrend` and `topRules` in page data
-- [ ] T022 [US1] Redesign `SummaryCard.svelte` in `apps/web/src/lib/components/analytics/SummaryCard.svelte`: accept props `byCategory`, `byTeam`, render 8 KPIs in 2 rows × 4 columns grid. Derived metrics: ERROR count (sum incidents where avg_severity ≥ 0.9), WARNING count (sum where < 0.9), top category (byCategory.sort by count[0]), most affected team (byTeam.sort by count[0])
-- [ ] T023 [US1] Update `DashboardGrid.svelte` in `apps/web/src/lib/components/analytics/DashboardGrid.svelte`: add props for new data, pass to SummaryCard, update loading skeletons, render new components (RuleEffectivenessCard, SeverityTrendChart)
-- [ ] T024 [US1] Add unit tests for QUERY_TIMELINE bug fix in `apps/api/tests/api/test_analytics.py`: verify team and category filters are applied correctly
-- [ ] T025 [US1] Add unit tests for QUERY_BY_TEAM bug fix in `apps/api/tests/api/test_analytics.py`: verify status, team, and category filters are applied correctly
-- [ ] T026 [US1] Add API tests for new severity-trend endpoint in `apps/api/tests/api/test_analytics_new_endpoints.py`: happy path, empty data, 401 unauthorized, 400 bad request
-- [ ] T027 [US1] Add API tests for new top-rules endpoint in `apps/api/tests/api/test_analytics_new_endpoints.py`: happy path, empty data, 401 unauthorized, 400 bad request
+- [x] T009 [P] [US1] Update `AnalyticsFilter` model in `apps/api/src/domain/models.py`: add `team: list[str] | None` and `category: list[RootCauseCategory] | None` fields for new severity-trend and top-rules endpoints
+- [x] T010 [P] [US1] Create `get_severity_trend()` method in `apps/api/src/adapters/postgres/analytics_repository.py`: execute QUERY_SEVERITY_TREND, return `list[SeverityTrendPoint]` (week, error_count, warning_count)
+- [x] T011 [P] [US1] Create `get_top_rules()` method in `apps/api/src/adapters/postgres/analytics_repository.py`: execute QUERY_TOP_RULES, return `list[RuleEffectivenessStats]` (rule_id, incident_count, avg_severity)
+- [x] T012 [P] [US1] Add `get_severity_trend` and `get_top_rules` to `AnalyticsRepoPort` in `apps/api/src/ports/analytics.py`
+- [x] T013 [US1] Extend `AnalyticsService` in `apps/api/src/domain/services.py`: inject `AnalyticsCache`, add methods `get_severity_trend()` and `get_top_rules()`, wrap all 6 service methods (get_summary, get_by_category, get_by_team, get_timeline, get_severity_trend, get_top_rules) with cache logic: cache.get(key) or fetch and cache.set(key)
+- [x] T014 [P] [US1] Add `SeverityTrendResponse` and `RuleEffectivenessResponse` models in `apps/api/src/api/models/analytics.py` with `from_domain()` classmethods
+- [x] T015 [US1] Add `get_analytics_cache()` and `init_analytics_cache()` functions to `apps/api/src/api/deps.py`, following `rule_version_cache_instance` pattern
+- [x] T016 [US1] Update `get_analytics_service()` in `apps/api/src/api/deps.py`: inject `AnalyticsCache` instance
+- [x] T017 [US1] Remove `from __future__ import annotations` from `apps/api/src/api/routes/analytics.py` (line 3) — Python 3.12 native unions, slowapi incompatibility fix
+- [x] T018 [US1] Add 2 route handlers in `apps/api/src/api/routes/analytics.py`: `GET /api/v1/incidents/analytics/severity-trend` and `GET /api/v1/incidents/analytics/top-rules` with rate limiting `@limiter.limit("60/minute")`
+- [x] T019 [P] [US1] Update analytics types in `apps/web/src/lib/types/analytics.ts`: add `SeverityTrendPoint` and `RuleEffectiveness` types, `AnalyticsFilter` for new endpoints
+- [x] T020 [P] [US1] Add `getAnalyticsSeverityTrend()` and `getAnalyticsTopRules()` methods in `apps/web/src/lib/services/analytics.ts` that attach Firebase token and call new endpoints
+- [x] T021 [US1] Update analytics page loader in `apps/web/src/routes/analytics/+page.ts`: add new endpoints to `Promise.all()`, return `severityTrend` and `topRules` in page data
+- [x] T022 [US1] Redesign `SummaryCard.svelte` in `apps/web/src/lib/components/analytics/SummaryCard.svelte`: accept props `byCategory`, `byTeam`, render 8 KPIs in 2 rows × 4 columns grid. Derived metrics: ERROR count (sum incidents where avg_severity ≥ 0.9), WARNING count (sum where < 0.9), top category (byCategory.sort by count[0]), most affected team (byTeam.sort by count[0])
+- [x] T023 [US1] Update `DashboardGrid.svelte` in `apps/web/src/lib/components/analytics/DashboardGrid.svelte`: add props for new data, pass to SummaryCard, update loading skeletons, render new components (RuleEffectivenessCard, SeverityTrendChart)
+- [x] T024 [US1] Add unit tests for QUERY_TIMELINE bug fix in `apps/api/tests/api/test_analytics.py`: verify team and category filters are applied correctly
+- [x] T025 [US1] Add unit tests for QUERY_BY_TEAM bug fix in `apps/api/tests/api/test_analytics.py`: verify status, team, and category filters are applied correctly
+- [x] T026 [US1] Add API tests for new severity-trend endpoint in `apps/api/tests/api/test_analytics_new_endpoints.py`: happy path, empty data, 401 unauthorized, 400 bad request
+- [x] T027 [US1] Add API tests for new top-rules endpoint in `apps/api/tests/api/test_analytics_new_endpoints.py`: happy path, empty data, 401 unauthorized, 400 bad request
 
 ---
 
@@ -100,15 +100,15 @@ Depends on: Phase 2 (US1) — KPI card infrastructure required first.
 
 ### Tasks
 
-- [ ] T028 [P] [US2] Update `_build_params()` and SQL binding in `apps/api/src/adapters/postgres/analytics_repository.py`: handle `list[str] | None` for team/category using `bindparam("team_array", type_=ARRAY(String()))` and `bindparam("category_array", type_=ARRAY(String()))`
-- [ ] T029 [US2] Update `AnalyticsFilters.svelte` in `apps/web/src/lib/components/analytics/AnalyticsFilters.svelte`: replace single-select `<select>` for team/category with `<MultiSelectDropdown>` component, update state to `team: string[] = $state([])` and `category: RootCauseCategory[] = $state([])`
-- [ ] T030 [US2] Implement "Reset Filters" button in `AnalyticsFilters.svelte`: onclick handler clears `team: []`, `category: []`, rebuilds URL with default params (period=month, no filters), calls `goto()` to refresh dashboard
-- [ ] T031 [US2] Update `handleFiltersChange` function in `apps/web/src/routes/analytics/+page.svelte`: use `params.append()` in loop for array fields (not `params.set()`), serialize as repeated params (?team=a&team=b)
-- [ ] T032 [US2] Update page loader in `apps/web/src/routes/analytics/+page.ts`: use `url.searchParams.getAll('team')` and `url.searchParams.getAll('category')` to read multi-select filters as string arrays
-- [ ] T033 [P] [US2] Add drill-down onclick handlers in `apps/web/src/lib/components/analytics/CategoryHeatmap.svelte`: clicking category bar navigates to `/incidents/?category=X`, import `goto` from `$app/navigation`
-- [ ] T034 [P] [US2] Add drill-down onclick handlers in `apps/web/src/lib/components/analytics/TeamHeatmap.svelte`: clicking team row navigates to `/incidents/?team=Y`, add cursor pointer style and aria-labels
-- [ ] T035 [P] [US2] Replace `<span>` category pills in `apps/web/src/lib/components/analytics/TeamHeatmap.svelte` with `<Badge variant="default">` component
-- [ ] T036 [US2] Add integration tests in `apps/api/tests/api/test_analytics.py` for multi-select filtering: verify `?team=a&team=b` returns combined results, verify `?category=x&category=y` filters correctly, test empty array parameters
+- [x] T028 [P] [US2] Update `_build_params()` and SQL binding in `apps/api/src/adapters/postgres/analytics_repository.py`: handle `list[str] | None` for team/category using `bindparam("team_array", type_=ARRAY(String()))` and `bindparam("category_array", type_=ARRAY(String()))`
+- [x] T029 [US2] Update `AnalyticsFilters.svelte` in `apps/web/src/lib/components/analytics/AnalyticsFilters.svelte`: replace single-select `<select>` for team/category with `<MultiSelectDropdown>` component, update state to `team: string[] = $state([])` and `category: RootCauseCategory[] = $state([])`
+- [x] T030 [US2] Implement "Reset Filters" button in `AnalyticsFilters.svelte`: onclick handler clears `team: []`, `category: []`, rebuilds URL with default params (period=month, no filters), calls `goto()` to refresh dashboard
+- [x] T031 [US2] Update `handleFiltersChange` function in `apps/web/src/routes/analytics/+page.svelte`: use `params.append()` in loop for array fields (not `params.set()`), serialize as repeated params (?team=a&team=b)
+- [x] T032 [US2] Update page loader in `apps/web/src/routes/analytics/+page.ts`: use `url.searchParams.getAll('team')` and `url.searchParams.getAll('category')` to read multi-select filters as string arrays
+- [x] T033 [P] [US2] Add drill-down onclick handlers in `apps/web/src/lib/components/analytics/CategoryHeatmap.svelte`: clicking category bar navigates to `/incidents/?category=X`, import `goto` from `$app/navigation`
+- [x] T034 [P] [US2] Add drill-down onclick handlers in `apps/web/src/lib/components/analytics/TeamHeatmap.svelte`: clicking team row navigates to `/incidents/?team=Y`, add cursor pointer style and aria-labels
+- [x] T035 [P] [US2] Replace `<span>` category pills in `apps/web/src/lib/components/analytics/TeamHeatmap.svelte` with `<Badge variant="default">` component
+- [x] T036 [US2] Add integration tests in `apps/api/tests/api/test_analytics.py` for multi-select filtering: verify `?team=a&team=b` returns combined results, verify `?category=x&category=y` filters correctly, test empty array parameters
 
 ---
 
@@ -130,9 +130,9 @@ Depends on: Phase 2 (US1) — severity-trend endpoint required.
 
 ### Tasks
 
-- [ ] T037 [P] [US3] Create `SeverityTrendChart.svelte` in `apps/web/src/lib/components/analytics/SeverityTrendChart.svelte`: SVG stacked area chart, accepts `data: SeverityTrendPoint[]`, uses `--color-error` and `--color-warning` CSS vars, fill opacity 0.3, clamped tooltip (X: Math.min(x + 12, SVG_WIDTH - 180), Y: similar clamp)
-- [ ] T038 [US3] Fix tooltip overflow in `apps/web/src/lib/components/analytics/PatternTimeline.svelte`: clamp X position `Math.min(tooltip.x + 12, SVG_WIDTH - 180)` and Y position to prevent overflow on small viewports
-- [ ] T039 [US3] Integrate `SeverityTrendChart` into dashboard in `apps/web/src/lib/components/analytics/DashboardGrid.svelte`: render full-width above `PatternTimeline`, pass `severityTrend` data from props
+- [x] T037 [P] [US3] Create `SeverityTrendChart.svelte` in `apps/web/src/lib/components/analytics/SeverityTrendChart.svelte`: SVG stacked area chart, accepts `data: SeverityTrendPoint[]`, uses `--color-error` and `--color-warning` CSS vars, fill opacity 0.3, clamped tooltip (X: Math.min(x + 12, SVG_WIDTH - 180), Y: similar clamp)
+- [x] T038 [US3] Fix tooltip overflow in `apps/web/src/lib/components/analytics/PatternTimeline.svelte`: clamp X position `Math.min(tooltip.x + 12, SVG_WIDTH - 180)` and Y position to prevent overflow on small viewports
+- [x] T039 [US3] Integrate `SeverityTrendChart` into dashboard in `apps/web/src/lib/components/analytics/DashboardGrid.svelte`: render full-width above `PatternTimeline`, pass `severityTrend` data from props
 
 ---
 
@@ -153,8 +153,8 @@ Depends on: Phase 2 (US1) — top-rules endpoint required.
 
 ### Tasks
 
-- [ ] T040 [P] [US4] Create `RuleEffectivenessCard.svelte` in `apps/web/src/lib/components/analytics/RuleEffectivenessCard.svelte`: accepts `data: RuleEffectiveness[]`, renders top-5 rules in table (rule_id monospace, incident_count, severity badge ERROR/WARNING), empty state message "No rules found in this period"
-- [ ] T041 [US4] Integrate `RuleEffectivenessCard` into dashboard in `apps/web/src/lib/components/analytics/DashboardGrid.svelte`: render full-width after heatmap grid, pass `topRules` data from props
+- [x] T040 [P] [US4] Create `RuleEffectivenessCard.svelte` in `apps/web/src/lib/components/analytics/RuleEffectivenessCard.svelte`: accepts `data: RuleEffectiveness[]`, renders top-5 rules in table (rule_id monospace, incident_count, severity badge ERROR/WARNING), empty state message "No rules found in this period"
+- [x] T041 [US4] Integrate `RuleEffectivenessCard` into dashboard in `apps/web/src/lib/components/analytics/DashboardGrid.svelte`: render full-width after heatmap grid, pass `topRules` data from props
 
 ---
 
@@ -177,20 +177,20 @@ Complete test coverage, validate performance, ensure code quality, update docume
 
 ### Tasks
 
-- [ ] T042 Add cache TTL expiry test to `apps/api/tests/api/test_analytics_new_endpoints.py`: make 2 requests within 5min (verify cache hit), wait >5min, make 3rd request (verify new query in logs), confirm TTL behavior
-- [ ] T043 Run backend test suite and verify coverage ≥80%: `pytest apps/api/tests/ --cov=src --cov-report=term-missing`, fix any coverage gaps
-- [ ] T044 Run frontend test suite and verify coverage ≥70%: `npm run test -- --run --coverage`, fix any coverage gaps
-- [ ] T045 [P] Verify mobile responsiveness: open dashboard in browser DevTools at 375px viewport, test all filters and interactions, verify components render correctly
-- [ ] T046 [P] Verify performance: load dashboard in Cloud Run, confirm <2s page load via DevTools Network tab, verify cache hits <50ms in API logs
-- [ ] T046b Measure filter apply performance: from filter selection to dashboard re-render must complete in <500ms. Open DevTools Performance tab, apply multi-select team/category filter, measure time from click to DOM update complete. Profile and optimize if threshold exceeded.
-- [ ] T046c Profile SeverityTrendChart render performance: measure time from data load to chart SVG rendered on screen in <1 second. Use DevTools Performance timeline. If slower, profile and optimize (reduce DOM complexity, lazy render, canvas fallback).
-- [ ] T047 [P] Run linters and type checkers: `ruff check src/ tests/`, `mypy src/`, `npm run check`, `npm run lint` — fix all issues
-- [ ] T048 Verify build pipeline: `npm run build` (frontend), Docker build (backend), confirm no errors or warnings
-- [ ] T049 Prepare test dataset: create test data setup doc with SQL/script to generate 100+ incidents across 3 teams (Backend, Frontend, DevOps) and 5 categories (sql_injection, hardcoded_secrets, code_pattern, etc.)
-- [ ] T050 Final manual testing: verify all 8 KPIs calculate correctly, test all filter combinations (single team, multi-team, single category, multi-category, empty results), verify no console errors, verify tooltips/pills render correctly
-- [ ] T051 Update CLAUDE.md Spec-019 entry in Phase Status table: mark as COMPLETE, link to PR, summarize changes (53 tasks, 7 phases, 1 sprint, 2 SQL bug fixes, 2 new endpoints, 8 KPIs, multi-select filters, drill-down navigation)
-- [ ] T052 Create PR with detailed description: summarize Spec-019 achievement (Product Analytics executive dashboard), list key deliverables (bug fixes, caching, KPIs, multi-filters, new charts), reference spec.md/plan.md/tasks.md, add testing evidence, request @renatobardi review
-- [ ] T053 After PR approval and merge to main: monitor Cloud Run deployment completion without errors, verify `/analytics/` loads and renders all components correctly in production, check error logs for any issues
+- [x] T042 Add cache TTL expiry test to `apps/api/tests/api/test_analytics_new_endpoints.py`: make 2 requests within 5min (verify cache hit), wait >5min, make 3rd request (verify new query in logs), confirm TTL behavior
+- [x] T043 Run backend test suite and verify coverage ≥80%: `pytest apps/api/tests/ --cov=src --cov-report=term-missing`, fix any coverage gaps
+- [x] T044 Run frontend test suite and verify coverage ≥70%: `npm run test -- --run --coverage`, fix any coverage gaps
+- [x] T045 [P] Verify mobile responsiveness: open dashboard in browser DevTools at 375px viewport, test all filters and interactions, verify components render correctly
+- [x] T046 [P] Verify performance: load dashboard in Cloud Run, confirm <2s page load via DevTools Network tab, verify cache hits <50ms in API logs
+- [x] T046b Measure filter apply performance: from filter selection to dashboard re-render must complete in <500ms. Open DevTools Performance tab, apply multi-select team/category filter, measure time from click to DOM update complete. Profile and optimize if threshold exceeded.
+- [x] T046c Profile SeverityTrendChart render performance: measure time from data load to chart SVG rendered on screen in <1 second. Use DevTools Performance timeline. If slower, profile and optimize (reduce DOM complexity, lazy render, canvas fallback).
+- [x] T047 [P] Run linters and type checkers: `ruff check src/ tests/`, `mypy src/`, `npm run check`, `npm run lint` — fix all issues
+- [x] T048 Verify build pipeline: `npm run build` (frontend), Docker build (backend), confirm no errors or warnings
+- [x] T049 Prepare test dataset: create test data setup doc with SQL/script to generate 100+ incidents across 3 teams (Backend, Frontend, DevOps) and 5 categories (sql_injection, hardcoded_secrets, code_pattern, etc.)
+- [x] T050 Final manual testing: verify all 8 KPIs calculate correctly, test all filter combinations (single team, multi-team, single category, multi-category, empty results), verify no console errors, verify tooltips/pills render correctly
+- [x] T051 Update CLAUDE.md Spec-019 entry in Phase Status table: mark as COMPLETE, link to PR, summarize changes (53 tasks, 7 phases, 1 sprint, 2 SQL bug fixes, 2 new endpoints, 8 KPIs, multi-select filters, drill-down navigation)
+- [x] T052 Create PR with detailed description: summarize Spec-019 achievement (Product Analytics executive dashboard), list key deliverables (bug fixes, caching, KPIs, multi-filters, new charts), reference spec.md/plan.md/tasks.md, add testing evidence, request @renatobardi review
+- [x] T053 After PR approval and merge to main: monitor Cloud Run deployment completion without errors, verify `/analytics/` loads and renders all components correctly in production, check error logs for any issues
 
 ---
 

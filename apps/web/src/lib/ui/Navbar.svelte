@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import { user } from '$lib/stores/auth';
   import UserAvatar from './UserAvatar.svelte';
 
@@ -11,12 +12,14 @@
     { label: 'Log in', href: '/login/' },
   ];
 
+  // Desktop: Docs accessible via ? icon. Mobile: Docs added explicitly as text link.
   const authLinks = [
     { label: 'Dashboard', href: '/dashboard/' },
     { label: 'Incidents', href: '/incidents/' },
     { label: 'Analytics', href: '/analytics/' },
-    { label: 'Docs', href: '/docs/' },
   ];
+
+  let docsActive = $derived(page.url.pathname.startsWith('/docs/'));
 
   function closeOnResize() {
     if (window.innerWidth >= 768) {
@@ -58,11 +61,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
         </button>
-        <button aria-label="Help" class="p-1.5 text-text-muted hover:text-text transition-colors">
+        <a
+          href="/docs/"
+          aria-label="Documentation"
+          class="p-1.5 transition-colors {docsActive ? 'text-text' : 'text-text-muted hover:text-text'}"
+        >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="10" /><path stroke-linecap="round" stroke-linejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
           </svg>
-        </button>
+        </a>
         <UserAvatar />
       {:else}
         {#each publicLinks as link (link.href)}
@@ -107,6 +114,13 @@
             {link.label}
           </a>
         {/each}
+        <a
+          href="/docs/"
+          onclick={() => open = false}
+          class="text-sm py-2 transition-colors {docsActive ? 'text-text' : 'text-text-muted hover:text-text'}"
+        >
+          Docs
+        </a>
         <div class="flex items-center gap-4 pt-2 border-t border-border/50">
           <button aria-label="Search" class="p-1.5 text-text-muted hover:text-text transition-colors">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -116,11 +130,6 @@
           <button aria-label="Product News" class="p-1.5 text-text-muted hover:text-text transition-colors">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>
-          <button aria-label="Help" class="p-1.5 text-text-muted hover:text-text transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" /><path stroke-linecap="round" stroke-linejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
             </svg>
           </button>
         </div>

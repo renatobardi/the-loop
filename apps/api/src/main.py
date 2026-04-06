@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -43,6 +44,13 @@ structlog.configure(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_firebase()
+
+    # Validate GITHUB_TOKEN is set for releases feature
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        log = structlog.get_logger()
+        log.warning("GITHUB_TOKEN not set: release sync and GitHub integration will not work")
+
     yield
 
 

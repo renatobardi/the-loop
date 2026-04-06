@@ -3,8 +3,6 @@
 import time
 from unittest.mock import patch
 
-import pytest
-
 from src.adapters.postgres.analytics_cache import AnalyticsCache
 
 

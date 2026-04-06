@@ -18,6 +18,8 @@ from src.api.routes.api_keys import router as api_keys_router
 from src.api.routes.attachments import router as attachments_router
 from src.api.routes.incidents import router as incidents_router
 from src.api.routes.postmortems import router as postmortems_router
+from src.api.routes.releases import router as releases_router
+from src.api.routes.releases_admin import router as releases_admin_router
 from src.api.routes.responders import router as responders_router
 from src.api.routes.rules import router as rules_router
 from src.api.routes.scans import router as scans_router
@@ -66,6 +68,8 @@ app.include_router(responders_router)
 app.include_router(action_items_router)
 app.include_router(attachments_router)
 app.include_router(postmortems_router)
+app.include_router(releases_router)
+app.include_router(releases_admin_router)
 app.include_router(rules_router)
 app.include_router(users_router)
 app.include_router(api_keys_router)

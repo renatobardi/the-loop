@@ -36,6 +36,8 @@ from src.domain.models import (
     Postmortem,
     PostmortemStatus,
     PostmortumSeverity,
+    Release,
+    ReleaseNotificationStatus,
     ResponderRole,
     RootCauseCategory,
     RuleVersion,
@@ -1040,3 +1042,71 @@ class ScanService:
 
     async def get_global_metrics(self) -> dict[str, object]:
         return await self._repo.get_global_metrics()
+
+
+# ─── Phase 5: Product Releases Notification ───────────────────────────────
+
+
+class ReleaseNotificationService:
+    """Domain service for release notifications and read/unread status management."""
+
+    def __init__(self, release_repo: Any, notification_repo: Any) -> None:
+        """Initialize with injected repositories."""
+        self._release_repo = release_repo
+        self._notification_repo = notification_repo
+
+    async def get_unread_releases(self, user_id: UUID, limit: int = 10) -> list[tuple[Release, bool]]:
+        """Get unread releases for user, sorted unread-first then by date desc."""
+        releases = await self._release_repo.get_all(limit=limit)
+        results: list[tuple[Release, bool]] = []
+
+        for release in releases:
+            status = await self._notification_repo.get_by_user_and_release(user_id, release.id)
+            is_read = status.is_read if status else False
+            results.append((release, is_read))
+
+        # Sort: unread first (False < True), then by published_date descending
+        results.sort(key=lambda x: (x[1], -x[0].published_date.timestamp()))
+        return results
+
+    async def get_unread_count(self, user_id: UUID) -> int:
+        """Get count of unread releases for user."""
+        return await self._notification_repo.get_unread_count(user_id)
+
+    async def mark_as_read(self, user_id: UUID, release_id: UUID) -> ReleaseNotificationStatus:
+        """Mark a release as read for the user."""
+        return await self._notification_repo.mark_as_read(user_id, release_id)
+
+    async def get_release_detail(self, release_id: UUID) -> Release:
+        """Get full release details by ID."""
+        return await self._release_repo.get_by_id(release_id)
+
+
+class ReleaseSyncService:
+    """Service to sync GitHub releases into database (Phase 5)."""
+
+    def __init__(self, release_repo: Any, github_client: Any) -> None:
+        """Initialize with injected repositories."""
+        self._release_repo = release_repo
+        self._github_client = github_client
+
+    async def sync_releases(self) -> int:
+        """Fetch latest releases from GitHub and sync to database. Returns count synced."""
+        try:
+            github_releases = await self._github_client.fetch_latest_releases(per_page=20)
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch releases from GitHub: {e}") from e
+
+        synced_count = 0
+        for release in github_releases:
+            try:
+                existing = await self._release_repo.get_by_version(release.version)
+                if not existing:
+                    await self._release_repo.create(release)
+                    synced_count += 1
+            except Exception as e:
+                # Log and continue on sync error
+                print(f"Failed to sync release {release.version}: {e}")
+                continue
+
+        return synced_count

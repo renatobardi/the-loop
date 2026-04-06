@@ -23,6 +23,7 @@ from src.domain.services import (
     AttachmentService,
     IncidentService,
     PostmortumService,
+    ReleaseNotificationService,
     ResponderService,
     ScanService,
     TimelineEventService,

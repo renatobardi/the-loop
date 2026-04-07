@@ -118,24 +118,3 @@
 	</Section>
 </Container>
 
-<style>
-	:global(.prose) {
-		all: revert;
-	}
-
-	:global(.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6) {
-		@apply font-semibold text-text mt-4 mb-2;
-	}
-
-	:global(.prose p) {
-		@apply text-sm text-text-muted mb-2;
-	}
-
-	:global(.prose ul, .prose ol) {
-		@apply ml-4 mb-2;
-	}
-
-	:global(.prose li) {
-		@apply text-sm text-text-muted mb-1;
-	}
-</style>

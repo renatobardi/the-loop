@@ -2,7 +2,7 @@
 	import { SkipLink } from '$lib/ui';
 </script>
 
-<SkipLink href="#main">Skip to main content</SkipLink>
+<SkipLink>Skip to main content</SkipLink>
 
 <main id="main">
 	<slot />

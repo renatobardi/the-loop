@@ -3,11 +3,11 @@
  * Handles: fetchReleases(), markAsRead(), auth token attachment
  */
 
-import { PUBLIC_API_BASE_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import type { ReleasesListResponse, UnreadCountResponse, ReleaseNotificationStatus, Release } from '$lib/types/releases';
 import { getAuthToken } from './auth';
 
-const API_BASE = `${PUBLIC_API_BASE_URL}/api/v1/releases`;
+const API_BASE = `${env.PUBLIC_API_BASE_URL ?? 'https://api.loop.oute.pro'}/api/v1/releases`;
 
 async function getAuthHeader(): Promise<string> {
 	const token = await getAuthToken();

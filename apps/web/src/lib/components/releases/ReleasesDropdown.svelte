@@ -2,7 +2,12 @@
 	import { releasesStore } from '$lib/stores/releases';
 	import ReleaseItem from './ReleaseItem.svelte';
 
-	let { open = $state(false), onClose = () => {} } = $props();
+	type Props = {
+		open: boolean;
+		onClose: () => void;
+	};
+
+	let { open = false, onClose }: Props = $props();
 
 	// Sort releases: unread first, then by date descending
 	const sortedReleases = $derived.by(() => {

@@ -2,6 +2,8 @@
 	import { onDestroy } from 'svelte';
 	import { fetchUnreadCount, fetchReleases } from '$lib/services/releases';
 	import { releasesStore } from '$lib/stores/releases';
+	import ReleasesDropdown from './ReleasesDropdown.svelte';
+	import ReleaseDetailPanel from './ReleaseDetailPanel.svelte';
 
 	let isOpen = $state(false);
 	let pollingInterval: ReturnType<typeof setInterval> | null = null;
@@ -62,6 +64,13 @@
 		isOpen = false;
 	}
 
+	function handleClickOutside(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.bell-icon-container')) {
+			closeDropdown();
+		}
+	}
+
 	// Load on component mount
 	$effect.pre(() => {
 		loadUnreadCount();
@@ -72,18 +81,6 @@
 	onDestroy(() => {
 		stopPolling();
 	});
-</script>
-
-<script lang="ts">
-	import ReleasesDropdown from './ReleasesDropdown.svelte';
-	import ReleaseDetailPanel from './ReleaseDetailPanel.svelte';
-
-	function handleClickOutside(event: MouseEvent) {
-		const target = event.target as HTMLElement;
-		if (!target.closest('.bell-icon-container')) {
-			closeDropdown();
-		}
-	}
 </script>
 
 <svelte:window onmousedown={handleClickOutside} />
@@ -124,7 +121,7 @@
 	</button>
 
 	<!-- Dropdown component -->
-	<ReleasesDropdown {open} onClose={closeDropdown} />
+	<ReleasesDropdown open={isOpen} onClose={closeDropdown} />
 
 	<!-- Detail panel component -->
 	<ReleaseDetailPanel release={releasesStore.selectedRelease} />
@@ -134,8 +131,4 @@
 	:global(.bell-icon-container) {
 		position: relative;
 	}
-</style>
-
-<style>
-	/* Optional: add any component-specific styles here */
 </style>

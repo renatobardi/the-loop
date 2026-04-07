@@ -2,9 +2,10 @@
  * Auth helper service for getting Firebase tokens
  */
 
-import { auth } from '$lib/firebase';
+import { getFirebaseAuth } from '$lib/firebase';
 
 export async function getAuthToken(): Promise<string | null> {
+	const auth = getFirebaseAuth();
 	const user = auth.currentUser;
 	if (!user) {
 		return null;
@@ -13,5 +14,6 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 export function getCurrentUser() {
+	const auth = getFirebaseAuth();
 	return auth.currentUser;
 }

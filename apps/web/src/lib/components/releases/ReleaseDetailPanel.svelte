@@ -3,25 +3,29 @@
 	import { markAsRead } from '$lib/services/releases';
 	import { releasesStore } from '$lib/stores/releases';
 
-	let { release = $state(null) } = $props();
+	let { release = null } = $props();
 	let isMarking = $state(false);
 
 	function sanitizeHtml(html: string): string {
-		return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 'code', 'pre', 'ul', 'ol', 'li', 'a', 'br', 'blockquote'] });
+		return DOMPurify.sanitize(html, {
+			ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 'code', 'pre', 'ul', 'ol', 'li', 'a', 'br', 'blockquote']
+		});
 	}
 
 	// Auto-mark as read on mount
-	$effect(async () => {
+	$effect(() => {
 		if (release && !release.isRead) {
-			try {
-				isMarking = true;
-				await markAsRead(release.id);
-				releasesStore.markAsRead(release.id);
-			} catch (error) {
-				console.error('Failed to auto-mark as read:', error);
-			} finally {
-				isMarking = false;
-			}
+			(async () => {
+				try {
+					isMarking = true;
+					await markAsRead(release.id);
+					releasesStore.markAsRead(release.id);
+				} catch (error) {
+					console.error('Failed to auto-mark as read:', error);
+				} finally {
+					isMarking = false;
+				}
+			})();
 		}
 	});
 
@@ -40,18 +44,10 @@
 
 {#if releasesStore.detailPanelOpen && release}
 	<!-- Overlay -->
-	<div
-		class="fixed inset-0 bg-black/20 z-40"
-		onclick={closePanel}
-		aria-hidden="true"
-	></div>
+	<div class="fixed inset-0 bg-black/20 z-40" onclick={closePanel} aria-hidden="true"></div>
 
 	<!-- Side Panel -->
-	<div
-		class="fixed right-0 top-0 h-screen w-full max-w-2xl bg-bg-surface shadow-xl z-50 flex flex-col"
-		role="dialog"
-		aria-label="Release details"
-	>
+	<div class="fixed right-0 top-0 h-screen w-full max-w-2xl bg-bg-surface shadow-xl z-50 flex flex-col" role="dialog" aria-label="Release details">
 		<!-- Header -->
 		<div class="flex items-center justify-between p-6 border-b border-border/50">
 			<div class="flex-1">
@@ -107,7 +103,11 @@
 					>
 						View Full Documentation
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+							/>
 						</svg>
 					</a>
 				</div>
@@ -132,30 +132,52 @@
 	}
 
 	:global(.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6) {
-		@apply font-semibold text-text mt-4 mb-2;
+		font-weight: 600;
+		color: var(--color-text);
+		margin-top: 1rem;
+		margin-bottom: 0.5rem;
 	}
 
 	:global(.prose p) {
-		@apply text-sm text-text-muted mb-2;
+		font-size: 0.875rem;
+		color: var(--color-text-muted);
+		margin-bottom: 0.5rem;
 	}
 
 	:global(.prose ul, .prose ol) {
-		@apply ml-4 mb-2;
+		margin-left: 1rem;
+		margin-bottom: 0.5rem;
 	}
 
 	:global(.prose li) {
-		@apply text-sm text-text-muted mb-1;
+		margin-bottom: 0.25rem;
 	}
 
 	:global(.prose code) {
-		@apply bg-bg-elevated px-1 py-0.5 rounded text-xs font-mono;
+		background-color: var(--color-bg);
+		padding: 0.125rem 0.375rem;
+		border-radius: 0.25rem;
+		font-family: monospace;
 	}
 
 	:global(.prose pre) {
-		@apply bg-bg-elevated p-3 rounded overflow-x-auto mb-2;
+		background-color: var(--color-bg);
+		padding: 1rem;
+		border-radius: 0.5rem;
+		overflow-x: auto;
+		margin: 1rem 0;
 	}
 
-	:global(.prose pre code) {
-		@apply bg-transparent px-0 py-0;
+	:global(.prose a) {
+		color: var(--color-accent);
+		text-decoration: underline;
+	}
+
+	:global(.prose blockquote) {
+		border-left: 0.25rem solid var(--color-border);
+		padding-left: 1rem;
+		margin: 1rem 0;
+		color: var(--color-text-muted);
+		font-style: italic;
 	}
 </style>

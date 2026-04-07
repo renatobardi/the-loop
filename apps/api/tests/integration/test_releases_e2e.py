@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.domain.models import Release
 
 

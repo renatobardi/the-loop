@@ -2,14 +2,14 @@
 
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, status as http_status
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.github.releases_api import GitHubReleasesApiClient
 from src.adapters.postgres.release_repository import ReleaseRepository
 from src.api.deps import get_session, limiter, require_admin
 from src.domain.services import ReleaseSyncService
-
 
 router = APIRouter(prefix="/api/v1/admin/releases", tags=["admin-releases"])
 

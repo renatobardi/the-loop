@@ -112,4 +112,4 @@ async def test_releases_endpoint_respects_rate_limit(
         if response.status_code == 429:
             rate_limited = True
             break
-    assert rate_limited, f"Expected 429 but never got rate limited"
+    assert rate_limited, "Expected 429 but never got rate limited"

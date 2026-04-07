@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import { user } from '$lib/stores/auth';
   import UserAvatar from './UserAvatar.svelte';
   import ReleaseNotificationManager from '$lib/components/releases/ReleaseNotificationManager.svelte';
@@ -12,12 +13,14 @@
     { label: 'Log in', href: '/login/' },
   ];
 
+  // Desktop: Docs accessible via ? icon. Mobile: Docs added explicitly as text link.
   const authLinks = [
     { label: 'Dashboard', href: '/dashboard/' },
     { label: 'Incidents', href: '/incidents/' },
     { label: 'Analytics', href: '/analytics/' },
-    { label: 'Docs', href: '/docs/' },
   ];
+
+  let docsActive = $derived(page.url.pathname.startsWith('/docs/'));
 
   function closeOnResize() {
     if (window.innerWidth >= 768) {
@@ -104,6 +107,13 @@
             {link.label}
           </a>
         {/each}
+        <a
+          href="/docs/"
+          onclick={() => open = false}
+          class="text-sm py-2 transition-colors {docsActive ? 'text-text' : 'text-text-muted hover:text-text'}"
+        >
+          Docs
+        </a>
         <div class="flex items-center gap-4 pt-2 border-t border-border/50">
           <button aria-label="Search" class="p-1.5 text-text-muted hover:text-text transition-colors">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">

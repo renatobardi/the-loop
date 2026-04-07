@@ -1,10 +1,13 @@
-"""Repository for ReleaseNotificationStatus CRUD operations (Phase 5 Product Releases Notification)."""
+"""Repository for ReleaseNotificationStatus CRUD operations.
+
+Phase 5 Product Releases Notification feature.
+"""
 
 from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
 
 from src.adapters.postgres.models import ReleaseNotificationStatusRow
 from src.domain.models import ReleaseNotificationStatus

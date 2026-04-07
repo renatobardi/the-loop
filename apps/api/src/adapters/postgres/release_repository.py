@@ -1,10 +1,13 @@
-"""Repository for Release CRUD operations (Phase 5 Product Releases Notification)."""
+"""Repository for Release CRUD operations.
+
+Phase 5 Product Releases Notification feature.
+"""
 
 from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 
 from src.adapters.postgres.models import ReleaseRow
 from src.domain.exceptions import ReleaseAlreadyExistsError, ReleaseNotFoundError

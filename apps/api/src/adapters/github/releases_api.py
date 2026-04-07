@@ -4,7 +4,7 @@ Phase 5 Product Releases Notification feature.
 """
 
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
@@ -100,10 +100,10 @@ class GitHubReleasesApiClient:
         release_id = uuid5(NAMESPACE_URL, f"github:{item['id']}")
 
         created_at_str = item.get(
-            "created_at", datetime.now(datetime.UTC).isoformat()
+            "created_at", datetime.now(UTC).isoformat()
         ).replace("Z", "+00:00")
         updated_at_str = item.get(
-            "updated_at", datetime.now(datetime.UTC).isoformat()
+            "updated_at", datetime.now(UTC).isoformat()
         ).replace("Z", "+00:00")
 
         return Release(

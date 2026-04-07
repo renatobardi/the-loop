@@ -173,6 +173,6 @@ async def test_get_unread_releases_sorts_unread_first(release1, release2, user_i
 
     # Unread (v1.1.0) should come first
     assert results[0][0].id == release2.id
-    assert results[0][1] is False  # is_read = False
+    assert results[0][1] is not None and not results[0][1].is_read  # is_read = False
     assert results[1][0].id == release1.id
-    assert results[1][1] is True  # is_read = True
+    assert results[1][1] is not None and results[1][1].is_read  # is_read = True

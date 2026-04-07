@@ -6,16 +6,10 @@ import hashlib
 import secrets
 import time
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import structlog
-
-if TYPE_CHECKING:
-    from src.adapters.postgres.notification_repository import (
-        ReleaseNotificationStatusRepository,
-    )
-    from src.adapters.postgres.release_repository import ReleaseRepository
 
 from src.domain.exceptions import (
     ActionItemNotFoundError,

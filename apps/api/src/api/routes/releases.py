@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -104,11 +104,11 @@ async def get_release_service(
 @router.get("", response_model=ReleasesListResponse)
 @limiter.limit("60/minute")
 async def get_releases(
-    current_user: str = Depends(get_current_user),
+    current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleasesListResponse:
     """Get recent releases with read status for authenticated user."""
-    results = await service.get_unread_releases(current_user.id, limit=10)
+    results = await service.get_unread_releases(current_user, limit=10)
     items = [
         ReleaseWithStatusResponse.from_domain(release, status)
         for release, status in results
@@ -119,11 +119,11 @@ async def get_releases(
 @router.get("/unread-count", response_model=dict[str, int])
 @limiter.limit("120/minute")
 async def get_unread_count(
-    current_user: str = Depends(get_current_user),
+    current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> dict[str, int]:
     """Get count of unread releases for authenticated user."""
-    count = await service.get_unread_count(current_user.id)
+    count = await service.get_unread_count(current_user)
     return {"unread_count": count}
 
 
@@ -131,12 +131,12 @@ async def get_unread_count(
 @limiter.limit("60/minute")
 async def mark_release_as_read(
     release_id: UUID,
-    current_user: str = Depends(get_current_user),
+    current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleaseNotificationStatusResponse:
     """Mark a release as read for the authenticated user."""
     try:
-        notification_status = await service.mark_as_read(current_user.id, release_id)
+        notification_status = await service.mark_as_read(current_user, release_id)
         return ReleaseNotificationStatusResponse.from_domain(notification_status)
     except ReleaseNotFoundError as e:
         raise HTTPException(
@@ -152,7 +152,7 @@ async def mark_release_as_read(
 @limiter.limit("60/minute")
 async def get_release_detail(
     release_id: UUID,
-    current_user: str = Depends(get_current_user),
+    current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleaseResponse:
     """Get full details for a specific release."""

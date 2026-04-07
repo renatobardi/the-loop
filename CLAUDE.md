@@ -303,15 +303,26 @@ Server Actions flow: `+page.server.ts` → rate limit check → Zod validation (
 
 Adding a new waitlist source (e.g., a new CTA button) requires updating `VALID_SOURCES` in `src/lib/server/schemas.ts` **and** the corresponding test in `tests/unit/server.test.ts`.
 
-## Environment
+## Environment & Infrastructure
 
+### Secrets & Configuration
 - **Web runtime:** `FIREBASE_SERVICE_ACCOUNT` (JSON string via GCP Secret Manager), `PORT=3000`
 - **Web public env vars (Cloud Run env_vars):** `PUBLIC_API_BASE_URL`, `PUBLIC_FIREBASE_API_KEY`, `PUBLIC_FIREBASE_AUTH_DOMAIN`, `PUBLIC_FIREBASE_PROJECT_ID`, `PUBLIC_FIREBASE_STORAGE_BUCKET`, `PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `PUBLIC_FIREBASE_APP_ID`
-- **API runtime:** `DATABASE_URL` (via Secret Manager secret `THELOOP_API_DATABASE_URL`), `FIREBASE_SERVICE_ACCOUNT`, `CORS_ORIGINS`
+- **API runtime:** `DATABASE_URL` (via Secret Manager secret `THELOOP_API_DATABASE_URL`), `GITHUB_TOKEN` (Spec-022 releases sync), `CORS_ORIGINS`
 - **No `.env` in repo** — all secrets via GCP Secret Manager / GitHub Actions secrets
-- **Firestore/Firebase project:** `theloopoute`
+
+### GCP Project & Services
+- **Project ID:** `theloopoute`
+- **Region:** `us-central1` (deployment), `southamerica-east1` (database)
+- **Firestore/Firebase:** `theloopoute` (Spark plan, free tier)
 - **Cloud SQL instance:** `theloopoute:southamerica-east1:theloop-db` (PostgreSQL 16 + pgvector + pg_trgm)
-- **API Cloud Run URL:** `https://api.loop.oute.pro`
+- **Cloud Run services:** 
+  - `the-loop` (web frontend) — IP: 34.110.250.203 via Cloud Load Balancer
+  - `theloop-api` (backend API) — direct or via GCLB
+- **Artifact Registry:** 2 repos (`the-loop/app` + `theloop-api/api`), ~8.6 GB total, cost ~$0.03/day
+- **Cloud Load Balancer:** 2 forwarding rules (HTTP + HTTPS) at IP 34.110.250.203, cost ~$0.60/day
+- **Cloud DNS:** API disabled (not in use; DNS is external)
+- **Domain:** `loop.oute.pro` (via external DNS provider, not Cloud DNS)
 
 ## Deployment
 
@@ -319,6 +330,27 @@ GitHub Actions CI gates (lint → type-check → test → build → Trivy scan �
 
 - **Web CI**: lint + check + test + build + Trivy (`the-loop` Cloud Run)
 - **API CI**: ruff + mypy strict + pytest (coverage ≥ 80%) + Docker build + Trivy (`theloop-api` Cloud Run)
+- **Database migrations**: Applied during deploy via `alembic upgrade head` before Cloud Run update
+- **Release sync**: Automated post-deploy via Cloud Tasks (Spec-022) to GitHub releases API
+
+### Infrastructure Cost Summary (as of 2026-04-06)
+
+| Service | Daily Cost | Monthly Cost | Notes |
+|---------|-----------|--------------|-------|
+| Cloud SQL PostgreSQL | $0.54–$1.08 | $16–$32 | Largest expense; db-f1-micro + storage |
+| Cloud Load Balancer | $0.60 | $18 | 2 forwarding rules (34.110.250.203) |
+| Cloud Run (web + api) | $0.15–$0.40 | $5–$12 | Serverless, min-instances=0 |
+| Artifact Registry | $0.03–$0.05 | $1–$2 | 8.6 GB Docker images, cached builds |
+| Secret Manager | $0.00 | $0 | Within free tier |
+| Firebase/Firestore | $0.00 | $0 | Spark plan (free) |
+| Cloud Logging | $0.00 | $0 | Within 50 GB/month free tier |
+| **Total** | **$1.32–$2.13** | **$40–$64** | Baseline production setup |
+
+**Optimization notes:**
+- Cloud Load Balancer ($0.60/day) is essential for production (IP stability, SSL management)
+- Cloud SQL is the main cost driver; scales linearly with incident/postmortem data
+- All other services are either free tier or negligible cost
+- Artifact Registry uses multi-stage Docker cache — deleting old images is unsafe and not recommended
 
 ## Semgrep Integration (Specs 010–011–016–017–018, Phases A, B, C & Multi-Language)
 

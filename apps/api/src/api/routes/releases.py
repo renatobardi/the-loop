@@ -12,10 +12,10 @@ from src.api.deps import (
     get_session,
     limiter,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.domain.exceptions import ReleaseNotFoundError
 from src.domain.models import Release, ReleaseNotificationStatus
-from src.domain.services import ReleaseNotificationService
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1/releases", tags=["releases"])
 

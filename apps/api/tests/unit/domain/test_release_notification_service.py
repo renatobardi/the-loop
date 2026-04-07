@@ -31,7 +31,11 @@ class MockNotificationRepository:
         return self.statuses.get(key)
 
     async def get_unread_count(self, user_id) -> int:
-        return sum(1 for (uid, _), status in self.statuses.items() if uid == user_id and not status.is_read)
+        count = sum(
+            1 for (uid, _), status in self.statuses.items()
+            if uid == user_id and not status.is_read
+        )
+        return count
 
     async def mark_as_read(self, user_id, release_id) -> ReleaseNotificationStatus:
         key = (user_id, release_id)
@@ -101,7 +105,10 @@ async def test_get_unread_count_returns_zero_when_all_read(release1, release2, u
         read_at=datetime.now(UTC),
         created_at=datetime.now(UTC),
     )
-    notification_repo = MockNotificationRepository({(user_id, release1.id): status1, (user_id, release2.id): status2})
+    notification_repo = MockNotificationRepository({
+        (user_id, release1.id): status1,
+        (user_id, release2.id): status2,
+    })
 
     service = ReleaseNotificationService(release_repo, notification_repo)
     count = await service.get_unread_count(user_id)
@@ -127,7 +134,10 @@ async def test_get_unread_count_returns_correct_count(release1, release2, user_i
         read_at=datetime.now(UTC),  # Read
         created_at=datetime.now(UTC),
     )
-    notification_repo = MockNotificationRepository({(user_id, release1.id): status1, (user_id, release2.id): status2})
+    notification_repo = MockNotificationRepository({
+        (user_id, release1.id): status1,
+        (user_id, release2.id): status2,
+    })
 
     service = ReleaseNotificationService(release_repo, notification_repo)
     count = await service.get_unread_count(user_id)
@@ -153,7 +163,10 @@ async def test_get_unread_releases_sorts_unread_first(release1, release2, user_i
         read_at=None,  # Unread
         created_at=datetime.now(UTC),
     )
-    notification_repo = MockNotificationRepository({(user_id, release1.id): status1, (user_id, release2.id): status2})
+    notification_repo = MockNotificationRepository({
+        (user_id, release1.id): status1,
+        (user_id, release2.id): status2,
+    })
 
     service = ReleaseNotificationService(release_repo, notification_repo)
     results = await service.get_unread_releases(user_id, limit=10)

@@ -1,6 +1,5 @@
 """API tests for releases routes (Phase 5)."""
 
-from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -17,17 +16,7 @@ _TOKEN_DATA = {
 
 
 @pytest.fixture
-def mock_release_service() -> AsyncMock:
-    return AsyncMock()
-
-
-@pytest.fixture
-def mock_notification_service() -> AsyncMock:
-    return AsyncMock()
-
-
-@pytest.fixture
-async def client(mock_release_service: AsyncMock, mock_notification_service: AsyncMock) -> AsyncClient:
+async def client() -> AsyncClient:
     """AsyncClient with authenticated Firebase token."""
     app.dependency_overrides[get_firebase_token_data] = lambda: _TOKEN_DATA
     transport = ASGITransport(app=app)

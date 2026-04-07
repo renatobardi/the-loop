@@ -1,40 +1,34 @@
 """End-to-end integration tests for Product Releases Notification (Phase 5)."""
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.adapters.firebase.auth import FirebaseTokenData, get_firebase_token_data
+from src.adapters.firebase.auth import get_current_user
 from src.domain.models import Release
 from src.main import app
 
-_FIREBASE_UID = "firebase_integration_releases"
-_USER_ID = uuid5(NAMESPACE_URL, f"firebase:{_FIREBASE_UID}")
-_TOKEN_DATA: FirebaseTokenData = {
-    "user_id": _USER_ID,
-    "firebase_uid": _FIREBASE_UID,
-    "email": "integration@example.com",
-    "display_name": "Integration Test User",
-}
+_USER = UUID("00000000-0000-0000-0000-000000000002")
 
 
 @pytest.fixture
 async def auth_client() -> AsyncClient:
-    """AsyncClient with authenticated Firebase token for integration tests."""
-    app.dependency_overrides[get_firebase_token_data] = lambda: _TOKEN_DATA
+    """AsyncClient with authenticated user for integration tests."""
+    app.dependency_overrides[get_current_user] = lambda: _USER
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
 
-@pytest.mark.asyncio
 async def test_release_notification_flow(
     auth_client: AsyncClient, db_session: AsyncSession
-):
-    """Test complete flow: badge → dropdown → detail → mark-as-read."""
+) -> None:
+    """Test complete flow: badge -> dropdown -> detail -> mark-as-read."""
     from src.adapters.postgres.release_repository import ReleaseRepository
 
     # 1. Create test releases

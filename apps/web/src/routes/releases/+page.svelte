@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DOMPurify from 'dompurify';
 	import { Container, Section } from '$lib/ui';
 	import { fetchReleases } from '$lib/services/releases';
 	import type { ReleasesListResponse } from '$lib/types/releases';
@@ -26,6 +27,12 @@
 	function formatDate(dateStr: string) {
 		const date = new Date(dateStr);
 		return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+	}
+
+	function sanitizeHtml(html: string): string {
+		return DOMPurify.sanitize(html, {
+			ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 'code', 'pre', 'ul', 'ol', 'li', 'a', 'br', 'blockquote']
+		});
 	}
 </script>
 
@@ -75,7 +82,8 @@
 
 									{#if item.release.changelog_html}
 										<div class="mt-4 prose prose-sm text-text-muted">
-											{@html item.release.changelog_html}
+											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+											{@html sanitizeHtml(item.release.changelog_html)}
 										</div>
 									{/if}
 

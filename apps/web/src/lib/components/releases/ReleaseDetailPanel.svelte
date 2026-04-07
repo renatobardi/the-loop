@@ -4,7 +4,6 @@
 	import { releasesStore } from '$lib/stores/releases';
 
 	let { release = null } = $props();
-	let isMarking = $state(false);
 
 	function sanitizeHtml(html: string): string {
 		return DOMPurify.sanitize(html, {
@@ -17,13 +16,10 @@
 		if (release && !release.isRead) {
 			(async () => {
 				try {
-					isMarking = true;
 					await markAsRead(release.id);
 					releasesStore.markAsRead(release.id);
 				} catch (error) {
 					console.error('Failed to auto-mark as read:', error);
-				} finally {
-					isMarking = false;
 				}
 			})();
 		}
@@ -86,6 +82,7 @@
 				<div class="mb-6">
 					<h3 class="text-sm font-semibold text-text mb-3">Changelog</h3>
 					<div class="prose prose-sm text-text-muted space-y-4">
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 						{@html sanitizeHtml(release.changelog_html)}
 					</div>
 				</div>

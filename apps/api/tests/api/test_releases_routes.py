@@ -101,20 +101,6 @@ async def test_get_release_detail_returns_404_for_missing_release(
     assert response.status_code == 404
 
 
-async def test_releases_endpoint_respects_rate_limit(
-    client: AsyncClient, mock_service: AsyncMock
-) -> None:
-    """Test that releases endpoint respects rate limiting (60/minute)."""
-    mock_service.get_unread_releases.return_value = []
-    rate_limited = False
-    for _ in range(65):
-        response = await client.get("/api/v1/releases")
-        if response.status_code == 429:
-            rate_limited = True
-            break
-    assert rate_limited, "Expected 429 but never got rate limited"
-
-
 async def test_get_releases_with_items(
     client: AsyncClient, mock_service: AsyncMock
 ) -> None:
@@ -240,3 +226,17 @@ async def test_get_releases_with_unread_item(
     data = response.json()
     assert data["items"][0]["is_read"] is False
     assert data["items"][0]["read_at"] is None
+
+
+async def test_zz_releases_endpoint_respects_rate_limit(
+    client: AsyncClient, mock_service: AsyncMock
+) -> None:
+    """Test rate limiting (60/minute). Runs last (zz prefix) to avoid polluting other tests."""
+    mock_service.get_unread_releases.return_value = []
+    rate_limited = False
+    for _ in range(65):
+        response = await client.get("/api/v1/releases")
+        if response.status_code == 429:
+            rate_limited = True
+            break
+    assert rate_limited, "Expected 429 but never got rate limited"

@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -104,6 +104,7 @@ async def get_release_service(
 @router.get("", response_model=ReleasesListResponse)
 @limiter.limit("60/minute")
 async def get_releases(
+    request: Request,
     current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleasesListResponse:
@@ -119,6 +120,7 @@ async def get_releases(
 @router.get("/unread-count", response_model=dict[str, int])
 @limiter.limit("120/minute")
 async def get_unread_count(
+    request: Request,
     current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> dict[str, int]:
@@ -130,6 +132,7 @@ async def get_unread_count(
 @router.patch("/{release_id}/status", response_model=ReleaseNotificationStatusResponse)
 @limiter.limit("60/minute")
 async def mark_release_as_read(
+    request: Request,
     release_id: UUID,
     current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
@@ -151,6 +154,7 @@ async def mark_release_as_read(
 @router.get("/{release_id}", response_model=ReleaseResponse)
 @limiter.limit("60/minute")
 async def get_release_detail(
+    request: Request,
     release_id: UUID,
     current_user: UUID = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),

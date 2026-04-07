@@ -2,7 +2,7 @@
 
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,7 @@ async def get_release_sync_service(
 @router.post("/sync", response_model=dict[str, str | int])
 @limiter.limit("10/minute")
 async def sync_releases_from_github(
+    request: Request,
     _admin_token: FirebaseTokenData = Depends(require_admin),
     service: ReleaseSyncService = Depends(get_release_sync_service),
 ) -> dict[str, str | int]:

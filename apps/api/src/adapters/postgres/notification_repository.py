@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.postgres.models import ReleaseNotificationStatusRow
+from src.adapters.postgres.models import ReleaseNotificationStatusRow, ReleaseRow
 from src.domain.models import ReleaseNotificationStatus
 
 
@@ -34,15 +34,25 @@ class ReleaseNotificationStatusRepository:
         return self._row_to_domain(row) if row else None
 
     async def get_unread_count(self, user_id: UUID) -> int:
-        """Get count of unread releases (read_at IS NULL) for user."""
-        query = select(func.count()).select_from(ReleaseNotificationStatusRow).where(
+        """Get count of unread releases for user.
+
+        Calculates total_releases - releases_marked_as_read so that new users
+        who have never interacted correctly see all releases as unread.
+        """
+        total_query = select(func.count()).select_from(ReleaseRow)
+        total_result = await self.session.execute(total_query)
+        total_releases = total_result.scalar() or 0
+
+        read_query = select(func.count()).select_from(ReleaseNotificationStatusRow).where(
             and_(
                 ReleaseNotificationStatusRow.user_id == user_id,
-                ReleaseNotificationStatusRow.read_at.is_(None),
+                ReleaseNotificationStatusRow.read_at.is_not(None),
             )
         )
-        result = await self.session.execute(query)
-        return result.scalar() or 0
+        read_result = await self.session.execute(read_query)
+        read_count = read_result.scalar() or 0
+
+        return total_releases - read_count
 
     async def mark_as_read(self, user_id: UUID, release_id: UUID) -> ReleaseNotificationStatus:
         """Mark release as read for user, creating notification status if needed."""
@@ -60,6 +70,7 @@ class ReleaseNotificationStatusRepository:
             if row:
                 row.read_at = datetime.now(UTC)
                 await self.session.flush()
+                await self.session.commit()
                 return self._row_to_domain(row)
         else:
             # Create new notification status as read
@@ -71,6 +82,7 @@ class ReleaseNotificationStatusRepository:
             )
             self.session.add(row)
             await self.session.flush()
+            await self.session.commit()
             return self._row_to_domain(row)
 
         # Fallback: re-fetch and return
@@ -113,6 +125,7 @@ class ReleaseNotificationStatusRepository:
         )
         self.session.add(row)
         await self.session.flush()
+        await self.session.commit()
         return self._row_to_domain(row)
 
     @staticmethod

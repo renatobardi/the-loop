@@ -1,5 +1,4 @@
 """Unit tests for ReleaseNotificationService (Phase 5)."""
-
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -8,7 +7,6 @@ import pytest
 from src.domain.exceptions import ReleaseNotFoundError
 from src.domain.models import Release, ReleaseNotificationStatus
 from src.domain.services import ReleaseNotificationService
-
 
 
 

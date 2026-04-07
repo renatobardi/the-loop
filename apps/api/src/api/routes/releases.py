@@ -1,5 +1,4 @@
 """API routes for Product Releases Notification (Phase 5)."""
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status as http_status
@@ -14,8 +13,6 @@ from src.api.deps import get_current_user, get_session, limiter
 from src.domain.exceptions import ReleaseNotFoundError
 from src.domain.models import Release, ReleaseNotificationStatus
 from src.domain.services import ReleaseNotificationService
-
-
 
 router = APIRouter(prefix="/api/v1/releases", tags=["releases"])
 

@@ -9,7 +9,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.postgres.notification_repository import (
     ReleaseNotificationStatusRepository,

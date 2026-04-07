@@ -1,17 +1,19 @@
 """API tests for releases routes (Phase 5)."""
 
-from uuid import UUID, uuid4
+from uuid import UUID, NAMESPACE_URL, uuid4, uuid5
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from src.adapters.firebase.auth import get_firebase_token_data
+from src.adapters.firebase.auth import FirebaseTokenData, get_firebase_token_data
 from src.main import app
 
-_USER_ID = UUID("00000000-0000-0000-0000-000000000001")
-_TOKEN_DATA = {
-    "sub": str(_USER_ID),
+_FIREBASE_UID = "firebase_releases_test"
+_USER_ID = uuid5(NAMESPACE_URL, f"firebase:{_FIREBASE_UID}")
+_TOKEN_DATA: FirebaseTokenData = {
+    "user_id": _USER_ID,
+    "firebase_uid": _FIREBASE_UID,
     "email": "test@example.com",
-    "email_verified": True,
+    "display_name": "Test User",
 }
 
 

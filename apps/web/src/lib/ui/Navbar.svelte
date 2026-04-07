@@ -58,11 +58,15 @@
           </svg>
         </button>
         <ReleaseNotificationManager />
-        <button aria-label="Help" class="p-1.5 text-text-muted hover:text-text transition-colors">
+        <a
+          href="/docs/"
+          aria-label="Documentation"
+          class="p-1.5 transition-colors {docsActive ? 'text-text' : 'text-text-muted hover:text-text'}"
+        >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="10" /><path stroke-linecap="round" stroke-linejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
           </svg>
-        </button>
+        </a>
         <UserAvatar />
       {:else}
         {#each publicLinks as link (link.href)}

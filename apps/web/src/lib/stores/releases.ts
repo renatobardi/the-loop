@@ -5,7 +5,7 @@
 
 import type { Release } from '$lib/types/releases';
 
-interface ReleaseItem extends Release {
+export interface ReleaseItem extends Release {
 	isRead: boolean;
 	readAt: string | null;
 }

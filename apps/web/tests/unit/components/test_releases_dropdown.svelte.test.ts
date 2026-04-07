@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { releasesStore } from '$lib/stores/releases';
+import { releasesStore, type ReleaseItem } from '$lib/stores/releases';
 
 describe('ReleasesDropdown Store Integration', () => {
 	beforeEach(() => {
@@ -15,7 +15,7 @@ describe('ReleasesDropdown Store Integration', () => {
 	});
 
 	it('should display releases list when releases exist', () => {
-		const mockRelease = {
+		const mockRelease: ReleaseItem = {
 			id: '1',
 			title: 'v1.0.0',
 			version: '1.0.0',
@@ -24,8 +24,6 @@ describe('ReleasesDropdown Store Integration', () => {
 			changelog_html: null,
 			breaking_changes_flag: false,
 			documentation_url: null,
-			created_at: '2026-04-06T00:00:00Z',
-			updated_at: '2026-04-06T00:00:00Z',
 			isRead: false,
 			readAt: null
 		};
@@ -36,7 +34,7 @@ describe('ReleasesDropdown Store Integration', () => {
 	});
 
 	it('should sort unread releases first', () => {
-		const release1 = {
+		const release1: ReleaseItem = {
 			id: '1',
 			title: 'v1.0.0',
 			version: '1.0.0',
@@ -45,13 +43,11 @@ describe('ReleasesDropdown Store Integration', () => {
 			changelog_html: null,
 			breaking_changes_flag: false,
 			documentation_url: null,
-			created_at: '2026-04-05T00:00:00Z',
-			updated_at: '2026-04-05T00:00:00Z',
 			isRead: true,
 			readAt: '2026-04-06T00:00:00Z'
 		};
 
-		const release2 = {
+		const release2: ReleaseItem = {
 			id: '2',
 			title: 'v1.1.0',
 			version: '1.1.0',
@@ -60,8 +56,6 @@ describe('ReleasesDropdown Store Integration', () => {
 			changelog_html: null,
 			breaking_changes_flag: false,
 			documentation_url: null,
-			created_at: '2026-04-06T00:00:00Z',
-			updated_at: '2026-04-06T00:00:00Z',
 			isRead: false,
 			readAt: null
 		};
@@ -84,22 +78,20 @@ describe('ReleasesDropdown Store Integration', () => {
 	});
 
 	it('should have View All Releases link target', () => {
-		releasesStore.releases = [
-			{
-				id: '1',
-				title: 'v1.0.0',
-				version: '1.0.0',
-				published_date: '2026-04-06T00:00:00Z',
-				summary: 'Initial',
-				changelog_html: null,
-				breaking_changes_flag: false,
-				documentation_url: null,
-				created_at: '2026-04-06T00:00:00Z',
-				updated_at: '2026-04-06T00:00:00Z',
-				isRead: false,
-				readAt: null
-			}
-		];
+		const mockRelease: ReleaseItem = {
+			id: '1',
+			title: 'v1.0.0',
+			version: '1.0.0',
+			published_date: '2026-04-06T00:00:00Z',
+			summary: 'Initial',
+			changelog_html: null,
+			breaking_changes_flag: false,
+			documentation_url: null,
+			isRead: false,
+			readAt: null
+		};
+
+		releasesStore.releases = [mockRelease];
 
 		// Component would render link to /releases/
 		expect(releasesStore.releases.length).toBeGreaterThan(0);

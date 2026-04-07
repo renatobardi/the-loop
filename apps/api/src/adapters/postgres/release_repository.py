@@ -4,6 +4,7 @@ Phase 5 Product Releases Notification feature.
 """
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import desc, select
@@ -65,7 +66,7 @@ class ReleaseRepository:
         await self.session.flush()
         return self._row_to_domain(row)
 
-    async def update(self, release_id: UUID, **kwargs: any) -> Release:
+    async def update(self, release_id: UUID, **kwargs: Any) -> Release:
         """Update release fields, raise ReleaseNotFoundError if not found."""
         row = await self.session.get(ReleaseRow, release_id)
         if not row:

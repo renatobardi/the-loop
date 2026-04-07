@@ -1,14 +1,17 @@
 """Admin routes for releases management (Phase 5 - GitHub Integration)."""
 
 import os
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.adapters.firebase.auth import FirebaseTokenData
 from src.adapters.github.releases_api import GitHubReleasesApiClient
 from src.adapters.postgres.release_repository import ReleaseRepository
-from src.api.deps import get_session, limiter, require_admin
+from src.api.deps import get_session, require_admin
+from src.api.middleware import limiter
 from src.domain.services import ReleaseSyncService
 
 router = APIRouter(prefix="/api/v1/admin/releases", tags=["admin-releases"])
@@ -24,12 +27,12 @@ async def get_release_sync_service(
     return ReleaseSyncService(release_repo, github_client)
 
 
-@router.post("/sync", response_model=dict)
+@router.post("/sync", response_model=dict[str, str | int])
 @limiter.limit("10/minute")
 async def sync_releases_from_github(
-    _admin_token=Depends(require_admin),
+    _admin_token: FirebaseTokenData = Depends(require_admin),
     service: ReleaseSyncService = Depends(get_release_sync_service),
-) -> dict:
+) -> dict[str, str | int]:
     """Admin endpoint to manually sync releases from GitHub."""
     try:
         count = await service.sync_releases()

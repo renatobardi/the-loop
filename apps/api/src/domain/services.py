@@ -6,10 +6,16 @@ import hashlib
 import secrets
 import time
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 from uuid import UUID, uuid4
 
 import structlog
+
+if TYPE_CHECKING:
+    from src.adapters.postgres.notification_repository import (
+        ReleaseNotificationStatusRepository,
+    )
+    from src.adapters.postgres.release_repository import ReleaseRepository
 
 from src.domain.exceptions import (
     ActionItemNotFoundError,
@@ -1083,15 +1089,18 @@ class ReleaseNotificationService:
 
     async def get_unread_count(self, user_id: UUID) -> int:
         """Get count of unread releases for user."""
-        return await self._notification_repo.get_unread_count(user_id)
+        result = await self._notification_repo.get_unread_count(user_id)
+        return cast(int, result)
 
     async def mark_as_read(self, user_id: UUID, release_id: UUID) -> ReleaseNotificationStatus:
         """Mark a release as read for the user."""
-        return await self._notification_repo.mark_as_read(user_id, release_id)
+        result = await self._notification_repo.mark_as_read(user_id, release_id)
+        return cast(ReleaseNotificationStatus, result)
 
     async def get_release_detail(self, release_id: UUID) -> Release:
         """Get full release details by ID."""
-        return await self._release_repo.get_by_id(release_id)
+        result = await self._release_repo.get_by_id(release_id)
+        return cast(Release, result)
 
 
 class ReleaseSyncService:

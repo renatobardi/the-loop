@@ -2,16 +2,18 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.adapters.firebase.auth import get_current_user
 from src.adapters.postgres.notification_repository import (
     ReleaseNotificationStatusRepository,
 )
 from src.adapters.postgres.release_repository import ReleaseRepository
-from src.api.deps import get_current_user, get_session, limiter
+from src.api.deps import get_session
+from src.api.middleware import limiter
 from src.domain.exceptions import ReleaseNotFoundError
 from src.domain.models import Release, ReleaseNotificationStatus
 from src.domain.services import ReleaseNotificationService
@@ -102,7 +104,7 @@ async def get_release_service(
 @router.get("", response_model=ReleasesListResponse)
 @limiter.limit("60/minute")
 async def get_releases(
-    current_user=Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleasesListResponse:
     """Get recent releases with read status for authenticated user."""
@@ -114,12 +116,12 @@ async def get_releases(
     return ReleasesListResponse(items=items, total=len(items))
 
 
-@router.get("/unread-count", response_model=dict)
+@router.get("/unread-count", response_model=dict[str, int])
 @limiter.limit("120/minute")
 async def get_unread_count(
-    current_user=Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
-) -> dict:
+) -> dict[str, int]:
     """Get count of unread releases for authenticated user."""
     count = await service.get_unread_count(current_user.id)
     return {"unread_count": count}
@@ -129,7 +131,7 @@ async def get_unread_count(
 @limiter.limit("60/minute")
 async def mark_release_as_read(
     release_id: UUID,
-    current_user=Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleaseNotificationStatusResponse:
     """Mark a release as read for the authenticated user."""
@@ -150,7 +152,7 @@ async def mark_release_as_read(
 @limiter.limit("60/minute")
 async def get_release_detail(
     release_id: UUID,
-    current_user=Depends(get_current_user),
+    current_user: str = Depends(get_current_user),
     service: ReleaseNotificationService = Depends(get_release_service),
 ) -> ReleaseResponse:
     """Get full details for a specific release."""

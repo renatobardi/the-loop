@@ -16,6 +16,7 @@ from src.domain.models import Release, ReleaseNotificationStatus
 from src.domain.services import ReleaseNotificationService
 
 
+
 router = APIRouter(prefix="/api/v1/releases", tags=["releases"])
 
 

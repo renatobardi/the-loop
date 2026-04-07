@@ -5,14 +5,15 @@ from uuid import uuid4
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
 import pytest
 
 from src.domain.models import Release
 
 
 @pytest.mark.asyncio
-async def test_release_notification_flow(client: AsyncClient, auth_headers: dict, db_session: AsyncSession):
+async def test_release_notification_flow(
+    client: AsyncClient, auth_headers: dict, db_session: AsyncSession
+):
     """Test complete flow: badge → dropdown → detail → mark-as-read."""
     from src.adapters.postgres.release_repository import ReleaseRepository
 

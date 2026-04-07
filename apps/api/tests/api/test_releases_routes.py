@@ -1,9 +1,10 @@
 """API tests for releases routes (Phase 5)."""
 
-from uuid import UUID, NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from src.adapters.firebase.auth import FirebaseTokenData, get_firebase_token_data
 from src.main import app
 

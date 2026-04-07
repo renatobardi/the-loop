@@ -1,10 +1,12 @@
 """GitHub Releases API client for fetching product releases (Phase 5 Product Releases Notification)."""
 
+import re
 from datetime import datetime
 from typing import Any
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 import httpx
+import structlog
 
 from src.domain.models import Release
 
@@ -16,6 +18,12 @@ class GitHubReleasesApiClient:
 
     def __init__(self, owner: str, repo: str, token: str | None = None) -> None:
         """Initialize with GitHub repository owner, repo name, and optional token."""
+        # Validate owner and repo names to prevent path traversal
+        if not re.match(r"^[a-zA-Z0-9_-]+$", owner):
+            raise ValueError(f"Invalid GitHub owner: {owner}")
+        if not re.match(r"^[a-zA-Z0-9_.-]+$", repo):
+            raise ValueError(f"Invalid GitHub repo: {repo}")
+
         self.owner = owner
         self.repo = repo
         self.token = token
@@ -50,7 +58,8 @@ class GitHubReleasesApiClient:
                 releases.append(release)
             except (KeyError, ValueError) as e:
                 # Skip malformed releases, log and continue
-                print(f"Warning: Failed to parse GitHub release: {e}")
+                log = structlog.get_logger()
+                log.warning("failed_to_parse_release", error=str(e))
                 continue
 
         return releases
@@ -68,11 +77,20 @@ class GitHubReleasesApiClient:
         published_date = datetime.fromisoformat(published_date_str)
 
         # Extract breaking changes from changelog if indicated in body
+        # Look for common breaking change patterns: "BREAKING:", "#major", "breaking change", etc.
         changelog_body = item.get("body", "") or ""
-        breaking_changes_flag = "breaking" in changelog_body.lower()
+        breaking_patterns = [
+            r"^#\s*major",  # Semantic versioning comment style
+            r"^BREAKING[\s:]",  # Explicit BREAKING marker
+            r"^breaking\s+change",  # Standard convention
+        ]
+        breaking_changes_flag = any(
+            re.search(pattern, changelog_body, re.MULTILINE | re.IGNORECASE)
+            for pattern in breaking_patterns
+        )
 
         return Release(
-            id=uuid4(),  # Generate UUID for new releases
+            id=uuid5(NAMESPACE_URL, f"github:{item['id']}"),  # Deterministic UUID based on GitHub release ID
             title=item.get("name") or item.get("tag_name", "Untitled Release"),
             version=item.get("tag_name", "unknown"),
             published_date=published_date,

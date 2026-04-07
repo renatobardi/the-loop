@@ -376,9 +376,9 @@ Working on a spec:
 
 ## Current Sprint
 
-No active sprint. All specs complete.
+No active sprint. **Spec-022 (Product Releases Notification) merged and ready for M1 manual setup** — see DEPLOYMENT section below.
 
-### Phase Status (as of April 2026)
+### Phase Status (as of April 6, 2026)
 
 | Phase | Status | Key Deliverables |
 |-------|--------|------------------|
@@ -392,9 +392,9 @@ No active sprint. All specs complete.
 | Spec-017 | ✅ Complete | Rules Expansion (10 languages, 122 rules total, v0.4.0 deployed, PR #95) |
 | Spec-018 | ✅ Complete | Consolidated into Spec-017 |
 | Spec-019 | ✅ Complete | Product Analytics Dashboard (7 phases, PRs #101–#104) |
-| Spec-020 | 🚀 In Progress | Product Wiki (knowledge base, PR #109 pending) |
-| Spec-021 | 🚀 In Progress | UI Refinements (PR #107 open, awaiting merge) |
-| Spec-022 | 🚀 In Progress | Product Releases Notification (75/75 tasks, PR #108 open, M1 setup complete) |
+| Spec-020 | ✅ Complete | Product Wiki v1 (knowledge base, research phase, PR #109) |
+| Spec-021 | ✅ Complete | Product Wiki v2 (role-based docs, 9 phases, PR #107 merged) |
+| Spec-022 | ✅ Complete | Product Releases Notification (75/75 tasks, PR #108 merged, awaiting M1 setup) |
 
 ## Governance (CONSTITUTION.md)
 
@@ -407,8 +407,35 @@ No active sprint. All specs complete.
 - **Mandamento XIII**: ALL dependencies (infra, APIs, backend, DB, secrets, CI/CD) MUST be explicit in the execution plan. Code without its dependencies is broken code.
 
 ## Active Technologies
-- TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4, Firebase SDK 11 — existing stack, no new packages (021-product-wiki)
-- N/A — static content, no database (021-product-wiki)
+- TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4, Firebase SDK 11 — existing stack, no new packages
+- Python 3.12 FastAPI, SQLAlchemy 2.0 async, httpx (async GitHub API client) — existing stack for Spec-022
 
-## Recent Changes
-- 021-product-wiki: Added TypeScript 5+ / Svelte 5 runes + SvelteKit 2, Tailwind CSS 4, Firebase SDK 11 — existing stack, no new packages
+## Recent Changes (Spec-022: Product Releases Notification)
+
+**New Services & Patterns:**
+- **`ReleaseNotificationService`** (`domain/services.py`) — Domain service for managing release state (mark-as-read, fetch unread count)
+- **`ReleaseSyncService`** (`domain/services.py`) — Domain service that orchestrates GitHub API fetches and updates database
+- **`GitHubReleasesAPI`** (`adapters/github/releases_api.py`) — Async HTTP client for GitHub releases API (rate-limit aware, exponential backoff)
+- **`ReleaseRepository`** & **`ReleaseNotificationStatusRepository`** — SQLAlchemy 2.0 async repos following hexagonal pattern
+- **Release domain models** — Frozen Pydantic models: `Release` (with `published_at`, `changelog`, `breaking_changes`), `ReleaseNotificationStatus` (with `user_id`, `release_id`, `read_at`)
+- **4 API endpoints**: `GET /api/v1/releases`, `GET /api/v1/releases/unread-count`, `PATCH /api/v1/releases/{id}/status`, `GET /api/v1/releases/{id}`, plus admin endpoint `POST /api/v1/admin/releases/sync`
+
+**Frontend (Svelte 5 Runes):**
+- **`ReleaseNotificationManager`** — Container component exported to Navbar; manages polling, dropdown visibility, detail panel state
+- **`BellIcon`** — Bell icon with badge counter, polling every 120s, dropdown toggle
+- **`ReleasesDropdown`** — Dropdown panel showing 5 most recent releases + "View All" link
+- **`ReleaseItem`** — Individual release with "Mark read" button, visual unread indicator
+- **`ReleaseDetailPanel`** — Side panel (slides from right) showing full changelog, breaking changes, GitHub link; closes on Escape or X button
+- **`releases.ts` store** — Svelte store managing release list, unread count, loading state, dropdown/panel visibility
+- **`releases.ts` service** — API client with retry logic and auth token handling
+- **`/releases/` public page** — Archive of all releases with full changelog, linked to GitHub
+
+**Database:**
+- Alembic migration `023_add_release_tables.py` creates `Release` and `ReleaseNotificationStatus` tables with indices
+- **IMPORTANT**: Migration requires `alembic upgrade head` before API startup (not auto-applied in Cloud Run)
+
+**Manual Setup (Mandamento XIII: Dependencies in Plan):**
+- **M1: GitHub API Token** — Create Personal Access Token on GitHub (scope: `public_repo`), store in GCP Secret Manager as `GITHUB_TOKEN`, grant Cloud Run service account access
+- **M2: Database Migration** — Run `alembic upgrade head` to create Release tables
+- **Startup Validation** — API checks `GITHUB_TOKEN` env var on startup; fails loudly if missing (prevents silent failures)
+- **Automatic Sync** — Deployed Cloud Run includes Cloud Tasks trigger to sync releases daily after API deploy (prevents stale data)

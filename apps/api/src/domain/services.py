@@ -9,6 +9,8 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import structlog
+
 from src.domain.exceptions import (
     ActionItemNotFoundError,
     ApiKeyInvalidError,
@@ -1055,18 +1057,19 @@ class ReleaseNotificationService:
         self._release_repo = release_repo
         self._notification_repo = notification_repo
 
-    async def get_unread_releases(self, user_id: UUID, limit: int = 10) -> list[tuple[Release, bool]]:
-        """Get unread releases for user, sorted unread-first then by date desc."""
+    async def get_unread_releases(
+        self, user_id: UUID, limit: int = 10
+    ) -> list[tuple[Release, ReleaseNotificationStatus | None]]:
+        """Get unread releases for user, sorted unread-first then by date desc. Returns (release, status_or_none)."""
         releases = await self._release_repo.get_all(limit=limit)
-        results: list[tuple[Release, bool]] = []
+        results: list[tuple[Release, ReleaseNotificationStatus | None]] = []
 
         for release in releases:
             status = await self._notification_repo.get_by_user_and_release(user_id, release.id)
-            is_read = status.is_read if status else False
-            results.append((release, is_read))
+            results.append((release, status))
 
         # Sort: unread first (False < True), then by published_date descending
-        results.sort(key=lambda x: (x[1], -x[0].published_date.timestamp()))
+        results.sort(key=lambda x: (x[1] is not None and x[1].is_read, -x[0].published_date.timestamp()))
         return results
 
     async def get_unread_count(self, user_id: UUID) -> int:
@@ -1086,7 +1089,12 @@ class ReleaseSyncService:
     """Service to sync GitHub releases into database (Phase 5)."""
 
     def __init__(self, release_repo: Any, github_client: Any) -> None:
-        """Initialize with injected repositories."""
+        """Initialize with injected repositories.
+
+        Args:
+            release_repo: ReleaseRepository instance with create() and get_by_version() methods
+            github_client: GitHubReleasesApiClient instance with fetch_latest_releases() method
+        """
         self._release_repo = release_repo
         self._github_client = github_client
 
@@ -1098,6 +1106,7 @@ class ReleaseSyncService:
             raise RuntimeError(f"Failed to fetch releases from GitHub: {e}") from e
 
         synced_count = 0
+        log = structlog.get_logger()
         for release in github_releases:
             try:
                 existing = await self._release_repo.get_by_version(release.version)
@@ -1106,7 +1115,7 @@ class ReleaseSyncService:
                     synced_count += 1
             except Exception as e:
                 # Log and continue on sync error
-                print(f"Failed to sync release {release.version}: {e}")
+                log.warning("failed_to_sync_release", version=release.version, error=str(e))
                 continue
 
         return synced_count

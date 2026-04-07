@@ -1,9 +1,14 @@
 <script lang="ts">
+	import DOMPurify from 'dompurify';
 	import { markAsRead } from '$lib/services/releases';
 	import { releasesStore } from '$lib/stores/releases';
 
 	let { release = $state(null) } = $props();
 	let isMarking = $state(false);
+
+	function sanitizeHtml(html: string): string {
+		return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 'code', 'pre', 'ul', 'ol', 'li', 'a', 'br', 'blockquote'] });
+	}
 
 	// Auto-mark as read on mount
 	$effect(async () => {
@@ -85,7 +90,7 @@
 				<div class="mb-6">
 					<h3 class="text-sm font-semibold text-text mb-3">Changelog</h3>
 					<div class="prose prose-sm text-text-muted space-y-4">
-						{@html release.changelog_html}
+						{@html sanitizeHtml(release.changelog_html)}
 					</div>
 				</div>
 			{:else}

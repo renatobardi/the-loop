@@ -107,11 +107,8 @@ async def get_releases(
     """Get recent releases with read status for authenticated user."""
     results = await service.get_unread_releases(current_user.id, limit=10)
     items = [
-        ReleaseWithStatusResponse.from_domain(release, None) if not is_read else ReleaseWithStatusResponse(
-            release=ReleaseResponse.from_domain(release),
-            is_read=True,
-        )
-        for release, is_read in results
+        ReleaseWithStatusResponse.from_domain(release, status)
+        for release, status in results
     ]
     return ReleasesListResponse(items=items, total=len(items))
 

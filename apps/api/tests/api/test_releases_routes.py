@@ -70,12 +70,21 @@ async def test_get_release_detail_returns_404_for_missing_release(client: AsyncC
 
 @pytest.mark.asyncio
 async def test_releases_endpoint_respects_rate_limit(client: AsyncClient, auth_headers: dict):
-    """Test that releases endpoint respects rate limiting."""
-    # Make multiple rapid requests
-    for _ in range(61):  # Exceeds 60/minute limit
+    """Test that releases endpoint respects rate limiting (60/minute)."""
+    # Make multiple rapid requests and track responses
+    rate_limited_response_found = False
+    response_codes = []
+
+    for i in range(65):  # Exceeds 60/minute limit
         response = await client.get("/api/v1/releases", headers=auth_headers)
+        response_codes.append(response.status_code)
+
+        # Once we hit rate limit, all subsequent requests should fail
         if response.status_code == 429:
-            assert True
-            return
-    # If we get here, at least we verified the endpoint is working
-    assert True
+            rate_limited_response_found = True
+            # Verify all remaining responses are also 429
+            for remaining_code in response_codes[i + 1:]:
+                assert remaining_code == 429, f"Expected 429 after rate limit, got {remaining_code}"
+            break
+
+    assert rate_limited_response_found, f"Expected rate limit (429) but got codes: {set(response_codes)}"

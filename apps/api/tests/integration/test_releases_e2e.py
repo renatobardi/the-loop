@@ -1,10 +1,12 @@
 """End-to-end integration tests for Product Releases Notification (Phase 5)."""
 
-import pytest
 from datetime import UTC, datetime
 from uuid import uuid4
+
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+import pytest
 
 from src.domain.models import Release
 

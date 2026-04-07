@@ -10,6 +10,7 @@ from src.adapters.postgres.release_repository import ReleaseRepository
 from src.api.deps import get_session, limiter, require_admin
 from src.domain.services import ReleaseSyncService
 
+
 router = APIRouter(prefix="/api/v1/admin/releases", tags=["admin-releases"])
 
 

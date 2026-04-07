@@ -64,6 +64,7 @@ class ReleaseRepository:
         )
         self.session.add(row)
         await self.session.flush()
+        await self.session.commit()
         return self._row_to_domain(row)
 
     async def update(self, release_id: UUID, **kwargs: Any) -> Release:
@@ -78,6 +79,7 @@ class ReleaseRepository:
 
         row.updated_at = datetime.now(UTC)
         await self.session.flush()
+        await self.session.commit()
         return self._row_to_domain(row)
 
     @staticmethod

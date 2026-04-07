@@ -1,4 +1,5 @@
 """Admin routes for releases management (Phase 5 - GitHub Integration)."""
+
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, status as http_status

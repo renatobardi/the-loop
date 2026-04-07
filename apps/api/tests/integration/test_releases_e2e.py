@@ -1,4 +1,5 @@
 """End-to-end integration tests for Product Releases Notification (Phase 5)."""
+
 from datetime import UTC, datetime
 from uuid import uuid4
 

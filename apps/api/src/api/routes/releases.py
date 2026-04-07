@@ -1,4 +1,5 @@
 """API routes for Product Releases Notification (Phase 5)."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status as http_status

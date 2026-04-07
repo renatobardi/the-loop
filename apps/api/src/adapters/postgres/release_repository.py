@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 from sqlalchemy import select, desc
 
 from src.adapters.postgres.models import ReleaseRow

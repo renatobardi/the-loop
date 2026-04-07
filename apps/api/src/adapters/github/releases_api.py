@@ -1,4 +1,7 @@
-"""GitHub Releases API client for fetching product releases (Phase 5 Product Releases Notification)."""
+"""GitHub Releases API client for fetching product releases.
+
+Phase 5 Product Releases Notification feature.
+"""
 
 import re
 from datetime import datetime
@@ -39,12 +42,16 @@ class GitHubReleasesApiClient:
             headers["Accept"] = "application/vnd.github.v3+json"
 
         try:
-            response = await self.client.get(url, headers=headers, params={"per_page": per_page})
+            response = await self.client.get(
+                url, headers=headers, params={"per_page": per_page}
+            )
             response.raise_for_status()
         except httpx.RequestError as e:
-            raise RuntimeError(f"Failed to fetch releases from GitHub: {e}") from e
+            msg = f"Failed to fetch releases from GitHub: {e}"
+            raise RuntimeError(msg) from e
         except httpx.HTTPStatusError as e:
-            raise RuntimeError(f"GitHub API error ({e.response.status_code}): {e.response.text}") from e
+            msg = f"GitHub API error ({e.response.status_code}): {e.response.text}"
+            raise RuntimeError(msg) from e
 
         releases: list[Release] = []
         data = response.json()
@@ -89,21 +96,27 @@ class GitHubReleasesApiClient:
             for pattern in breaking_patterns
         )
 
+        # Deterministic UUID from GitHub release ID (prevents duplicates on resync)
+        release_id = uuid5(NAMESPACE_URL, f"github:{item['id']}")
+
+        created_at_str = item.get(
+            "created_at", datetime.now(datetime.UTC).isoformat()
+        ).replace("Z", "+00:00")
+        updated_at_str = item.get(
+            "updated_at", datetime.now(datetime.UTC).isoformat()
+        ).replace("Z", "+00:00")
+
         return Release(
-            id=uuid5(NAMESPACE_URL, f"github:{item['id']}"),  # Deterministic UUID based on GitHub release ID
+            id=release_id,
             title=item.get("name") or item.get("tag_name", "Untitled Release"),
             version=item.get("tag_name", "unknown"),
             published_date=published_date,
             summary=self._extract_summary(changelog_body),
-            changelog_html=changelog_body,  # Store raw markdown, will be rendered on frontend
+            changelog_html=changelog_body,  # Rendered on frontend with sanitization
             breaking_changes_flag=breaking_changes_flag,
-            documentation_url=item.get("html_url"),  # Link to GitHub release page
-            created_at=datetime.fromisoformat(
-                item.get("created_at", datetime.now(datetime.UTC).isoformat()).replace("Z", "+00:00")
-            ),
-            updated_at=datetime.fromisoformat(
-                item.get("updated_at", datetime.now(datetime.UTC).isoformat()).replace("Z", "+00:00")
-            ),
+            documentation_url=item.get("html_url"),  # Link to GitHub release
+            created_at=datetime.fromisoformat(created_at_str),
+            updated_at=datetime.fromisoformat(updated_at_str),
         )
 
     @staticmethod

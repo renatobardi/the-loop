@@ -1060,7 +1060,11 @@ class ReleaseNotificationService:
     async def get_unread_releases(
         self, user_id: UUID, limit: int = 10
     ) -> list[tuple[Release, ReleaseNotificationStatus | None]]:
-        """Get unread releases for user, sorted unread-first then by date desc. Returns (release, status_or_none)."""
+        """Get unread releases for user.
+
+        Sorted by unread-first then by date descending.
+        Returns list of (release, status_or_none) tuples.
+        """
         releases = await self._release_repo.get_all(limit=limit)
         results: list[tuple[Release, ReleaseNotificationStatus | None]] = []
 
@@ -1068,8 +1072,13 @@ class ReleaseNotificationService:
             status = await self._notification_repo.get_by_user_and_release(user_id, release.id)
             results.append((release, status))
 
-        # Sort: unread first (False < True), then by published_date descending
-        results.sort(key=lambda x: (x[1] is not None and x[1].is_read, -x[0].published_date.timestamp()))
+        # Sort: unread first, then by published_date descending
+        def sort_key(x: tuple[Release, ReleaseNotificationStatus | None]) -> tuple[bool, float]:
+            is_read = x[1] is not None and x[1].is_read
+            timestamp = -x[0].published_date.timestamp()
+            return (is_read, timestamp)
+
+        results.sort(key=sort_key)
         return results
 
     async def get_unread_count(self, user_id: UUID) -> int:

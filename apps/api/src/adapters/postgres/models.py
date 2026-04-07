@@ -313,12 +313,20 @@ class ReleaseRow(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    version: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
-    published_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    version: Mapped[str] = mapped_column(
+        String(50), nullable=False, unique=True, index=True
+    )
+    published_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     changelog_html: Mapped[str | None] = mapped_column(Text, nullable=True)
-    breaking_changes_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    documentation_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    breaking_changes_flag: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    documentation_url: Mapped[str | None] = mapped_column(
+        String(2048), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
@@ -328,14 +336,19 @@ class ReleaseRow(Base):
 
 
 class ReleaseNotificationStatusRow(Base):
-    """SQLAlchemy model for release_notification_status table (Phase 5 Product Releases Notification)."""
+    """SQLAlchemy model for release notification status table.
+
+    Phase 5 Product Releases Notification feature.
+    """
 
     __tablename__ = "release_notification_status"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     release_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )

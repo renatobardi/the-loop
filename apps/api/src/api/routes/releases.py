@@ -54,7 +54,9 @@ class ReleaseWithStatusResponse(BaseModel):
     read_at: str | None = None
 
     @classmethod
-    def from_domain(cls, release: Release, status: ReleaseNotificationStatus | None) -> "ReleaseWithStatusResponse":
+    def from_domain(
+        cls, release: Release, status: ReleaseNotificationStatus | None
+    ) -> "ReleaseWithStatusResponse":
         return cls(
             release=ReleaseResponse.from_domain(release),
             is_read=status.is_read if status else False,
@@ -136,9 +138,13 @@ async def mark_release_as_read(
         notification_status = await service.mark_as_read(current_user.id, release_id)
         return ReleaseNotificationStatusResponse.from_domain(notification_status)
     except ReleaseNotFoundError as e:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e)
+        ) from e
     except Exception as e:
-        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
 
 
 @router.get("/{release_id}", response_model=ReleaseResponse)

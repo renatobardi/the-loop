@@ -1,11 +1,7 @@
 """API tests for releases routes (Phase 5)."""
 
 import pytest
-from datetime import UTC, datetime
-from uuid import uuid4
 from httpx import AsyncClient
-
-from src.domain.models import Release
 
 
 @pytest.mark.asyncio

@@ -80,7 +80,9 @@ class ReleaseNotificationStatusRepository:
             created_at=datetime.now(UTC),
         )
 
-    async def get_recent_by_user(self, user_id: UUID, limit: int = 10) -> list[ReleaseNotificationStatus]:
+    async def get_recent_by_user(
+        self, user_id: UUID, limit: int = 10
+    ) -> list[ReleaseNotificationStatus]:
         """Get recent notifications for user, including both read and unread."""
         query = (
             select(ReleaseNotificationStatusRow)

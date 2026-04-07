@@ -225,3 +225,18 @@ jobs:
             GITHUB_TOKEN=GITHUB_TOKEN:latest
           env_vars: |
             CORS_ORIGINS=https://loop.oute.pro,http://localhost:5173
+
+      - name: Sync releases from GitHub
+        continue-on-error: true
+        run: |
+          # Wait for API to be ready
+          echo "Waiting for API to be ready..."
+          sleep 30
+
+          # Sync releases
+          echo "Syncing releases from GitHub..."
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_SYNC_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://api.loop.oute.pro/api/v1/admin/releases/sync \
+            --max-time 30 || echo "Release sync failed (non-blocking)"

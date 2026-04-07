@@ -16,6 +16,8 @@ __all__ = [
     "PostmortumAlreadyExistsError",
     "PostmortumLockedError",
     "PostmortumNotFoundError",
+    "ReleaseAlreadyExistsError",
+    "ReleaseNotFoundError",
     "ResponderNotFoundError",
     "RuleVersionNotFoundError",
     "ScanNotFoundError",
@@ -177,3 +179,18 @@ class ScanNotFoundError(Exception):
     def __init__(self, scan_id: str) -> None:
         self.scan_id = scan_id
         super().__init__(f"Scan not found: {scan_id}")
+
+
+# ─── Phase 5: Product Releases Notification ───────────────────────────────
+
+
+class ReleaseNotFoundError(Exception):
+    def __init__(self, release_id: str) -> None:
+        self.release_id = release_id
+        super().__init__(f"Release not found: {release_id}")
+
+
+class ReleaseAlreadyExistsError(Exception):
+    def __init__(self, version: str) -> None:
+        self.version = version
+        super().__init__(f"Release with version {version} already exists")

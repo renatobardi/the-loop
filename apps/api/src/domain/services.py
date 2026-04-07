@@ -9,6 +9,8 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import structlog
+
 from src.domain.exceptions import (
     ActionItemNotFoundError,
     ApiKeyInvalidError,
@@ -36,6 +38,8 @@ from src.domain.models import (
     Postmortem,
     PostmortemStatus,
     PostmortumSeverity,
+    Release,
+    ReleaseNotificationStatus,
     ResponderRole,
     RootCauseCategory,
     RuleVersion,
@@ -1040,3 +1044,90 @@ class ScanService:
 
     async def get_global_metrics(self) -> dict[str, object]:
         return await self._repo.get_global_metrics()
+
+
+# ─── Phase 5: Product Releases Notification ───────────────────────────────
+
+
+class ReleaseNotificationService:
+    """Domain service for release notifications and read/unread status management."""
+
+    def __init__(self, release_repo: Any, notification_repo: Any) -> None:
+        """Initialize with injected repositories."""
+        self._release_repo = release_repo
+        self._notification_repo = notification_repo
+
+    async def get_unread_releases(
+        self, user_id: UUID, limit: int = 10
+    ) -> list[tuple[Release, ReleaseNotificationStatus | None]]:
+        """Get unread releases for user.
+
+        Sorted by unread-first then by date descending.
+        Returns list of (release, status_or_none) tuples.
+        """
+        releases = await self._release_repo.get_all(limit=limit)
+        results: list[tuple[Release, ReleaseNotificationStatus | None]] = []
+
+        for release in releases:
+            status = await self._notification_repo.get_by_user_and_release(user_id, release.id)
+            results.append((release, status))
+
+        # Sort: unread first, then by published_date descending
+        def sort_key(x: tuple[Release, ReleaseNotificationStatus | None]) -> tuple[bool, float]:
+            is_read = x[1] is not None and x[1].is_read
+            timestamp = -x[0].published_date.timestamp()
+            return (is_read, timestamp)
+
+        results.sort(key=sort_key)
+        return results
+
+    async def get_unread_count(self, user_id: UUID) -> int:
+        """Get count of unread releases for user."""
+        result = await self._notification_repo.get_unread_count(user_id)
+        return cast(int, result)
+
+    async def mark_as_read(self, user_id: UUID, release_id: UUID) -> ReleaseNotificationStatus:
+        """Mark a release as read for the user."""
+        result = await self._notification_repo.mark_as_read(user_id, release_id)
+        return cast(ReleaseNotificationStatus, result)
+
+    async def get_release_detail(self, release_id: UUID) -> Release:
+        """Get full release details by ID."""
+        result = await self._release_repo.get_by_id(release_id)
+        return cast(Release, result)
+
+
+class ReleaseSyncService:
+    """Service to sync GitHub releases into database (Phase 5)."""
+
+    def __init__(self, release_repo: Any, github_client: Any) -> None:
+        """Initialize with injected repositories.
+
+        Args:
+            release_repo: ReleaseRepository instance with create() and get_by_version() methods
+            github_client: GitHubReleasesApiClient instance with fetch_latest_releases() method
+        """
+        self._release_repo = release_repo
+        self._github_client = github_client
+
+    async def sync_releases(self) -> int:
+        """Fetch latest releases from GitHub and sync to database. Returns count synced."""
+        try:
+            github_releases = await self._github_client.fetch_latest_releases(per_page=20)
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch releases from GitHub: {e}") from e
+
+        synced_count = 0
+        log = structlog.get_logger()
+        for release in github_releases:
+            try:
+                existing = await self._release_repo.get_by_version(release.version)
+                if not existing:
+                    await self._release_repo.create(release)
+                    synced_count += 1
+            except Exception as e:
+                # Log and continue on sync error
+                log.warning("failed_to_sync_release", version=release.version, error=str(e))
+                continue
+
+        return synced_count

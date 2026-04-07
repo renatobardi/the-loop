@@ -225,3 +225,53 @@ jobs:
             GITHUB_TOKEN=GITHUB_TOKEN:latest
           env_vars: |
             CORS_ORIGINS=https://loop.oute.pro,http://localhost:5173
+
+      - name: Sync releases from GitHub
+        continue-on-error: true
+        run: |
+          # Validate required secret is set
+          if [ -z "${{ secrets.ADMIN_SYNC_TOKEN }}" ]; then
+            echo "WARNING: ADMIN_SYNC_TOKEN not configured. Release sync will be skipped."
+            exit 0
+          fi
+
+          # Wait for API to be ready with exponential backoff (max 60 seconds)
+          echo "Waiting for API to be ready..."
+          max_attempts=6
+          wait_time=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Health check attempt $attempt/$max_attempts (waiting ${wait_time}s)..."
+            sleep $wait_time
+
+            if curl -f -s https://api.loop.oute.pro/api/v1/health > /dev/null 2>&1; then
+              echo "API is ready"
+              break
+            fi
+
+            if [ $attempt -eq $max_attempts ]; then
+              echo "WARNING: API did not become ready after $(($wait_time * $max_attempts))s. Release sync will be attempted anyway."
+              break
+            fi
+
+            wait_time=$((wait_time + 10))
+            attempt=$((attempt + 1))
+          done
+
+          # Sync releases from GitHub
+          echo "Syncing releases from GitHub..."
+          sync_response=$(curl -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_SYNC_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://api.loop.oute.pro/api/v1/admin/releases/sync \
+            --max-time 30 2>/dev/null || echo "")
+
+          http_code=$(echo "$sync_response" | tail -n1)
+          body=$(echo "$sync_response" | head -n-1)
+
+          if [ "$http_code" = "200" ]; then
+            echo "Release sync succeeded: $body"
+          else
+            echo "WARNING: Release sync returned HTTP $http_code: $body"
+          fi

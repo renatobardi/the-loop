@@ -81,6 +81,11 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://theloop:theloop@localhost:5432/theloop_test
           PYTHONPATH: .
+      - name: Verify migrations
+        run: alembic current && alembic heads
+        env:
+          DATABASE_URL: postgresql+asyncpg://theloop:theloop@localhost:5432/theloop_test
+          PYTHONPATH: .
       - name: Test with coverage
         run: pytest --cov=src --cov-fail-under=80
         env:
